@@ -35,5 +35,5 @@ function init_headstart_admission()
   // instantiate the class for head start admission
   $admission       = new class_headstart_admission();
 
-  $admission->run;
+  //$admission->run;
 }
