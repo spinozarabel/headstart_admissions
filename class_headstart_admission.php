@@ -190,4 +190,9 @@ class class_headstart_admission
         echo "<pre>" . print_r($vAccount, true) ."</pre>";
     }
 
+    private function update_user_meta_form($ticket_id)
+    {
+        //
+    }
+
 }   // end of class bracket
