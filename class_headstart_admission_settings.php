@@ -5,7 +5,7 @@
  * @author Mostafa <mostafa.soufi@hotmail.com>
  * 
  */
-class headstart_admission_settings {
+class class_headstart_admission_settings {
 
     /**
      * Holds the values to be used in the fields callbacks

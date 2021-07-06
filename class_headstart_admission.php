@@ -55,7 +55,7 @@ class class_headstart_admission
 
     private function get_config()
     {
-      $this->config = include( __DIR__."/headstart_admission_config.php");
+      $this->config = include( __DIR__."/" . $this->plugin_name . "_config.php");
     }
 
     /**
