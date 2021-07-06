@@ -64,8 +64,6 @@ class class_headstart_admission
      */
     private function define_admin_hooks()
     {
-        if (!is_admin( )) return;
-
         // create a sub menu called Admissions in the Users menu
         add_action('admin_menu', [$this, 'add_my_menu']);
     }
