@@ -43,11 +43,18 @@ class class_headstart_admission
 	 */
 	public function __construct() 
     {
-		$this->version = HEADSTART_ADMISSION_VERSION ?? '1.0.0';
+		if ( defined( 'HEADSTART_ADMISSION_VERSION' ) ) 
+        {
+			$this->version = HEADSTART_ADMISSION_VERSION;
+		} else 
+        {
+			$this->version = '1.0.0';
+		}
 
 		$this->plugin_name = 'headstart_admission';
 
 		if (is_admin()) $this->define_admin_hooks();
+
 		$this->define_public_hooks();
         $this->get_config();
 
