@@ -81,7 +81,7 @@ class class_headstart_admission
     /**
      * 
      */
-    private function add_my_menu()
+    public function add_my_menu()
     {
         add_submenu_page( 
             'users.php',	                    // string $parent_slug
@@ -104,7 +104,7 @@ class class_headstart_admission
     /**
      * 
      */
-    private function render_admissions_page()
+    public function render_admissions_page()
     {
         echo "This is the admissions page where stuff about admissions is displayed";
     }
