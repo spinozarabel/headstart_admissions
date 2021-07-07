@@ -141,7 +141,7 @@ class class_headstart_admission
 
     private function test_sritoni_connection()
     {
-        $this->get_config;
+        $this->get_config();
         // read in the Moodle API config array
         $config			= $this->config;
         $moodle_url 	= $config["moodle_url"] . '/webservice/rest/server.php';
