@@ -169,11 +169,11 @@ class class_headstart_admission
         {
             // failed to communicate effectively to moodle server so exit
             echo nl2br("couldn't communicate to moodle server. \n");
-            //return;
+            return;
         }
-        //echo "<h3>Connection to moodle server was successfull: Here are the details of Moodle user object for id:73</h3>";
-        //$moodle_user   = $moodle_users["users"][0];
-	    echo "<pre>" . print_r($moodle_users, true) ."</pre>";
+        echo "<h3>Connection to moodle server was successfull: Here are the details of Moodle user object for id:73</h3>";
+        $moodle_user   = $moodle_users["users"][0];
+	    echo "<pre>" . print_r($moodle_user, true) ."</pre>";
     }
 
     private function test_cashfree_connection()
