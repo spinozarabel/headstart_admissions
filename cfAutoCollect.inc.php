@@ -28,7 +28,7 @@ class CfAutoCollect
     //const TEST_PRODUCTION  = "TEST";
     const VERBOSE          = false;
 
-    public function __construct($configfilepath, $site_name = null)
+    public function __construct($configfilepath, $site_name = null, $stage = 1)
     {
         $this->verbose      = self::VERBOSE;
 
@@ -45,7 +45,7 @@ class CfAutoCollect
             $api_key    = $this->config['api_key'];
             $api_secret = $this->config['api_secret'];
 
-            $stage          = $this->getoption("sritoni_settings", "production") ?? 0;
+            //$stage          = $this->getoption("sritoni_settings", "production") ?? 0;
 		}
 
         if ( defined("MOODLE_INTERNAL") )
