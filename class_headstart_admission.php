@@ -146,7 +146,7 @@ class class_headstart_admission
         }
     }
 
-    private function test_sritoni_connection()
+    public function test_sritoni_connection()
     {
         $this->get_config();
         // read in the Moodle API config array
