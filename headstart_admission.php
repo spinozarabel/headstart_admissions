@@ -12,6 +12,8 @@
 // no direct access allowed
 defined( 'ABSPATH' ) or die( 'No direct access allowed' );
 
+define( 'HEADSTART_ADMISSION_VERSION', '1.0.0' );
+
 require_once(__DIR__."/MoodleRest.php");   				           // Moodle REST API driver for PHP
 // file containing class for settings submenu and page
 require_once(__DIR__."/class_headstart_admission_settings.php");
