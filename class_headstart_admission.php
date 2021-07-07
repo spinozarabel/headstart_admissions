@@ -109,7 +109,7 @@ class class_headstart_admission
         echo "This is the admissions page where stuff about admissions is displayed";
     }
 
-    private function sritoni_tools_render()
+    public function sritoni_tools_render()
     {
         // this is for rendering the API test onto the sritoni_tools page
         ?>
