@@ -83,6 +83,8 @@ class class_headstart_admission
     {
         // on admission form submission update user meta with form data
         add_action( 'wpsc_ticket_created', [$this, 'update_user_meta_form'], 10, 1 );
+        
+        
     }
 
     /**
@@ -124,6 +126,7 @@ class class_headstart_admission
             <form action="" method="post" id="form1">
                 <input type="submit" name="button" 	value="test_SriToni_connection"/>
                 <input type="submit" name="button" 	value="test_cashfree_connection"/>
+                <input type="submit" name="button" 	value="test_code_fragment"/>
             </form>
 
             
@@ -138,6 +141,10 @@ class class_headstart_admission
 
             case 'test_cashfree_connection':
                 $this->test_cashfree_connection();
+                break;
+
+            case 'test_code_fragment':
+                $this->test_code_fragment();
                 break;
             
             default:
@@ -199,6 +206,17 @@ class class_headstart_admission
     private function update_user_meta_form($ticket_id)
     {
         //
+    }
+
+    public function test_code_fragment()
+    {
+        // tthe following piece of code gets executed and results displayed in the  SriToni tools page when button is pressed
+
+        // let's display all the tickets held bu a user given a userid
+        global $wpscfunction;
+        $ticket_id = 1;
+        $ticket_data = $wpscfunction->get_ticket($ticket_id);
+        echo "<pre>" . print_r($vAccount, true) ."</pre>";
     }
 
 }   // end of class bracket
