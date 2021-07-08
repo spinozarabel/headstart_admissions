@@ -216,7 +216,7 @@ class class_headstart_admission
         global $wpscfunction;
         $ticket_id = 1;
         $ticket_data = $wpscfunction->get_ticket($ticket_id);
-        echo "<pre>" . print_r($vAccount, true) ."</pre>";
+        echo "<pre>" . print_r($ticket_data, true) ."</pre>";
     }
 
 }   // end of class bracket
