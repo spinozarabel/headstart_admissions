@@ -83,6 +83,9 @@ class class_headstart_admission
     {
         // on admission form submission update user meta with form data
         add_action( 'wpsc_ticket_created', [$this, 'update_user_meta_form'], 10, 1 );
+
+        // do_action('wpsc_set_change_status', $ticket_id, $status_id, $prev_status);
+        add_action('wpsc_set_change_status', [$this, 'callback_status_changed'], 10,3);
         
         
     }
@@ -251,6 +254,14 @@ class class_headstart_admission
             echo nl2br($field->name . ": " . $value . "\n");
             
       }
+    }
+
+    public function callback_status_changed($ticket_id, $status_id, $prev_status)
+    {
+        global $wpscfunction;
+        
+        $ticket_data = $wpscfunction->get_ticket($ticket_id);
+        echo nl2br("ticket id: " . $ticket_id . " Previous status_id: " . $prev_status . "Current status: " . $status_id . "\n");
     }
 
 }   // end of class bracket
