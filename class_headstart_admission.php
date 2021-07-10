@@ -261,7 +261,23 @@ class class_headstart_admission
         global $wpscfunction;
 
         $ticket_data = $wpscfunction->get_ticket($ticket_id);
-        error_log("ticket id: " . $ticket_id . " Previous status_id: " . $prev_status . "Current status: " . $status_id . "\n");
+        error_log("ticket id: " . $ticket_id . " Previous status_id: " . $prev_status . " Current status: " . $status_id . "\n");
+
+        // add any logoc that you want here based on status
+        switch (true) 
+        {
+            case ($wpscfunction->get_status_name($status_id) === 'Admission Confirmed'):
+                // status changed to Admission confirmed.
+                // create a user account on SriToni for the user in this ticket
+                // extract the ticket details and pass parameters to sritoni create account function
+                error_log('yes, i came to the right place for sritoni user creation');
+
+                break;
+            
+            default:
+                error_log('The status changed to is NOT Admission Granted');
+                break;
+        }
     }
 
 }   // end of class bracket
