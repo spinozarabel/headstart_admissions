@@ -245,13 +245,12 @@ class class_headstart_admission
 
         foreach ($fields as $field) 
         {
-            $wpsc_tf_type = get_term_meta( $field->term_id, 'wpsc_tf_type',true);
             $value = $wpscfunction->get_ticket_meta($ticket_id,$field->slug,true);
             if($value)
             {
                 $fields_format->get_field_val($field);
             }
-            echo "<pre>" . print_r($field, true) ."</pre>";
+            echo nl2br($field->namne . ": " . $field_format . "\n");
       }
     }
 
