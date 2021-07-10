@@ -246,14 +246,8 @@ class class_headstart_admission
         foreach ($fields as $field) 
         {
             if (empty($field)) continue;
-            
-            $value = $wpscfunction->get_ticket_meta($ticket_id, $field->slug, true);
-            if($value)
-            {
-                $fields_format->get_field_val($field);
 
-                echo nl2br($field->namne . ": " . $fields_format . "\n");
-            }
+            echo "<pre>" . print_r($field, true) ."</pre>";
             
       }
     }
