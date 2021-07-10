@@ -145,7 +145,7 @@ class class_headstart_admission
                 break;
 
             case 'test_get_ticket':
-                $this->test_code_fragment();
+                $this->test_get_ticket();
                 break;
 
             case 'test_get_ticket_data':
