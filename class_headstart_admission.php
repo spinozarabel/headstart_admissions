@@ -126,7 +126,8 @@ class class_headstart_admission
             <form action="" method="post" id="form1">
                 <input type="submit" name="button" 	value="test_SriToni_connection"/>
                 <input type="submit" name="button" 	value="test_cashfree_connection"/>
-                <input type="submit" name="button" 	value="test_code_fragment"/>
+                <input type="submit" name="button" 	value="test_get_ticket"/>
+                <input type="submit" name="button" 	value="test_get_ticket_data"/>
             </form>
 
             
@@ -143,8 +144,12 @@ class class_headstart_admission
                 $this->test_cashfree_connection();
                 break;
 
-            case 'test_code_fragment':
+            case 'test_get_ticket':
                 $this->test_code_fragment();
+                break;
+
+            case 'test_get_ticket_data':
+                $this->test_get_ticket_data();
                 break;
             
             default:
@@ -208,15 +213,46 @@ class class_headstart_admission
         //
     }
 
-    public function test_code_fragment()
+    public function test_get_ticket()
     {
         // tthe following piece of code gets executed and results displayed in the  SriToni tools page when button is pressed
-
-        // let's display all the tickets held bu a user given a userid
         global $wpscfunction;
         $ticket_id = 1;
         $ticket_data = $wpscfunction->get_ticket($ticket_id);
         echo "<pre>" . print_r($ticket_data, true) ."</pre>";
+    }
+
+    public function test_get_ticket_meta()
+    {
+        // the folowing piece of code dumps details of ticket id =1;
+        global $wpscfunction;
+        $ticket_id = 1;
+        
+        $fields = get_terms([
+            'taxonomy'   => 'wpsc_ticket_custom_fields',
+            'hide_empty' => false,
+            'orderby'    => 'meta_value_num',
+            'meta_key'	 => 'wpsc_tf_load_order',
+            'order'    	 => 'ASC',
+            'meta_query' => array(
+                array(
+                    'key'       => 'agentonly',
+                    'value'     => '0',
+                    'compare'   => '='
+                )
+            ),
+        ]);
+
+        foreach ($fields as $field) 
+        {
+            $wpsc_tf_type = get_term_meta( $field->term_id, 'wpsc_tf_type',true);
+            $value = $wpscfunction->get_ticket_meta($ticket_id,$field->slug,true);
+            if($value)
+            {
+                $fields_format->get_field_val($field);
+            }
+            echo "<pre>" . print_r($field, true) ."</pre>";
+      }
     }
 
 }   // end of class bracket
