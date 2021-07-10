@@ -259,9 +259,9 @@ class class_headstart_admission
     public function callback_status_changed($ticket_id, $status_id, $prev_status)
     {
         global $wpscfunction;
-        
+
         $ticket_data = $wpscfunction->get_ticket($ticket_id);
-        echo nl2br("ticket id: " . $ticket_id . " Previous status_id: " . $prev_status . "Current status: " . $status_id . "\n");
+        error_log("ticket id: " . $ticket_id . " Previous status_id: " . $prev_status . "Current status: " . $status_id . "\n");
     }
 
 }   // end of class bracket
