@@ -222,7 +222,7 @@ class class_headstart_admission
         echo "<pre>" . print_r($ticket_data, true) ."</pre>";
     }
 
-    public function test_get_ticket_meta()
+    public function test_get_ticket_data()
     {
         // the folowing piece of code dumps details of ticket id =1;
         global $wpscfunction;
