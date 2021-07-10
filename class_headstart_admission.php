@@ -261,6 +261,7 @@ class class_headstart_admission
         global $wpscfunction;
 
         $ticket_data = $wpscfunction->get_ticket($ticket_id);
+        
         error_log("ticket id: " . $ticket_id . " Previous status_id: " . $prev_status . " Current status: " . $status_id . "\n");
 
         // add any logoc that you want here based on status
