@@ -394,9 +394,13 @@ class class_headstart_admission
             ]
         );
 
-        $product_id = 525;
+        // Admission fee to HSET product ID
+        $product_id = 581;
+
         $endpoint   = "products/" . $product_id;
+
         $data = [
+                    'name'          => 'This is a new description programmed from API',
                     'regular_price' => '24.54'
                 ];
         $product = $woocommerce->put($endpoint, $data);
