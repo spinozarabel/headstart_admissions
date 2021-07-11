@@ -354,8 +354,8 @@ class class_headstart_admission
         // instantiate woocommerce API class
         $woocommerce = new Client(
             'https://sritoni.com', 
-            $this->config['wookey'], 
-            $this->config['woosec'],
+            $this->config['wckey'], 
+            $this->config['wcsec'],
             [
                 'wp_api'    => true,
                 'version'   => 'wc/v3',
