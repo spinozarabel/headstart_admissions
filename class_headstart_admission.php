@@ -279,7 +279,7 @@ class class_headstart_admission
 
             echo nl2br($field->name . ": " . $value . "\n");
             
-      }
+        }
     }
 
     public function callback_status_changed($ticket_id, $status_id, $prev_status)
