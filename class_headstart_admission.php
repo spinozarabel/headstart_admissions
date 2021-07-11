@@ -373,7 +373,7 @@ class class_headstart_admission
         $endpoint   = "orders/" . $order_id;
         $params     = array($order_id);
         $order      = $woocommerce->get($endpoint);
-        echo "<pre>" . print_r($orders, true) ."</pre>";
+        echo "<pre>" . print_r($order, true) ."</pre>";
     }
 
     private function test_update_wc_product()
@@ -400,7 +400,7 @@ class class_headstart_admission
                     'regular_price' => '24.54'
                 ];
         $product = $woocommerce->put($endpoint, $data);
-        echo "<pre>" . print_r($orders, true) ."</pre>";
+        echo "<pre>" . print_r($product, true) ."</pre>";
     }
 
 }   // end of class bracket
