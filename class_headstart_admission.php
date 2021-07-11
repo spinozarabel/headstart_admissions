@@ -437,7 +437,7 @@ class class_headstart_admission
 
         $product_data = [
                             'name'          => 'This is a new description programmed from API',
-                            'regular_price' => '24.54'
+                            'regular_price' => '39.99'
                         ];
         $product = $woocommerce->put($endpoint, $product_data);
 
@@ -473,6 +473,20 @@ class class_headstart_admission
                 [
                     'product_id'    => 581,
                     'quantity'      => 1
+                ],
+            ],
+            'meta_data' => [
+                [
+                    'key' => 'va_id',
+                    'value' => '0073'
+                ],
+                [
+                    'key' => 'sritoni_institution',
+                    'value' => 'admission'
+                ],
+                [
+                    'key' => 'grade_for_current_fees',
+                    'value' => 'admission'
                 ],
             ],
         ];
