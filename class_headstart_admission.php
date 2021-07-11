@@ -353,7 +353,7 @@ class class_headstart_admission
 
         // instantiate woocommerce API class
         $woocommerce = new Client(
-            'https://sritoni.org/hset-payments/', 
+            'https://sritoni.org/hset-payments/wp-json/wc/v3/', 
             $this->config['wckey'], 
             $this->config['wcsec'],
             [
@@ -365,7 +365,7 @@ class class_headstart_admission
         );
 
         $order_id =576;
-        $endpoint = "wp-json/wc/v3/orders/" . $order_id;
+        $endpoint = "orders/" . $order_id;
         $params = array($order_id);
         $orders = $woocommerce->get($endpoint);
         echo "<pre>" . print_r($orders, true) ."</pre>";
