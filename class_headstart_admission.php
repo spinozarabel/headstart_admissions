@@ -365,7 +365,7 @@ class class_headstart_admission
 
         $order_id =576;
         $endpoint = "wp-json/wc/v3/orders";
-        $params = array($order_id);
+        $params = array('id' => $order_id);
         $orders = $woocommerce->get($endpoint, $params);
         echo "<pre>" . print_r($orders, true) ."</pre>";
     }
