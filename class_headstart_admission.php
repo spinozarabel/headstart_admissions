@@ -414,6 +414,22 @@ class class_headstart_admission
 
     private function test_create_wc_order()
     {
+        // run this since we may be changing API keys. Once in production remove this
+        $this->get_config();
+
+        // instantiate woocommerce API class
+        $woocommerce = new Client(
+            'https://sritoni.org/hset-payments/', 
+            $this->config['wckey'], 
+            $this->config['wcsec'],
+            [
+                'wp_api'            => true,
+                'version'           => 'wc/v3',
+                'query_string_auth' => true,
+
+            ]
+        );
+
         $data = [
             'payment_method' => 'vabacs',
             'payment_method_title' => 'Offline Direct bank transfer to Head Start Educational Trust',
