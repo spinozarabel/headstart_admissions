@@ -139,6 +139,7 @@ class class_headstart_admission
                 <input type="submit" name="button" 	value="test_get_ticket_data"/>
                 <input type="submit" name="button" 	value="test_get_wc_order"/>
                 <input type="submit" name="button" 	value="test_update_wc_product"/>
+                <input type="submit" name="button" 	value="test_create_wc_order"/>
             </form>
 
             
