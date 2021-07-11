@@ -170,6 +170,10 @@ class class_headstart_admission
             case 'test_update_wc_product':
                 $this->test_update_wc_product();
                 break;
+
+                case 'test_create_wc_order':
+                    $this->test_create_wc_order();
+                    break;
             
             default:
                 // do nothing
@@ -407,7 +411,7 @@ class class_headstart_admission
         echo "<pre>" . print_r($product, true) ."</pre>";
     }
 
-    private function create_wc_order()
+    private function test_create_wc_order()
     {
         $data = [
             'payment_method' => 'vabacs',
