@@ -431,35 +431,37 @@ class class_headstart_admission
         );
 
         $data = [
-            'payment_method' => 'vabacs',
-            'payment_method_title' => 'Offline Direct bank transfer to Head Start Educational Trust',
-            'set_paid' => false,
+            'customer_id'           => 5,       // order assigned to user sritoni1 by this id
+            'payment_method'        => 'vabacs',
+            'payment_method_title'  => 'Offline Direct bank transfer to Head Start Educational Trust',
+            'set_paid'              => false,
+            'status'                => 'on-hold',
             'billing' => [
-                'first_name' => 'John',
-                'last_name' => 'Doe',
-                'address_1' => '969 Market',
-                'address_2' => '',
-                'city' => 'San Francisco',
-                'state' => 'CA',
-                'postcode' => '94103',
-                'country' => 'US',
-                'email' => 'madhu.avasarala@gmail.com',
-                'phone' => '(821) 758-5659'
+                'first_name'    => 'John',
+                'last_name'     => 'Doe',
+                'address_1'     => '969 Market',
+                'address_2'     => '',
+                'city'          => 'San Francisco',
+                'state'         => 'CA',
+                'postcode'      => '94103',
+                'country'       => 'US',
+                'email'         => 'madhu.avasarala@gmail.com',
+                'phone'         => '(821) 758-5659'
             ],
             'shipping' => [
-                'first_name' => 'John',
-                'last_name' => 'Doe',
-                'address_1' => '969 Market',
-                'address_2' => '',
-                'city' => 'San Francisco',
-                'state' => 'CA',
-                'postcode' => '94103',
-                'country' => 'US'
+                'first_name'    => 'John',
+                'last_name'     => 'Doe',
+                'address_1'     => '969 Market',
+                'address_2'     => '',
+                'city'          => 'San Francisco',
+                'state'         => 'CA',
+                'postcode'      => '94103',
+                'country'       => 'US'
             ],
             'line_items' => [
                 [
-                    'product_id' => 581,
-                    'quantity' => 1
+                    'product_id'    => 581,
+                    'quantity'      => 1
                 ],
             ],
         ];
