@@ -542,6 +542,8 @@ class class_headstart_admission
     {
         global $wpscfunction;
 
+        $ticket_id = 6;
+        
         $create_account_obj = new stdClass;
         
         $fields = get_terms([
