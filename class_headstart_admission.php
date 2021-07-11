@@ -255,7 +255,7 @@ class class_headstart_admission
     {
         // the folowing piece of code dumps details of ticket id =1;
         global $wpscfunction;
-        $ticket_id = 1;
+        $ticket_id = 6;
         
         $fields = get_terms([
             'taxonomy'   => 'wpsc_ticket_custom_fields',
@@ -543,7 +543,7 @@ class class_headstart_admission
         global $wpscfunction;
 
         $ticket_id = 6;
-        
+
         $create_account_obj = new stdClass;
         
         $fields = get_terms([
