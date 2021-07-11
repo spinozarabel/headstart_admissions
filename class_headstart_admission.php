@@ -407,4 +407,43 @@ class class_headstart_admission
         echo "<pre>" . print_r($product, true) ."</pre>";
     }
 
+    private function create_wc_order()
+    {
+        $data = [
+            'payment_method' => 'vabacs',
+            'payment_method_title' => 'Offline Direct bank transfer to Head Start Educational Trust',
+            'set_paid' => false,
+            'billing' => [
+                'first_name' => 'John',
+                'last_name' => 'Doe',
+                'address_1' => '969 Market',
+                'address_2' => '',
+                'city' => 'San Francisco',
+                'state' => 'CA',
+                'postcode' => '94103',
+                'country' => 'US',
+                'email' => 'madhu.avasarala@gmail.com',
+                'phone' => '(821) 758-5659'
+            ],
+            'shipping' => [
+                'first_name' => 'John',
+                'last_name' => 'Doe',
+                'address_1' => '969 Market',
+                'address_2' => '',
+                'city' => 'San Francisco',
+                'state' => 'CA',
+                'postcode' => '94103',
+                'country' => 'US'
+            ],
+            'line_items' => [
+                [
+                    'product_id' => 581,
+                    'quantity' => 1
+                ],
+            ],
+        ];
+        $order_created = $woocommerce->post('orders', $data);
+        echo "<pre>" . print_r($order_created, true) ."</pre>";
+    }
+
 }   // end of class bracket
