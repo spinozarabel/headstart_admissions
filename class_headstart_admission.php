@@ -430,7 +430,18 @@ class class_headstart_admission
             ]
         );
 
-        $data = [
+        // Admission fee to HSET product ID
+        $product_id = 581;
+
+        $endpoint   = "products/" . $product_id;
+
+        $product_data = [
+                            'name'          => 'This is a new description programmed from API',
+                            'regular_price' => '24.54'
+                        ];
+        $product = $woocommerce->put($endpoint, $product_data);
+
+        $order_data = [
             'customer_id'           => 5,       // order assigned to user sritoni1 by this id
             'payment_method'        => 'vabacs',
             'payment_method_title'  => 'Offline Direct bank transfer to Head Start Educational Trust',
@@ -465,7 +476,7 @@ class class_headstart_admission
                 ],
             ],
         ];
-        $order_created = $woocommerce->post('orders', $data);
+        $order_created = $woocommerce->post('orders', $order_data);
         echo "<pre>" . print_r($order_created, true) ."</pre>";
     }
 
