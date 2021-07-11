@@ -20,6 +20,12 @@
  * @since      1.0.0
  * @author     Madhu Avasarala
  */
+
+//setup for the WooCommerce REST API
+require __DIR__ . '/vendor/autoload.php';
+
+use Automattic\WooCommerce\Client;
+
 class class_headstart_admission 
 {
 	// The loader that's responsible for maintaining and registering all hooks that power
@@ -131,6 +137,7 @@ class class_headstart_admission
                 <input type="submit" name="button" 	value="test_cashfree_connection"/>
                 <input type="submit" name="button" 	value="test_get_ticket"/>
                 <input type="submit" name="button" 	value="test_get_ticket_data"/>
+                <input type="submit" name="button" 	value="test_get_wc_order"/>
             </form>
 
             
@@ -153,6 +160,10 @@ class class_headstart_admission
 
             case 'test_get_ticket_data':
                 $this->test_get_ticket_data();
+                break;
+
+            case 'test_get_wc_order':
+                $this->test_get_wc_order();
                 break;
             
             default:
@@ -262,6 +273,9 @@ class class_headstart_admission
 
         $ticket_data = $wpscfunction->get_ticket($ticket_id);
 
+        // buuild an object containing all relevant data from ticket useful for crating user accounts and payments
+        $this->get_data_for_sritoni_account_creation();
+
         error_log("ticket id: " . $ticket_id . " Previous status_id: " . $prev_status . " Current status: " . $status_id . "\n");
 
         // add any logoc that you want here based on status
@@ -271,14 +285,88 @@ class class_headstart_admission
                 // status changed to Admission confirmed.
                 // create a user account on SriToni for the user in this ticket
                 // extract the ticket details and pass parameters to sritoni create account function
-                error_log("yes, i came to the right place for sritoni user creation for ticket ID: , " . $ticket_id);
-
+                // error_log("yes, i came to the right place for sritoni user creation for ticket ID: , " . $ticket_id);
+                
                 break;
+
+                case ($wpscfunction->get_status_name($status_id) === 'Admission Granted'):
+                    // status changed to Admission Granted.
+                    // The payment process needs to be triggered
+                    // extract the ticket details and pass parameters to hset-payments site for order creation
+                    // error_log("yes, i came to the right place for Admission Granted for ticket ID: , " . $ticket_id);
+                    $this->create_wc_order_hset_payments();
+                    break;
             
             default:
-            error_log("No, the changed status is NOT Admission Granted for ticket ID: , " . $ticket_id);
+            // error_log("No, the changed status is NOT Admission Granted for ticket ID: , " . $ticket_id);
                 break;
         }
+    }
+    private function create_wc_order_hset_payments()
+    {
+        //
+    }
+
+    private function get_data_for_sritoni_account_creation($ticket_id)
+    {
+        global $wpscfunction;
+
+        $create_account_obj = new stdClass;
+        
+        $fields = get_terms([
+            'taxonomy'   => 'wpsc_ticket_custom_fields',
+            'hide_empty' => false,
+            'orderby'    => 'meta_value_num',
+            'meta_key'	 => 'wpsc_tf_load_order',
+            'order'    	 => 'ASC',
+            'meta_query' => array(
+                array(
+                    'key'       => 'agentonly',
+                    'value'     => '0',
+                    'compare'   => '='
+                )
+            ),
+        ]);
+
+        foreach ($fields as $field):
+            if (empty($field)) continue;
+
+            $value = $wpscfunction->get_ticket_meta($ticket_id, $field->slug, true);
+
+            switch ($variable):
+                case 'value':
+                    # code...
+                    break;
+                
+                default:
+                    # code...
+                    break;
+            endswitch;    
+        endforeach;
+
+    }
+
+    private function test_get_wc_order()
+    {
+        // run this since we may be changing API keys. Once in production remove this
+        $this->get_config();
+
+        // instantiate woocommerce API class
+        $woocommerce = new Client(
+            'https://sritoni.com', 
+            $this->config['wookey'], 
+            $this->config['woosec'],
+            [
+                'wp_api'    => true,
+                'version'   => 'wc/v3',
+            ]
+        );
+
+        $order_id =576;
+        $endpoint = "/wp-json/wc/v3/orders/";
+        $params = array('id'    =>$order_id);
+        $orders = $woocommerce->get($endpoint, $params);
+        echo "<pre>" . print_r($orders, true) ."</pre>";
     }
 
 }   // end of class bracket
