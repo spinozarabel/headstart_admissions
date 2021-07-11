@@ -357,15 +357,16 @@ class class_headstart_admission
             $this->config['wckey'], 
             $this->config['wcsec'],
             [
-                'wp_api'    => true,
-                'version'   => 'wc/v3',
+                'wp_api'            => true,
+                'version'           => 'wc/v3',
+                'query_string_auth' => true,
 
             ]
         );
 
         $order_id =576;
         $endpoint = "wp-json/wc/v3/orders";
-        $params = array('id' => $order_id);
+        $params = array($order_id);
         $orders = $woocommerce->get($endpoint, $params);
         echo "<pre>" . print_r($orders, true) ."</pre>";
     }
