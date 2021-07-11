@@ -138,6 +138,7 @@ class class_headstart_admission
                 <input type="submit" name="button" 	value="test_get_ticket"/>
                 <input type="submit" name="button" 	value="test_get_ticket_data"/>
                 <input type="submit" name="button" 	value="test_get_wc_order"/>
+                <input type="submit" name="button" 	value="test_update_wc_product"/>
             </form>
 
             
@@ -164,6 +165,10 @@ class class_headstart_admission
 
             case 'test_get_wc_order':
                 $this->test_get_wc_order();
+                break;
+
+            case 'test_update_wc_product':
+                $this->test_update_wc_product();
                 break;
             
             default:
@@ -364,10 +369,37 @@ class class_headstart_admission
             ]
         );
 
-        $order_id =576;
-        $endpoint = "orders/" . $order_id;
-        $params = array($order_id);
-        $orders = $woocommerce->get($endpoint);
+        $order_id   = 576;
+        $endpoint   = "orders/" . $order_id;
+        $params     = array($order_id);
+        $order      = $woocommerce->get($endpoint);
+        echo "<pre>" . print_r($orders, true) ."</pre>";
+    }
+
+    private function test_update_wc_product()
+    {
+        // run this since we may be changing API keys. Once in production remove this
+        $this->get_config();
+
+        // instantiate woocommerce API class
+        $woocommerce = new Client(
+            'https://sritoni.org/hset-payments/', 
+            $this->config['wckey'], 
+            $this->config['wcsec'],
+            [
+                'wp_api'            => true,
+                'version'           => 'wc/v3',
+                'query_string_auth' => true,
+
+            ]
+        );
+
+        $product_id = 525;
+        $endpoint   = "products/" . $product_id;
+        $data = [
+                    'regular_price' => '24.54'
+                ];
+        $product = $woocommerce->put($endpoint, $data);
         echo "<pre>" . print_r($orders, true) ."</pre>";
     }
 
