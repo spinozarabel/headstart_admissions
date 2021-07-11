@@ -353,7 +353,7 @@ class class_headstart_admission
 
         // instantiate woocommerce API class
         $woocommerce = new Client(
-            'https://sritoni.com', 
+            'https://sritoni.org/hset-payments', 
             $this->config['wckey'], 
             $this->config['wcsec'],
             [
