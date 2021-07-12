@@ -586,6 +586,10 @@ class class_headstart_admission
         // run this since we may be changing API keys. Once in production remove this
         $this->get_config();
 
+        $ticket_id = 1;
+
+        $this->get_data_for_sritoni_account_creation($ticket_id);
+
         $create_account_obj = $this->create_account_obj;
 
         // instantiate woocommerce API class
@@ -610,7 +614,7 @@ class class_headstart_admission
                     'name'          => $create_account_obj->product_description,
                     'regular_price' => $create_account_obj->fee_payable
                 ];
-                
+
         $product = $woocommerce->put($endpoint, $data);
         echo "<pre>" . print_r($product, true) ."</pre>";
     }
