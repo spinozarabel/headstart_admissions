@@ -568,8 +568,8 @@ class class_headstart_admission
 
         $ticket_data = $wpscfunction->get_ticket($ticket_id);
 
-        $create_account_obj->customer_name  = $ticket_data->customer_name;
-        $create_account_obj->customer_email = $ticket_data->customer_email;
+        $create_account_obj->customer_name  = $ticket_data['customer_name'];
+        $create_account_obj->customer_email = $ticket_data['customer_email'];
 
 
         foreach ($fields as $field):
