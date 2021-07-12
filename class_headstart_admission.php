@@ -296,22 +296,24 @@ class class_headstart_admission
         // add any logoc that you want here based on status
         switch (true) 
         {
+            case ($wpscfunction->get_status_name($status_id) === 'Admission Granted'):
+                // status changed to Admission Granted.
+                // The payment process needs to be triggered
+                // extract the ticket details and pass parameters to hset-payments site for order creation
+                // error_log("yes, i came to the right place for Admission Granted for ticket ID: , " . $ticket_id);
+
+                $this->create_wc_order_hset_payments();
+                break;
+
             case ($wpscfunction->get_status_name($status_id) === 'Admission Confirmed'):
                 // status changed to Admission confirmed.
                 // create a user account on SriToni for the user in this ticket
                 // extract the ticket details and pass parameters to sritoni create account function
                 // error_log("yes, i came to the right place for sritoni user creation for ticket ID: , " . $ticket_id);
-                
+                $this->create_sritoni_account();
                 break;
 
-                case ($wpscfunction->get_status_name($status_id) === 'Admission Granted'):
-                    // status changed to Admission Granted.
-                    // The payment process needs to be triggered
-                    // extract the ticket details and pass parameters to hset-payments site for order creation
-                    // error_log("yes, i came to the right place for Admission Granted for ticket ID: , " . $ticket_id);
-
-                    $this->create_wc_order_hset_payments();
-                    break;
+                
             
             default:
             // error_log("No, the changed status is NOT Admission Granted for ticket ID: , " . $ticket_id);
@@ -320,7 +322,37 @@ class class_headstart_admission
     }
     private function create_wc_order_hset_payments()
     {
-        //
+        // run this since we may be changing API keys. Once in production remove this
+        $this->get_config();
+
+        // instantiate woocommerce API class
+        $woocommerce = new Client(
+            'https://sritoni.org/hset-payments/', 
+            $this->config['wckey'], 
+            $this->config['wcsec'],
+            [
+                'wp_api'            => true,
+                'version'           => 'wc/v3',
+                'query_string_auth' => true,
+
+            ]
+        );
+
+        // Admission fee to HSET product ID. This is the admission product whose price and description can be customized
+        $product_id = 581;
+
+        $endpoint   = "products/" . $product_id;
+
+        // customize this with our data if we have to.
+        $product_data = [
+                            'name'          => 'This is a new description programmed from API',
+                            'regular_price' => '39.99'
+                        ];
+        $product = $woocommerce->put($endpoint, $product_data);
+        // before coming here the create account object is already created. We jsut use it here.
+        $create_account_obj = $this->create_account_obj;
+
+
     }
 
     private function get_data_for_sritoni_account_creation($ticket_id)
@@ -343,7 +375,12 @@ class class_headstart_admission
                     'key'       => 'agentonly',
                     'value'     => '0',
                     'compare'   => '='
-                )
+                ),
+                array(
+                    'key'       => 'agentonly',
+                    'value'     => '1',
+                    'compare'   => '='
+                ),
             ),
         ]);
 
@@ -451,7 +488,7 @@ class class_headstart_admission
         echo "<pre>" . print_r($product, true) ."</pre>";
     }
 
-    private function test_create_wc_order()
+    private function test_create_wc_order($ticket_id)
     {
         // run this since we may be changing API keys. Once in production remove this
         $this->get_config();
