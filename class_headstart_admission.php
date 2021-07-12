@@ -475,11 +475,11 @@ class class_headstart_admission
                     $create_account_obj->payer_bank_account_number = $value;
                     break;
 
-                case 'fee payable':
+                case 'fee amount':
                     $create_account_obj->fee_payable = $value;
                     break;
 
-                case 'product description':
+                case 'Customized Product Description':
                     $create_account_obj->product_description = $value;
                     break;
 
