@@ -288,8 +288,13 @@ class class_headstart_admission
 
         $ticket_data = $wpscfunction->get_ticket($ticket_id);
 
+        $this->ticket_id    = $ticket_id;
+        $this->ticket_data  = $ticket_data;
+
         // buuild an object containing all relevant data from ticket useful for crating user accounts and payments
         $this->get_data_for_sritoni_account_creation();
+
+        
 
         error_log("ticket id: " . $ticket_id . " Previous status_id: " . $prev_status . " Current status: " . $status_id . "\n");
 
@@ -344,18 +349,18 @@ class class_headstart_admission
             ),
         ]);
 
+        $create_account_obj->ticket_id = $this->ticket_id;
+        $create_account_obj->customer_name  = $this->ticket_data->customer_name;
+        $create_account_obj->customer_email = $this->ticket_data->customer_email;
+
         foreach ($fields as $field):
             if (empty($field)) continue;
 
             $value = $wpscfunction->get_ticket_meta($ticket_id, $field->slug, true);
 
             switch ($field->name):
-                case 'Applicant firstname':
-                    $create_account_obj->applicant_firstname = $value;
-                    break;
-
-                case 'Applicant lastname':
-                    $create_account_obj->applicant_lastname = $value;
+                case 'Applicant name':
+                    $create_account_obj->applicant_name = $value;
                     break;
 
                 case 'Email':
@@ -561,19 +566,18 @@ class class_headstart_admission
             ),
         ]);
 
+        $ticket_data = $wpscfunction->get_ticket($ticket_id);
+
+        $create_account_obj->customer_name  = $ticket_data->customer_name;
+        $create_account_obj->customer_email = $ticket_data->customer_email;
+
+
         foreach ($fields as $field):
             if (empty($field)) continue;
 
             $value = $wpscfunction->get_ticket_meta($ticket_id, $field->slug, true);
 
             switch ($field->name):
-                case 'Applicant name':
-                    $create_account_obj->applicant_fullname = $value;
-                    break;
-
-                case 'Email':
-                    $create_account_obj->email = $value;
-                    break;
 
                 case 'Student firstname':
                     $create_account_obj->student_firstname = $value;
