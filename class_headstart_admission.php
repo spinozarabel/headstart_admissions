@@ -567,12 +567,8 @@ class class_headstart_admission
             $value = $wpscfunction->get_ticket_meta($ticket_id, $field->slug, true);
 
             switch ($field->name):
-                case 'Applicant firstname':
-                    $create_account_obj->applicant_firstname = $value;
-                    break;
-
-                case 'Applicant lastname':
-                    $create_account_obj->applicant_lastname = $value;
+                case 'Applicant fullname':
+                    $create_account_obj->applicant_fullname = $value;
                     break;
 
                 case 'Email':
@@ -591,19 +587,19 @@ class class_headstart_admission
                     $create_account_obj->student_lastname = $value;
                     break;
 
-                case 'Student date of birth':
+                case 'Student DOB':
                     $create_account_obj->student_dob = $value;
                     break;   
                     
-                case 'SriToni idnumber':
-                    $create_account_obj->sritoni_idnumber = $value;
+                case 'Existing SriToni idnumber':
+                    $create_account_obj->existing_sritoni_idnumber = $value;
                     break;  
                     
-                case 'SriToni username':
-                    $create_account_obj->sritoni_username = $value;
+                case 'Existing SriToni username':
+                    $create_account_obj->existing_sritoni_username = $value;
                     break;
 
-                case 'Payer bank account number':
+                case 'Bank account number':
                     $create_account_obj->payer_bank_account_number = $value;
                     break;
 
