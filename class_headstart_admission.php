@@ -325,17 +325,20 @@ class class_headstart_admission
         // run this since we may be changing API keys. Once in production remove this
         $this->get_config();
 
+        // before coming here the create account object is already created. We jsut use it here.
+        $create_account_obj = $this->create_account_obj;
+
         // instantiate woocommerce API class
         $woocommerce = new Client(
-            'https://sritoni.org/hset-payments/', 
-            $this->config['wckey'], 
-            $this->config['wcsec'],
-            [
-                'wp_api'            => true,
-                'version'           => 'wc/v3',
-                'query_string_auth' => true,
+                                    'https://sritoni.org/hset-payments/', 
+                                    $this->config['wckey'], 
+                                    $this->config['wcsec'],
+                                    [
+                                        'wp_api'            => true,
+                                        'version'           => 'wc/v3',
+                                        'query_string_auth' => true,
 
-            ]
+                                    ]
         );
 
         // Admission fee to HSET product ID. This is the admission product whose price and description can be customized
@@ -343,14 +346,68 @@ class class_headstart_admission
 
         $endpoint   = "products/" . $product_id;
 
-        // customize this with our data if we have to.
+        // customize the Admission product for this user
         $product_data = [
-                            'name'          => 'This is a new description programmed from API',
-                            'regular_price' => '39.99'
+                            'name'          => $create_account_obj->product_description,
+                            'regular_price' => $create_account_obj->fee_payable
                         ];
         $product = $woocommerce->put($endpoint, $product_data);
-        // before coming here the create account object is already created. We jsut use it here.
-        $create_account_obj = $this->create_account_obj;
+
+        // lets now prepare the data for the new order to be created
+        $order_data = [
+            'customer_id'           => 5,       // order assigned to user sritoni1 by this id. This is fixed
+            'payment_method'        => 'vabacs',
+            'payment_method_title'  => 'Offline Direct bank transfer to Head Start Educational Trust',
+            'set_paid'              => false,
+            'status'                => 'on-hold',
+            'billing' => [
+                'first_name'    => $create_account_obj->customer_name,
+                'last_name'     => '',
+                'address_1'     => $create_account_obj->student_address,
+                'address_2'     => '',
+                'city'          => 'Bangalore',
+                'state'         => 'Karnataka',
+                'postcode'      => $create_account_obj->address_pin,
+                'country'       => 'India',
+                'email'         => $create_account_obj->customer_email,
+                'phone'         => $create_account_obj->phone_emergency
+            ],
+            'shipping' => [
+                'first_name'    => $create_account_obj->customer_name,
+                'last_name'     => '',
+                'address_1'     => $create_account_obj->student_address,
+                'address_2'     => '',
+                'city'          => 'Bangalore',
+                'state'         => 'Karnataka',
+                'postcode'      => $create_account_obj->address_pin,
+                'country'       => 'India'
+            ],
+            'line_items' => [
+                [
+                    'product_id'    => 581,
+                    'quantity'      => 1
+                ],
+            ],
+            'meta_data' => [
+                [
+                    'key' => 'va_id',
+                    'value' => '0073'
+                ],
+                [
+                    'key' => 'sritoni_institution',
+                    'value' => 'admission'
+                ],
+                [
+                    'key' => 'grade_for_current_fees',
+                    'value' => 'admission'
+                ],
+            ],
+        ];
+
+        // finally, lets create the new order using the Woocommerce API on the remote payment server
+        $order_created = $woocommerce->post('orders', $order_data);
+        
+        // check if the order has been created and if so what is the order ID
 
 
     }
@@ -373,13 +430,8 @@ class class_headstart_admission
             'meta_query' => array(
                 array(
                     'key'       => 'agentonly',
-                    'value'     => '0',
-                    'compare'   => '='
-                ),
-                array(
-                    'key'       => 'agentonly',
                     'value'     => '1',
-                    'compare'   => '='
+                    'compare'   => '<='             // get all ticket meta fields
                 ),
             ),
         ]);
@@ -421,6 +473,78 @@ class class_headstart_admission
 
                 case 'Bank account number':
                     $create_account_obj->payer_bank_account_number = $value;
+                    break;
+
+                case 'fee payable':
+                    $create_account_obj->fee_payable = $value;
+                    break;
+
+                case 'product description':
+                    $create_account_obj->product_description = $value;
+                    break;
+
+                case 'username':
+                    $create_account_obj->username = $value;
+                    break;
+
+                case 'idnumber':
+                    $create_account_obj->idnumber = $value;
+                    break;
+
+                case 'studentcat':
+                    $create_account_obj->studentcat = $value;
+                    break;
+
+                case 'Class':
+                    $create_account_obj->Class = $value;
+                    break;
+
+                case 'Cohort':
+                    $create_account_obj->cohort = $value;
+                    break;
+
+                case 'Blood group':
+                    $create_account_obj->blood_group = $value;
+                    break;
+
+                case 'Father name':
+                    $create_account_obj->father_name = $value;
+                    break;
+
+                case 'Mother name':
+                    $create_account_obj->mother_name = $value;
+                    break;
+
+                case 'Father email':
+                    $create_account_obj->father_email = $value;
+                    break;
+
+                case 'Mother email':
+                    $create_account_obj->mother_email = $value;
+                    break;
+
+                case 'Emergency phone number':
+                    $create_account_obj->phone_emergency = $value;
+                    break;
+
+                case 'Student address':
+                    $create_account_obj->student_address = $value;
+                    break;
+
+                case 'Mother Phone':
+                    $create_account_obj->phone_mother = $value;
+                    break;
+
+                case 'Father phone':
+                    $create_account_obj->phone_father = $value;
+                    break;
+
+                case 'Student address':
+                    $create_account_obj->student_address = $value;
+                    break;
+
+                case 'Student PIN code':
+                    $create_account_obj->address_pin = $value;
                     break;
 
                 default:
