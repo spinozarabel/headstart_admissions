@@ -515,15 +515,15 @@ class class_headstart_admission
                     $create_account_obj->mother_name = $value;
                     break;
 
-                case 'Father email':
+                case 'Email Father':
                     $create_account_obj->father_email = $value;
                     break;
 
-                case 'Mother email':
+                case 'Email Mother':
                     $create_account_obj->mother_email = $value;
                     break;
 
-                case 'EmePrincipal phone number':
+                case 'Principal phone number':
                     $create_account_obj->phone_emergency = $value;
                     break;
 
