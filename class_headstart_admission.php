@@ -391,6 +391,11 @@ class class_headstart_admission
 
     }
 
+    /**
+     *  Creates a data object from a given ticket_id. Thhis is used for creating orders, user accounts etc.
+     *  make sure to run $this->get_data_for_sritoni_account_creation($ticket_id) before calling this  method
+     *  @return obj:$order_created
+     */
     private function create_wc_order_hset_payments()
     {
         // run this since we may be changing API keys. Once in production remove this
@@ -480,7 +485,7 @@ class class_headstart_admission
         
         // check if the order has been created and if so what is the order ID
 
-
+        return $order_created;
     }
 
     private function get_data_for_sritoni_account_creation($ticket_id)
@@ -690,87 +695,20 @@ class class_headstart_admission
         echo "<pre>" . print_r($product, true) ."</pre>";
     }
 
-    private function test_create_wc_order($ticket_id)
+    
+
+    private function test_create_wc_order()
     {
-        // run this since we may be changing API keys. Once in production remove this
-        $this->get_config();
+        $ticket_id = 1;
 
-        // instantiate woocommerce API class
-        $woocommerce = new Client(
-            'https://sritoni.org/hset-payments/', 
-            $this->config['wckey'], 
-            $this->config['wcsec'],
-            [
-                'wp_api'            => true,
-                'version'           => 'wc/v3',
-                'query_string_auth' => true,
+        $this->get_data_for_sritoni_account_creation($ticket_id);
 
-            ]
-        );
-
-        // Admission fee to HSET product ID
-        $product_id = 581;
-
-        $endpoint   = "products/" . $product_id;
-
-        $product_data = [
-                            'name'          => 'This is a new description programmed from API',
-                            'regular_price' => '39.99'
-                        ];
-        $product = $woocommerce->put($endpoint, $product_data);
-
-        $order_data = [
-            'customer_id'           => 5,       // order assigned to user sritoni1 by this id
-            'payment_method'        => 'vabacs',
-            'payment_method_title'  => 'Offline Direct bank transfer to Head Start Educational Trust',
-            'set_paid'              => false,
-            'status'                => 'on-hold',
-            'billing' => [
-                'first_name'    => 'John',
-                'last_name'     => 'Doe',
-                'address_1'     => '969 Market',
-                'address_2'     => '',
-                'city'          => 'San Francisco',
-                'state'         => 'CA',
-                'postcode'      => '94103',
-                'country'       => 'US',
-                'email'         => 'madhu.avasarala@gmail.com',
-                'phone'         => '(821) 758-5659'
-            ],
-            'shipping' => [
-                'first_name'    => 'John',
-                'last_name'     => 'Doe',
-                'address_1'     => '969 Market',
-                'address_2'     => '',
-                'city'          => 'San Francisco',
-                'state'         => 'CA',
-                'postcode'      => '94103',
-                'country'       => 'US'
-            ],
-            'line_items' => [
-                [
-                    'product_id'    => 581,
-                    'quantity'      => 1
-                ],
-            ],
-            'meta_data' => [
-                [
-                    'key' => 'va_id',
-                    'value' => '0073'
-                ],
-                [
-                    'key' => 'sritoni_institution',
-                    'value' => 'admission'
-                ],
-                [
-                    'key' => 'grade_for_current_fees',
-                    'value' => 'admission'
-                ],
-            ],
-        ];
-        $order_created = $woocommerce->post('orders', $order_data);
+        $order_created = $this->create_wc_order_hset_payments();
+        
         echo "<pre>" . print_r($order_created, true) ."</pre>";
     }
+
+
 
     private function test_get_data_for_sritoni_account_creation()
     {
