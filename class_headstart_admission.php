@@ -567,7 +567,7 @@ class class_headstart_admission
             $value = $wpscfunction->get_ticket_meta($ticket_id, $field->slug, true);
 
             switch ($field->name):
-                case 'Applicant fullname':
+                case 'Applicant name':
                     $create_account_obj->applicant_fullname = $value;
                     break;
 
