@@ -496,7 +496,7 @@ class class_headstart_admission
                     break;
 
                 case 'Class':
-                    $create_account_obj->Class = $value;
+                    $create_account_obj->class = $value;
                     break;
 
                 case 'Cohort':
@@ -523,7 +523,7 @@ class class_headstart_admission
                     $create_account_obj->mother_email = $value;
                     break;
 
-                case 'Emergency phone number':
+                case 'EmePrincipal phone number':
                     $create_account_obj->phone_emergency = $value;
                     break;
 
@@ -539,11 +539,11 @@ class class_headstart_admission
                     $create_account_obj->phone_father = $value;
                     break;
 
-                case 'Student address':
+                case 'Address':
                     $create_account_obj->student_address = $value;
                     break;
 
-                case 'Student PIN code':
+                case 'Student PIN':
                     $create_account_obj->address_pin = $value;
                     break;
 
