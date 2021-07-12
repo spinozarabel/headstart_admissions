@@ -312,14 +312,85 @@ class class_headstart_admission
                 // error_log("yes, i came to the right place for sritoni user creation for ticket ID: , " . $ticket_id);
                 $this->create_sritoni_account();
                 break;
-
-                
+             
             
             default:
-            // error_log("No, the changed status is NOT Admission Granted for ticket ID: , " . $ticket_id);
+                error_log("No, the changed status has NOT triggered any action for ticket ID: , " . $ticket_id);
                 break;
         }
     }
+
+    private function create_sritoni_account()
+    {
+        // before coming here the create account object is already created. We jsut use it here.
+        $create_account_obj = $this->create_account_obj;
+
+        // run this again since we may be changing API keys. Once in production remove this
+        $this->get_config();
+
+        // read in the Moodle API config array
+        $config			= $this->config;
+        $moodle_url 	= $config["moodle_url"] . '/webservice/rest/server.php';
+        $moodle_token	= $config["moodle_token"];
+
+        // check if this is an existing user. IF so we do not create a new account.
+        if ($create_account_obj->existing == "yes")
+        {
+            // no account created, this user already exists, but lets check just in case
+
+            return;     // return if account indeed exists with given account with no error if not flag status error
+        }
+
+        
+
+        $moodle_username = $create_account_obj->username;
+
+        // prepare the Moodle Rest API object
+        $MoodleRest = new MoodleRest();
+        $MoodleRest->setServerAddress($moodle_url);
+        $MoodleRest->setToken( $moodle_token ); // get token from ignore_key file
+        $MoodleRest->setReturnFormat(MoodleRest::RETURN_ARRAY); // Array is default. You can use RETURN_JSON or RETURN_XML too.
+        // $MoodleRest->setDebug();
+        // get moodle user details associated with this completed order from SriToni
+        $parameters   = array("criteria" => array(array("key" => "username", "value" => $moodle_username)));
+
+        // get moodle user satisfying above criteria
+        $moodle_users = $MoodleRest->request('core_user_get_users', $parameters, MoodleRest::METHOD_GET);
+
+        if ( ( $moodle_users["users"][0] ) )
+        {
+            // An account with this user already exssts. So add  a number to the username and retry
+            for ($i=0; $i < 5; $i++) 
+            { 
+                $moodle_username = $create_account_obj->username . $i;
+                $parameters   = array("criteria" => array(array("key" => "username", "value" => $moodle_username)));
+                $moodle_users = $MoodleRest->request('core_user_get_users', $parameters, MoodleRest::METHOD_GET);
+                if ( !( $moodle_users["users"][0] ) )
+                {
+                    // we can use this username, it is not taken
+                    break;
+                }
+                error_log("Couldnt find username, the account exists for username + 4 ! check");
+                
+                // change the ticket status to error
+                $this->change_ticket_status_to_error($create_account_obj->ticket_id);
+
+                return;
+            }  
+        }
+        else
+        {
+            // This username does not exist so create a new user account
+            return;
+
+        }
+
+        // if you are here it means you came here after breaking through the forloop above
+        // so create a new moodle user account with the successful username that has been incremented
+        // check if user created exists after new user creation
+
+    }
+
     private function create_wc_order_hset_payments()
     {
         // run this since we may be changing API keys. Once in production remove this
