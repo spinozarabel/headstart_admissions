@@ -586,6 +586,8 @@ class class_headstart_admission
         // run this since we may be changing API keys. Once in production remove this
         $this->get_config();
 
+        $create_account_obj = $this->create_account_obj;
+
         // instantiate woocommerce API class
         $woocommerce = new Client(
             'https://sritoni.org/hset-payments/', 
@@ -605,9 +607,10 @@ class class_headstart_admission
         $endpoint   = "products/" . $product_id;
 
         $data = [
-                    'name'          => 'This is a new description programmed from API',
-                    'regular_price' => '24.54'
+                    'name'          => $create_account_obj->product_description,
+                    'regular_price' => $create_account_obj->fee_payable
                 ];
+                
         $product = $woocommerce->put($endpoint, $data);
         echo "<pre>" . print_r($product, true) ."</pre>";
     }
