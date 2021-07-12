@@ -286,13 +286,8 @@ class class_headstart_admission
     {
         global $wpscfunction;
 
-        $ticket_data = $wpscfunction->get_ticket($ticket_id);
-
-        $this->ticket_id    = $ticket_id;
-        $this->ticket_data  = $ticket_data;
-
         // buuild an object containing all relevant data from ticket useful for crating user accounts and payments
-        $this->get_data_for_sritoni_account_creation();
+        $this->get_data_for_sritoni_account_creation($ticket_id);
 
         
 
@@ -332,6 +327,9 @@ class class_headstart_admission
     {
         global $wpscfunction;
 
+        $this->ticket_id    = $ticket_id;
+        $this->ticket_data  = $wpscfunction->get_ticket($ticket_id);
+
         $create_account_obj = new stdClass;
         
         $fields = get_terms([
@@ -349,9 +347,9 @@ class class_headstart_admission
             ),
         ]);
 
-        $create_account_obj->ticket_id = $this->ticket_id;
-        $create_account_obj->customer_name  = $this->ticket_data->customer_name;
-        $create_account_obj->customer_email = $this->ticket_data->customer_email;
+        $create_account_obj->ticket_id      = $ticket_id;
+        $create_account_obj->customer_name  = $this->ticket_data['customer_name'];
+        $create_account_obj->customer_email = $this->ticket_data['customer_email'];
 
         foreach ($fields as $field):
             if (empty($field)) continue;
@@ -359,13 +357,6 @@ class class_headstart_admission
             $value = $wpscfunction->get_ticket_meta($ticket_id, $field->slug, true);
 
             switch ($field->name):
-                case 'Applicant name':
-                    $create_account_obj->applicant_name = $value;
-                    break;
-
-                case 'Email':
-                    $create_account_obj->email = $value;
-                    break;
 
                 case 'Student firstname':
                     $create_account_obj->student_firstname = $value;
@@ -379,19 +370,19 @@ class class_headstart_admission
                     $create_account_obj->student_lastname = $value;
                     break;
 
-                case 'Student date of birth':
+                case 'Student DOB':
                     $create_account_obj->student_dob = $value;
                     break;   
                     
-                case 'SriToni idnumber':
-                    $create_account_obj->sritoni_idnumber = $value;
+                case 'Existing SriToni idnumber':
+                    $create_account_obj->existing_sritoni_idnumber = $value;
                     break;  
                     
-                case 'SriToni username':
-                    $create_account_obj->sritoni_username = $value;
+                case 'Existing SriToni username':
+                    $create_account_obj->existing_sritoni_username = $value;
                     break;
 
-                case 'Payer bank account number':
+                case 'Bank account number':
                     $create_account_obj->payer_bank_account_number = $value;
                     break;
 
@@ -402,7 +393,6 @@ class class_headstart_admission
         endforeach;         // processed all ticket fields
 
         $this->create_account_obj = $create_account_obj;
-
     }
 
     private function test_get_wc_order()
@@ -545,75 +535,11 @@ class class_headstart_admission
 
     private function test_get_data_for_sritoni_account_creation()
     {
-        global $wpscfunction;
-
         $ticket_id = 1;
 
-        $create_account_obj = new stdClass;
-        
-        $fields = get_terms([
-            'taxonomy'   => 'wpsc_ticket_custom_fields',
-            'hide_empty' => false,
-            'orderby'    => 'meta_value_num',
-            'meta_key'	 => 'wpsc_tf_load_order',
-            'order'    	 => 'ASC',
-            'meta_query' => array(
-                array(
-                    'key'       => 'agentonly',
-                    'value'     => '0',
-                    'compare'   => '='
-                )
-            ),
-        ]);
+        $this->get_data_for_sritoni_account_creation($ticket_id);
 
-        $ticket_data = $wpscfunction->get_ticket($ticket_id);
-
-        $create_account_obj->customer_name  = $ticket_data['customer_name'];
-        $create_account_obj->customer_email = $ticket_data['customer_email'];
-
-
-        foreach ($fields as $field):
-            if (empty($field)) continue;
-
-            $value = $wpscfunction->get_ticket_meta($ticket_id, $field->slug, true);
-
-            switch ($field->name):
-
-                case 'Student firstname':
-                    $create_account_obj->student_firstname = $value;
-                    break;
-                
-                case 'Student middlename':
-                    $create_account_obj->student_middlename = $value;
-                    break;
-
-                case 'Student lastname':
-                    $create_account_obj->student_lastname = $value;
-                    break;
-
-                case 'Student DOB':
-                    $create_account_obj->student_dob = $value;
-                    break;   
-                    
-                case 'Existing SriToni idnumber':
-                    $create_account_obj->existing_sritoni_idnumber = $value;
-                    break;  
-                    
-                case 'Existing SriToni username':
-                    $create_account_obj->existing_sritoni_username = $value;
-                    break;
-
-                case 'Bank account number':
-                    $create_account_obj->payer_bank_account_number = $value;
-                    break;
-
-                default:
-                    // do nothing for now
-                    break;
-            endswitch;    
-        endforeach;         // processed all ticket fields
-
-        echo "<pre>" . print_r($create_account_obj, true) ."</pre>";
+        echo "<pre>" . print_r($this->create_account_obj, true) ."</pre>";
     }
 
 }   // end of class bracket
