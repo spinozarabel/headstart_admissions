@@ -624,15 +624,15 @@ class class_headstart_admission
                     break;
 
                 case 'bank-account-number':
-                    $create_account_obj->payer_bank_account_number = $value;
+                    $create_account_obj->bank_account_number = $value;
                     break;
 
                 case 'admission-fee-payable':
-                    $create_account_obj->fee_payable = $value;
+                    $create_account_obj->admission_fee_payable = $value;
                     break;
 
                 case 'product-customized-name':
-                    $create_account_obj->product_description = $value;
+                    $create_account_obj->product_customized_name = $value;
                     break;
 
                 case 'username':
@@ -649,6 +649,14 @@ class class_headstart_admission
 
                 case 'class':
                     $create_account_obj->class = $value;
+                    break;
+
+                case 'environment':
+                    $create_account_obj->environment = $value;
+                    break;
+
+                case 'department':
+                    $create_account_obj->department = $value;
                     break;
 
                 case 'cohort':
@@ -668,15 +676,15 @@ class class_headstart_admission
                     break;
 
                 case 'email-father':
-                    $create_account_obj->father_email = $value;
+                    $create_account_obj->email_father = $value;
                     break;
 
                 case 'email-mother':
-                    $create_account_obj->mother_email = $value;
+                    $create_account_obj->email_mother = $value;
                     break;
 
                 case 'principal-phone-number':
-                    $create_account_obj->phone_emergency = $value;
+                    $create_account_obj->principal_phone_number = $value;
                     break;
 
                 case 'address':
@@ -684,15 +692,15 @@ class class_headstart_admission
                     break;
 
                 case 'mother-phone-number':
-                    $create_account_obj->phone_mother = $value;
+                    $create_account_obj->mother_phone_number = $value;
                     break;
 
                 case 'father-phone-number':
-                    $create_account_obj->phone_father = $value;
+                    $create_account_obj->father_phone_number = $value;
                     break;
 
                 case 'student-pin':
-                    $create_account_obj->address_pin = $value;
+                    $create_account_obj->student_pin = $value;
                     break;
 
                 default:
