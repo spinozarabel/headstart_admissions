@@ -310,7 +310,7 @@ class class_headstart_admission
                 // create a user account on SriToni for the user in this ticket
                 // extract the ticket details and pass parameters to sritoni create account function
                 // error_log("yes, i came to the right place for sritoni user creation for ticket ID: , " . $ticket_id);
-                $this->create_sritoni_account();
+                $this->create_update_sritoni_account();
                 break;
              
             
@@ -320,11 +320,38 @@ class class_headstart_admission
         }
     }
 
-    private function create_sritoni_account()
+    /**
+     *  @return void:nul
+     *  Creates a new account of not a existing user.
+     *  If an existing user then just updates the SriToni user account with profiel details.
+     */
+
+    private function create_update_sritoni_account()
     {
         // before coming here the create account object is already created. We jsut use it here.
         $create_account_obj = $this->create_account_obj;
 
+        if (empty($create_account_obj->existing_sritoni_username) && empty($create_account_obj->existing_sritoni_idnumber))
+        {
+            // New account needs to be created
+            $this->create_sritoni_account();
+
+            return;
+        }
+        else
+        {
+            // Account needs to be updated with data from form and agents
+            $this->update_sritoni_account();
+
+            return;
+        }
+    }
+
+    /**
+     *  This is called after the create_account object has been already created  so need to call it.
+     */
+    private function create_sritoni_account()
+    {
         // run this again since we may be changing API keys. Once in production remove this
         $this->get_config();
 
@@ -333,15 +360,7 @@ class class_headstart_admission
         $moodle_url 	= $config["moodle_url"] . '/webservice/rest/server.php';
         $moodle_token	= $config["moodle_token"];
 
-        // check if this is an existing user. IF so we do not create a new account.
-        if ($create_account_obj->existing == "yes")
-        {
-            // no account created, this user already exists, but lets check just in case
-
-            return;     // return if account indeed exists with given account with no error if not flag status error
-        }
-
-        
+        $create_account_obj = $this->create_account_obj;
 
         $moodle_username = $create_account_obj->username;
 
@@ -354,7 +373,7 @@ class class_headstart_admission
         // get moodle user details associated with this completed order from SriToni
         $parameters   = array("criteria" => array(array("key" => "username", "value" => $moodle_username)));
 
-        // get moodle user satisfying above criteria
+        // get moodle user satisfying above criteria if any
         $moodle_users = $MoodleRest->request('core_user_get_users', $parameters, MoodleRest::METHOD_GET);
 
         if ( ( $moodle_users["users"][0] ) )
@@ -370,24 +389,78 @@ class class_headstart_admission
                     // we can use this username, it is not taken
                     break;
                 }
-                error_log("Couldnt find username, the account exists for username + 4 ! check");
+
+                error_log("Couldnt find username, the account exists for upto username 4 ! check");
                 
                 // change the ticket status to error
                 $this->change_ticket_status_to_error($create_account_obj->ticket_id);
 
                 return;
-            }  
-        }
-        else
-        {
-            // This username does not exist so create a new user account
-            return;
-
+            } 
+        
+        // came out the for loop with a valid user name that can be created 
         }
 
         // if you are here it means you came here after breaking through the forloop above
         // so create a new moodle user account with the successful username that has been incremented
-        // check if user created exists after new user creation
+        
+        // write the data back to Moodle using REST API
+        // create the users array in format needed for Moodle RSET API
+    	$users = array("users" => array(
+                                            array(	"username" 	    => $moodle_username,
+                                                    "idnumber"      => $create_account_obj->idnumber,
+                                                    "auth"          => "oauth2",
+                                                    "firstname"     => $create_account_obj->student_firstname,
+                                                    "lastname"      => $create_account_obj->student_lastname,
+                                                    "email"         => $moodle_username . "@headstart.edu.in",
+                                                    "middlename"    => $create_account_obj->student_middlename,
+                                                    "institution"   => $create_account_obj->institution,
+                                                    "department"    => $create_account_obj->department,
+                                                    "phone1"        => $create_account_obj->phone_emergency,
+                                                    "address"       => $create_account_obj->student_address,
+                                                    "maildisplay"   => 0,
+                                                    "createpassword"=> 0,
+
+                                                    "customfields" 	=> array(
+                                                                                array(	"type"	=>	"class",
+                                                                                        "value"	=>	$create_account_obj->class,
+                                                                                    ),
+                                                                                array(	"type"	=>	"bloodgroup",
+                                                                                        "value"	=>	$create_account_obj->bloodgroup,
+                                                                                    ),
+                                                                                array(	"type"	=>	"environment",
+                                                                                        "value"	=>	$create_account_obj->environment,
+                                                                                    ),
+                                                                                array(	"type"	=>	"studentcat",
+                                                                                        "value"	=>	$create_account_obj->studentcat,
+                                                                                    ),
+                                                                                array(	"type"	=>	"fees",
+                                                                                        "value"	=>	$create_account_obj->fees,
+                                                                                    ),
+                                                                            )
+                                                )
+                                        )
+        );
+        
+        // now to uuser  with form and agent fields
+        $ret = $MoodleRest->request('core_user_create_users', $users, MoodleRest::METHOD_POST);
+
+        // let us check to make sure that the user is created
+        if ($moodle_users["users"][0]['username' == $moodle_username])
+        {
+            // the returned user has same name as one given to create new user so OK
+            return;
+        }
+        else
+        {
+            error_log("Create new user didnt return expected username: " . $moodle_username);
+            error_log(print_r($ret, true));
+ 
+            $this->sritoni_retuned_obj = $ret;
+                
+            // change the ticket status to error
+            $this->change_ticket_status_to_error($create_account_obj->ticket_id);
+        }
 
     }
 
@@ -695,7 +768,7 @@ class class_headstart_admission
         echo "<pre>" . print_r($product, true) ."</pre>";
     }
 
-    
+
 
     private function test_create_wc_order()
     {
