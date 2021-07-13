@@ -443,22 +443,20 @@ class class_headstart_admission
         $ret = $MoodleRest->request('core_user_create_users', $users, MoodleRest::METHOD_POST);
 
         // let us check to make sure that the user is created
-        if ($moodle_users["users"][0]['username' == $moodle_username])
+        if ($ret[0]['username'] == $moodle_username && empty($ret["exception"]))
         {
             // the returned user has same name as one given to create new user so OK
-            return $ret;
+            return $ret[0]['id'];
         }
         else
         {
             error_log("Create new user didnt return expected username: " . $moodle_username);
             error_log(print_r($ret, true));
- 
-            $this->sritoni_retuned_obj = $ret;
                 
             // change the ticket status to error
-            $this->change_ticket_status_to_error($create_account_obj->ticket_id);
+            $this->change_ticket_status_to_error($create_account_obj->ticket_id, $ret["message"]);
 
-            return $ret;
+            return null;
         }
 
     }
@@ -810,6 +808,16 @@ class class_headstart_admission
         $ret = $this->create_sritoni_account();
 
         echo "<pre>" . print_r($ret, true) ."</pre>";
+    }
+
+    /**
+     * 
+     */
+    private function change_ticket_status_to_error($ticket_id, $error_message)
+    {
+        global $wpscfunction;
+
+
     }
 
 }   // end of class bracket
