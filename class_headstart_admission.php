@@ -577,13 +577,15 @@ class class_headstart_admission
             'orderby'    => 'meta_value_num',
             'meta_key'	 => 'wpsc_tf_load_order',
             'order'    	 => 'ASC',
+            /*
             'meta_query' => array(
-                array(
-                    'key'       => 'agentonly',
-                    'value'     => '1',
-                    'compare'   => '<='             // get all ticket meta fields
-                ),
-            ),
+                                    array(
+                                        'key'       => 'agentonly',
+                                        'value'     => '1',
+                                        'compare'   => '<='             // get all ticket meta fields
+                                    ),
+                                ),
+            */
         ]);
 
         $create_account_obj->ticket_id      = $ticket_id;
