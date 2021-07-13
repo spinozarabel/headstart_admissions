@@ -251,7 +251,7 @@ class class_headstart_admission
     {
         // tthe following piece of code gets executed and results displayed in the  SriToni tools page when button is pressed
         global $wpscfunction;
-        $ticket_id = 1;
+        $ticket_id = 3;
         $ticket_data = $wpscfunction->get_ticket($ticket_id);
         echo "<pre>" . print_r($ticket_data, true) ."</pre>";
     }
@@ -260,7 +260,7 @@ class class_headstart_admission
     {
         // the folowing piece of code dumps details of ticket id =1;
         global $wpscfunction;
-        $ticket_id = 1;
+        $ticket_id = 3;
         
         $fields = get_terms([
             'taxonomy'   => 'wpsc_ticket_custom_fields',
@@ -742,7 +742,7 @@ class class_headstart_admission
         // run this since we may be changing API keys. Once in production remove this
         $this->get_config();
 
-        $ticket_id = 1;
+        $ticket_id = 3;
 
         $this->get_data_for_sritoni_account_creation($ticket_id);
 
@@ -779,7 +779,7 @@ class class_headstart_admission
 
     private function test_create_wc_order()
     {
-        $ticket_id = 1;
+        $ticket_id = 3;
 
         $this->get_data_for_sritoni_account_creation($ticket_id);
 
@@ -792,7 +792,7 @@ class class_headstart_admission
 
     private function test_get_data_for_sritoni_account_creation()
     {
-        $ticket_id = 1;
+        $ticket_id = 3;
 
         $this->get_data_for_sritoni_account_creation($ticket_id);
 
@@ -801,7 +801,7 @@ class class_headstart_admission
 
     private function test_sritoni_account_creation()
     {
-        $ticket_id = 1;
+        $ticket_id = 3;
 
         $this->get_data_for_sritoni_account_creation($ticket_id);
 
