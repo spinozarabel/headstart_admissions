@@ -276,7 +276,7 @@ class class_headstart_admission
             if (empty($field)) continue;
             $value = $wpscfunction->get_ticket_meta($ticket_id,$field->slug,true);
 
-            echo nl2br($field->name . ": " . $value . "\n");
+            echo nl2br($field->slug . ": " . $value . "\n");
             
         }
     }
