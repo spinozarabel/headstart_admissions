@@ -141,6 +141,7 @@ class class_headstart_admission
                 <input type="submit" name="button" 	value="test_update_wc_product"/>
                 <input type="submit" name="button" 	value="test_create_wc_order"/>
                 <input type="submit" name="button" 	value="test_get_data_for_sritoni_account_creation"/>
+                <input type="submit" name="button" 	value="test_sritoni_account_creation"/>
             </form>
 
             
@@ -180,6 +181,10 @@ class class_headstart_admission
             case 'test_get_data_for_sritoni_account_creation':
                 $this->test_get_data_for_sritoni_account_creation();
                 break;
+
+            case 'test_sritoni_account_creation':
+                $this->test_sritoni_account_creation();
+                break;    
             
             default:
                 // do nothing
@@ -449,7 +454,7 @@ class class_headstart_admission
         if ($moodle_users["users"][0]['username' == $moodle_username])
         {
             // the returned user has same name as one given to create new user so OK
-            return;
+            return $ret;
         }
         else
         {
@@ -460,6 +465,8 @@ class class_headstart_admission
                 
             // change the ticket status to error
             $this->change_ticket_status_to_error($create_account_obj->ticket_id);
+
+            return $ret;
         }
 
     }
@@ -790,6 +797,17 @@ class class_headstart_admission
         $this->get_data_for_sritoni_account_creation($ticket_id);
 
         echo "<pre>" . print_r($this->create_account_obj, true) ."</pre>";
+    }
+
+    private function test_sritoni_account_creation()
+    {
+        $ticket_id = 1;
+
+        $this->get_data_for_sritoni_account_creation($ticket_id);
+
+        $ret = $this->create_sritoni_account();
+
+        echo "<pre>" . print_r($ret, true) ."</pre>";
     }
 
 }   // end of class bracket
