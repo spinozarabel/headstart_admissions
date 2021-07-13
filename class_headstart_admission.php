@@ -405,6 +405,9 @@ class class_headstart_admission
         
         // write the data back to Moodle using REST API
         // create the users array in format needed for Moodle RSET API
+        $fees_array = [];
+        $fees_json  = json_encode($fees_array);
+
     	$users = array("users" => array(
                                             array(	"username" 	    => $moodle_username,
                                                     "idnumber"      => $create_account_obj->idnumber,
@@ -415,7 +418,7 @@ class class_headstart_admission
                                                     "middlename"    => $create_account_obj->student_middlename,
                                                     "institution"   => $create_account_obj->institution,
                                                     "department"    => $create_account_obj->department,
-                                                    "phone1"        => $create_account_obj->phone_emergency,
+                                                    "phone1"        => $create_account_obj->principal_phone_number,
                                                     "address"       => $create_account_obj->student_address,
                                                     "maildisplay"   => 0,
                                                     "createpassword"=> 0,
@@ -424,18 +427,13 @@ class class_headstart_admission
                                                                                 array(	"type"	=>	"class",
                                                                                         "value"	=>	$create_account_obj->class,
                                                                                     ),
-                                                                                array(	"type"	=>	"bloodgroup",
-                                                                                        "value"	=>	$create_account_obj->bloodgroup,
-                                                                                    ),
                                                                                 array(	"type"	=>	"environment",
                                                                                         "value"	=>	$create_account_obj->environment,
                                                                                     ),
                                                                                 array(	"type"	=>	"studentcat",
                                                                                         "value"	=>	$create_account_obj->studentcat,
                                                                                     ),
-                                                                                array(	"type"	=>	"fees",
-                                                                                        "value"	=>	$create_account_obj->fees,
-                                                                                    ),
+                                                                                
                                                                             )
                                                 )
                                         )
@@ -498,8 +496,8 @@ class class_headstart_admission
 
         // customize the Admission product for this user
         $product_data = [
-                            'name'          => $create_account_obj->product_description,
-                            'regular_price' => $create_account_obj->fee_payable
+                            'name'          => $create_account_obj->product_customized_name,
+                            'regular_price' => $create_account_obj->admission_fee_payable
                         ];
         $product = $woocommerce->put($endpoint, $product_data);
 
@@ -517,10 +515,10 @@ class class_headstart_admission
                 'address_2'     => '',
                 'city'          => 'Bangalore',
                 'state'         => 'Karnataka',
-                'postcode'      => $create_account_obj->address_pin,
+                'postcode'      => $create_account_obj->student_pin,
                 'country'       => 'India',
                 'email'         => $create_account_obj->customer_email,
-                'phone'         => $create_account_obj->phone_emergency
+                'phone'         => $create_account_obj->principal_phone_number,
             ],
             'shipping' => [
                 'first_name'    => $create_account_obj->customer_name,
@@ -529,7 +527,7 @@ class class_headstart_admission
                 'address_2'     => '',
                 'city'          => 'Bangalore',
                 'state'         => 'Karnataka',
-                'postcode'      => $create_account_obj->address_pin,
+                'postcode'      => $create_account_obj->student_pin,
                 'country'       => 'India'
             ],
             'line_items' => [
@@ -663,6 +661,10 @@ class class_headstart_admission
                     $create_account_obj->cohort = $value;
                     break;
 
+                case 'institution':
+                    $create_account_obj->institution = $value;
+                    break;
+
                 case 'blood-group':
                     $create_account_obj->blood_group = $value;
                     break;
@@ -766,10 +768,10 @@ class class_headstart_admission
 
         $endpoint   = "products/" . $product_id;
 
-        $data = [
-                    'name'          => $create_account_obj->product_description,
-                    'regular_price' => $create_account_obj->fee_payable
-                ];
+        $product_data = [
+                            'name'          => $create_account_obj->product_customized_name,
+                            'regular_price' => $create_account_obj->admission_fee_payable
+                        ];
 
         $product = $woocommerce->put($endpoint, $data);
         echo "<pre>" . print_r($product, true) ."</pre>";
