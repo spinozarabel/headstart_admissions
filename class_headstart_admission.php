@@ -92,8 +92,51 @@ class class_headstart_admission
 
         // do_action('wpsc_set_change_status', $ticket_id, $status_id, $prev_status);
         add_action('wpsc_set_change_status', [$this, 'callback_status_changed'], 10,3);
-        
-        
+    }
+
+    /**
+     *  This is the  callback that triggers the various tasks contingent upon ticket status change to desired one
+     *  When the status changes to Admission Granted, the payment process is triggered immediately
+     *  When the ststus is changed to Admission Confirmed the SriToni new user account creation is triggered
+     *  More can be added here as needed.
+     */
+    public function callback_status_changed($ticket_id, $status_id, $prev_status)
+    {
+        global $wpscfunction;
+
+        // buuild an object containing all relevant data from ticket useful for crating user accounts and payments
+        $this->get_data_for_sritoni_account_creation($ticket_id);
+
+        // error_log("ticket id: " . $ticket_id . " Previous status_id: " . $prev_status . " Current status: " . $status_id . "\n");
+
+        // add any logoc that you want here based on status
+        switch (true) 
+        {
+            case ($wpscfunction->get_status_name($status_id) === 'Admission Granted'):
+                // status changed to Admission Granted.
+                // The payment process needs to be triggered
+                // extract the ticket details and pass parameters to hset-payments site for order creation
+                // error_log("yes, i came to the right place for Admission Granted for ticket ID: , " . $ticket_id);
+
+                $new_order = $this->create_wc_order_hset_payments();
+
+                // update the agent field with the newly created order ID
+
+                break;
+
+            case ($wpscfunction->get_status_name($status_id) === 'Admission Confirmed'):
+                // status changed to Admission confirmed.
+                // create a user account on SriToni for the user in this ticket
+                // extract the ticket details and pass parameters to sritoni create account function
+                // error_log("yes, i came to the right place for sritoni user creation for ticket ID: , " . $ticket_id);
+                $this->create_update_sritoni_account();
+                break;
+             
+            
+            default:
+                error_log("No, the changed status has NOT triggered any action for ticket ID: , " . $ticket_id);
+                break;
+        }
     }
 
     /**
@@ -281,43 +324,7 @@ class class_headstart_admission
         }
     }
 
-    public function callback_status_changed($ticket_id, $status_id, $prev_status)
-    {
-        global $wpscfunction;
-
-        // buuild an object containing all relevant data from ticket useful for crating user accounts and payments
-        $this->get_data_for_sritoni_account_creation($ticket_id);
-
-        
-
-        error_log("ticket id: " . $ticket_id . " Previous status_id: " . $prev_status . " Current status: " . $status_id . "\n");
-
-        // add any logoc that you want here based on status
-        switch (true) 
-        {
-            case ($wpscfunction->get_status_name($status_id) === 'Admission Granted'):
-                // status changed to Admission Granted.
-                // The payment process needs to be triggered
-                // extract the ticket details and pass parameters to hset-payments site for order creation
-                // error_log("yes, i came to the right place for Admission Granted for ticket ID: , " . $ticket_id);
-
-                $this->create_wc_order_hset_payments();
-                break;
-
-            case ($wpscfunction->get_status_name($status_id) === 'Admission Confirmed'):
-                // status changed to Admission confirmed.
-                // create a user account on SriToni for the user in this ticket
-                // extract the ticket details and pass parameters to sritoni create account function
-                // error_log("yes, i came to the right place for sritoni user creation for ticket ID: , " . $ticket_id);
-                $this->create_update_sritoni_account();
-                break;
-             
-            
-            default:
-                error_log("No, the changed status has NOT triggered any action for ticket ID: , " . $ticket_id);
-                break;
-        }
-    }
+    
 
     /**
      *  @return void:nul
@@ -547,6 +554,19 @@ class class_headstart_admission
                     'key' => 'grade_for_current_fees',
                     'value' => 'admission'
                 ],
+                [
+                    'key' => 'name_on_remote_order',
+                    'value' => $create_account_obj->student_fullname,
+                ],
+                [
+                    'key' => 'payer_bank_account_number',
+                    'value' => $create_account_obj->Payer_bank_account_number,
+                ],
+                [
+                    'key' => 'admission_number',
+                    'value' => $this->ticket_id,
+                ],
+
             ],
         ];
 
@@ -620,7 +640,7 @@ class class_headstart_admission
                     break;
 
                 case 'bank-account-number':
-                    $create_account_obj->bank_account_number = $value;
+                    $create_account_obj->Payer_bank_account_number = $value;
                     break;
 
                 case 'admission-fee-payable':
@@ -708,6 +728,10 @@ class class_headstart_admission
                     break;
             endswitch;    
         endforeach;         // processed all ticket fields
+
+        $create_account_obj->student_fullname = $create_account_obj->student_firstname  . " " 
+                                              . $create_account_obj->student_middlename . " "
+                                              . $create_account_obj->student_lastname;
 
         $this->create_account_obj = $create_account_obj;
     }
