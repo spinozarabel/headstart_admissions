@@ -268,13 +268,7 @@ class class_headstart_admission
             'orderby'    => 'meta_value_num',
             'meta_key'	 => 'wpsc_tf_load_order',
             'order'    	 => 'ASC',
-            'meta_query' => array(
-                array(
-                    'key'       => 'agentonly',
-                    'value'     => '0',
-                    'compare'   => '='
-                )
-            ),
+            
         ]);
 
         foreach ($fields as $field) 
