@@ -597,41 +597,41 @@ class class_headstart_admission
 
             $value = $wpscfunction->get_ticket_meta($ticket_id, $field->slug, true);
 
-            switch ($field->name):
+            switch ($field->slug):
 
-                case 'Student firstname':
+                case 'student-firstname':
                     $create_account_obj->student_firstname = $value;
                     break;
                 
-                case 'Student middlename':
+                case 'student-middlename':
                     $create_account_obj->student_middlename = $value;
                     break;
 
-                case 'Student lastname':
+                case 'student-lastname':
                     $create_account_obj->student_lastname = $value;
                     break;
 
-                case 'Student DOB':
+                case 'student-dob':
                     $create_account_obj->student_dob = $value;
                     break;   
                     
-                case 'Existing SriToni idnumber':
+                case 'existing-sritoni-idnumber':
                     $create_account_obj->existing_sritoni_idnumber = $value;
                     break;  
                     
-                case 'Existing SriToni username':
+                case 'existing-sritoni-username':
                     $create_account_obj->existing_sritoni_username = $value;
                     break;
 
-                case 'Bank account number':
+                case 'bank-account-number':
                     $create_account_obj->payer_bank_account_number = $value;
                     break;
 
-                case 'fee amount':
+                case 'admission-fee-payable':
                     $create_account_obj->fee_payable = $value;
                     break;
 
-                case 'Customized Product Description':
+                case 'product-customized-name':
                     $create_account_obj->product_description = $value;
                     break;
 
@@ -647,55 +647,51 @@ class class_headstart_admission
                     $create_account_obj->studentcat = $value;
                     break;
 
-                case 'Class':
+                case 'class':
                     $create_account_obj->class = $value;
                     break;
 
-                case 'Cohort':
+                case 'cohort':
                     $create_account_obj->cohort = $value;
                     break;
 
-                case 'Blood group':
+                case 'blood-group':
                     $create_account_obj->blood_group = $value;
                     break;
 
-                case 'Father name':
+                case 'father-name':
                     $create_account_obj->father_name = $value;
                     break;
 
-                case 'Mother name':
+                case 'mother-name':
                     $create_account_obj->mother_name = $value;
                     break;
 
-                case 'Email Father':
+                case 'email-father':
                     $create_account_obj->father_email = $value;
                     break;
 
-                case 'Email Mother':
+                case 'email-mother':
                     $create_account_obj->mother_email = $value;
                     break;
 
-                case 'Principal phone number':
+                case 'principal-phone-number':
                     $create_account_obj->phone_emergency = $value;
                     break;
 
-                case 'Student address':
+                case 'address':
                     $create_account_obj->student_address = $value;
                     break;
 
-                case 'Mother Phone':
+                case 'mother-phone-number':
                     $create_account_obj->phone_mother = $value;
                     break;
 
-                case 'Father phone':
+                case 'father-phone-number':
                     $create_account_obj->phone_father = $value;
                     break;
 
-                case 'Address':
-                    $create_account_obj->student_address = $value;
-                    break;
-
-                case 'Student PIN':
+                case 'student-pin':
                     $create_account_obj->address_pin = $value;
                     break;
 
