@@ -773,7 +773,7 @@ class class_headstart_admission
                             'regular_price' => $create_account_obj->admission_fee_payable
                         ];
 
-        $product = $woocommerce->put($endpoint, $data);
+        $product = $woocommerce->put($endpoint, $product_data);
         echo "<pre>" . print_r($product, true) ."</pre>";
     }
 
