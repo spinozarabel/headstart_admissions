@@ -37,10 +37,8 @@ class class_hset_order_complete_webhook
         $wckey  = $this->config['wckey'];
         $wcsec  = $this->config['wcsec'];
 
-        $wc_webhook_secret = $this->config['wc_webhook_secret'];
-
         // add these as properties of object
-		$this->wc_webhook_secret    = $wc_webhook_secret;
+		$this->wc_webhook_secret    = $this->config['wc_webhook_secret'];
 
         // sets timezone object to IST
 		//$this->timezone =  new DateTimeZone(self::TIMEZONE);
@@ -56,20 +54,38 @@ class class_hset_order_complete_webhook
      */
     public function process()
     {
-        $ip_source = $_SERVER['REMOTE_ADDR'];
-        
-        $ip_whitelist_arr       = ['68.183.189.119'];
+        if ( $_SERVER['REMOTE_ADDR']              == '68.183.189.119' &&
+             $_SERVER['HTTP_X_WC_WEBHOOK_SOURCE'] == 'https://sritoni.org/hset-payments/'     
+           )
+        {
+            // passes all conditions, process further
+            error_log("Webhook passes all source restrictions");
+
+            $this->signature = $_SERVER['HTTP_X_WC_WEBHOOK_SIGNATURE'];
+
+            $request_body = file_get_contents('php://input');
+
+            error_log(print_r($request_body,true));
+
+            $signature_verified = $this->verify_webhook_signature($request_body);
+
+            error_log("signature verified True or False: " . $signature_verified);
+        }
+        else
+        {
+            die;
+        }
 
         $data = file_get_contents('php://input');
 
+    }
 
-        error_log('IP address of webhook is: ' . $ip_source);
-        foreach ($data as $key => $value)
-        {
-            error_log($key." : ".$value);
-        }
+    private function verify_webhook_signature($request_body)
+    {
+        $signature    = $this->signature;
+        $secret       = $this->wc_webhook_secret;
 
-        error_log(print_r($_SERVER, true));
+        return (base64_encode(hash_hmac('sha256', $request_body, $secret, true)) == $signature);
     }
 
     // function to read in the configuration file for WP case
