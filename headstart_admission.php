@@ -23,6 +23,8 @@ require_once(__DIR__."/class_headstart_admission.php");
 
 require_once(__DIR__."/cfAutoCollect.inc.php");         // contains cashfree api class
 
+require_once(__DIR__."/class_hset_order_complete_webhook.php");         // contains cashfree api class
+
 if ( is_admin() )
 {
   // This is to be done only once!!!!
@@ -42,6 +44,6 @@ function init_headstart_admission()
 
 function hset_admission_order_complete_webhook_init()
 {
-    error_log(print_r($_POST,true));
-    return;
+    $hset_order_complete_webhook = new class_hset_order_complete_webhook();
+    $hset_order_complete_webhook->process();
 }
