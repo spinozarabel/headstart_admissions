@@ -43,7 +43,7 @@ class class_hset_order_complete_webhook
 		$this->wc_webhook_secret    = $wc_webhook_secret;
 
         // sets timezone object to IST
-		$this->timezone =  new DateTimeZone(self::TIMEZONE);
+		//$this->timezone =  new DateTimeZone(self::TIMEZONE);
 
     }       // end construct function
 
