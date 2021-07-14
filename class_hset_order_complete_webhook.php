@@ -58,25 +58,52 @@ class class_hset_order_complete_webhook
              $_SERVER['HTTP_X_WC_WEBHOOK_SOURCE'] == 'https://sritoni.org/hset-payments/'     
            )
         {
-            // passes all conditions, process further
-            error_log("Webhook passes all source restrictions");
 
             $this->signature = $_SERVER['HTTP_X_WC_WEBHOOK_SIGNATURE'];
 
             $request_body = file_get_contents('php://input');
 
-            error_log(print_r($request_body,true));
-
             $signature_verified = $this->verify_webhook_signature($request_body);
 
-            error_log("signature verified True or False: " . $signature_verified);
+            if ($signature_verified)
+            {
+                error_log("HSET order completed webhook signature verified");
+
+                $data = json_decode($request_body, false);  // decoded as object
+
+                if ($data->action = "woocommerce_order_status_completed")
+                {
+                    $order_id = $data->arg;
+
+                    $this->order_id = $order_id;
+
+                    $this->update_admission_ticket_status();
+                }
+            }
+            else 
+            {
+                error_log("HSET order completed webhook signature NOT verified");
+                die;
+            }
         }
         else
         {
+            error_log("HSET order completed webhook source NOT verified");
+            error_log($_SERVER['REMOTE_ADDR'] . " " . $_SERVER['HTTP_X_WC_WEBHOOK_SOURCE']);
+
             die;
         }
 
-        $data = file_get_contents('php://input');
+    }
+
+    public function update_admission_ticket_status()
+    {
+        global $wpscfunction;
+
+        $order_id = $this->order_id;
+        
+
+        // get the order based on order id from WooCommerce using API
 
     }
 

@@ -91,7 +91,7 @@ class class_headstart_admission
         add_action( 'wpsc_ticket_created', [$this, 'update_user_meta_form'], 10, 1 );
 
         // do_action('wpsc_set_change_status', $ticket_id, $status_id, $prev_status);
-        add_action('wpsc_set_change_status', [$this, 'callback_status_changed'], 10,3);
+        add_action('wpsc_set_change_status', [$this, 'action_on_ticket_status_changed'], 10,3);
     }
 
     /**
@@ -100,7 +100,7 @@ class class_headstart_admission
      *  When the ststus is changed to Admission Confirmed the SriToni new user account creation is triggered
      *  More can be added here as needed.
      */
-    public function callback_status_changed($ticket_id, $status_id, $prev_status)
+    public function action_on_ticket_status_changed($ticket_id, $status_id, $prev_status)
     {
         global $wpscfunction;
 
@@ -210,7 +210,8 @@ class class_headstart_admission
                 break;
 
             case 'test_get_wc_order':
-                $this->test_get_wc_order();
+                $order_id = "590";
+                $this->test_get_wc_order($order_id);
                 break;
 
             case 'test_update_wc_product':
@@ -736,7 +737,7 @@ class class_headstart_admission
         $this->create_account_obj = $create_account_obj;
     }
 
-    private function test_get_wc_order()
+    private function test_get_wc_order($order_id)
     {
         // run this since we may be changing API keys. Once in production remove this
         $this->get_config();
@@ -754,11 +755,13 @@ class class_headstart_admission
             ]
         );
 
-        $order_id   = 590;
         $endpoint   = "orders/" . $order_id;
         $params     = array($order_id);
         $order      = $woocommerce->get($endpoint);
+        
         echo "<pre>" . print_r($order, true) ."</pre>";
+
+        return $order;
     }
 
     private function test_update_wc_product()

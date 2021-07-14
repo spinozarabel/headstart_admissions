@@ -40,10 +40,13 @@ function init_headstart_admission()
   $admission       = new class_headstart_admission();
 
   add_action('admin_post_nopriv_hset_admission_order_complete_webhook', 'hset_admission_order_complete_webhook_init', 10);
+
+  
 }
 
 function hset_admission_order_complete_webhook_init()
 {
     $hset_order_complete_webhook = new class_hset_order_complete_webhook();
+
     $hset_order_complete_webhook->process();
 }
