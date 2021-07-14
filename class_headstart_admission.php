@@ -560,11 +560,11 @@ class class_headstart_admission
                 ],
                 [
                     'key' => 'payer_bank_account_number',
-                    'value' => $create_account_obj->Payer_bank_account_number,
+                    'value' => $create_account_obj->payer_bank_account_number,
                 ],
                 [
                     'key' => 'admission_number',
-                    'value' => $this->ticket_id,
+                    'value' => $create_account_obj->ticket_id,
                 ],
 
             ],
@@ -640,7 +640,7 @@ class class_headstart_admission
                     break;
 
                 case 'bank-account-number':
-                    $create_account_obj->Payer_bank_account_number = $value;
+                    $create_account_obj->payer_bank_account_number = $value;
                     break;
 
                 case 'admission-fee-payable':
