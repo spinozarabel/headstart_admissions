@@ -37,5 +37,11 @@ function init_headstart_admission()
   // instantiate the class for head start admission
   $admission       = new class_headstart_admission();
 
-  //$admission->run;
+  add_action('admin_post_nopriv_hset_admission_order_complete_webhook', 'hset_admission_order_complete_webhook_init', 10);
+}
+
+function hset_admission_order_complete_webhook_init()
+{
+    error_log(print_r($_POST,true));
+    return;
 }
