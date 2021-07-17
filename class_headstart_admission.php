@@ -26,7 +26,7 @@ require __DIR__ . '/vendor/autoload.php';
 
 use Automattic\WooCommerce\Client;
 
-class class_headstart_admission 
+class class_headstart_admission
 {
 	// The loader that's responsible for maintaining and registering all hooks that power
 	protected $loader;
@@ -47,12 +47,12 @@ class class_headstart_admission
 	 * Load the dependencies, define the locale, and set the hooks for the admin area and
 	 * the public-facing side of the site.
 	 */
-	public function __construct() 
+	public function __construct()
     {
-		if ( defined( 'HEADSTART_ADMISSION_VERSION' ) ) 
+		if ( defined( 'HEADSTART_ADMISSION_VERSION' ) )
         {
 			$this->version = HEADSTART_ADMISSION_VERSION;
-		} else 
+		} else
         {
 			$this->version = '1.0.0';
 		}
@@ -93,11 +93,20 @@ class class_headstart_admission
         // do_action('wpsc_set_change_status', $ticket_id, $status_id, $prev_status);
         add_action('wpsc_set_change_status', [$this, 'action_on_ticket_status_changed'], 10,3);
 
+        // what happens after
+        add_action( 'ninja_forms_after_submission', 'my_ninja_forms_after_submission' );
+
+    }
+
+    public function my_ninja_forms_after_submission( $form_data )
+    {
+        error_log("logging form_data from Ninja forms just submitted");
+        error_log(print_r($form_data));
     }
 
 
     /**
-     * 
+     *
      */
     public function update_ticket_status_paid($ticket_id)
     {
@@ -125,7 +134,7 @@ class class_headstart_admission
         // error_log("ticket id: " . $ticket_id . " Previous status_id: " . $prev_status . " Current status: " . $status_id . "\n");
 
         // add any logoc that you want here based on status
-        switch (true) 
+        switch (true)
         {
             case ($wpscfunction->get_status_name($status_id) === 'Admission Granted'):
                 // status changed to Admission Granted.
@@ -146,8 +155,8 @@ class class_headstart_admission
                 // error_log("yes, i came to the right place for sritoni user creation for ticket ID: , " . $ticket_id);
                 $this->create_update_sritoni_account();
                 break;
-             
-            
+
+
             default:
                 error_log("No, the changed status has NOT triggered any action for ticket ID: , " . $ticket_id);
                 break;
@@ -155,22 +164,22 @@ class class_headstart_admission
     }
 
     /**
-     * 
+     *
      */
     public function add_my_menu()
     {
-        add_submenu_page( 
+        add_submenu_page(
             'users.php',	                    // string $parent_slug
             'Admissions',	                    // string $page_title
-            'Admissions',                       // string $menu_title	
-            'manage_options',                   // string $capability	
-            'admissions',                       // string $menu_slug		
+            'Admissions',                       // string $menu_title
+            'manage_options',                   // string $capability
+            'admissions',                       // string $menu_slug
             [$this, 'render_admissions_page'] );// callable $function = ''
 
         // add submenu page for testing various application API needed for SriToni operation
-        add_submenu_page( 	
+        add_submenu_page(
             'users.php',	                     // parent slug
-            'SriToni Tools',                     // page title	
+            'SriToni Tools',                     // page title
             'SriToni Tools',	                 // menu title
             'manage_options',	                 // capability
             'sritoni-tools',	                 // menu slug
@@ -178,7 +187,7 @@ class class_headstart_admission
     }
 
     /**
-     * 
+     *
      */
     public function render_admissions_page()
     {
@@ -203,11 +212,11 @@ class class_headstart_admission
                 <input type="submit" name="button" 	value="test_custom_code"/>
             </form>
 
-            
+
         <?php
 
         $button = sanitize_text_field( $_POST['button'] );
-        switch ($button) 
+        switch ($button)
         {
             case 'test_SriToni_connection':
                 $this->test_sritoni_connection();
@@ -244,12 +253,12 @@ class class_headstart_admission
 
             case 'test_sritoni_account_creation':
                 $this->test_sritoni_account_creation();
-                break;   
-                
+                break;
+
                 case 'test_custom_code':
                     $this->test_custom_code();
                     break;
-            
+
             default:
                 // do nothing
                 break;
@@ -348,27 +357,27 @@ class class_headstart_admission
         // the folowing piece of code dumps details of ticket id =1;
         global $wpscfunction;
         $ticket_id = 3;
-        
+
         $fields = get_terms([
             'taxonomy'   => 'wpsc_ticket_custom_fields',
             'hide_empty' => false,
             'orderby'    => 'meta_value_num',
             'meta_key'	 => 'wpsc_tf_load_order',
             'order'    	 => 'ASC',
-            
+
         ]);
 
-        foreach ($fields as $field) 
+        foreach ($fields as $field)
         {
             if (empty($field)) continue;
             $value = $wpscfunction->get_ticket_meta($ticket_id,$field->slug,true);
 
             echo nl2br($field->slug . ": " . $value . "\n");
-            
+
         }
     }
 
-    
+
 
     /**
      *  @return void:nul
@@ -429,8 +438,8 @@ class class_headstart_admission
         if ( ( $moodle_users["users"][0] ) )
         {
             // An account with this user already exssts. So add  a number to the username and retry
-            for ($i=0; $i < 5; $i++) 
-            { 
+            for ($i=0; $i < 5; $i++)
+            {
                 $moodle_username = $create_account_obj->username . $i;
                 $parameters   = array("criteria" => array(array("key" => "username", "value" => $moodle_username)));
                 $moodle_users = $MoodleRest->request('core_user_get_users', $parameters, MoodleRest::METHOD_GET);
@@ -441,19 +450,19 @@ class class_headstart_admission
                 }
 
                 error_log("Couldnt find username, the account exists for upto username 4 ! check");
-                
+
                 // change the ticket status to error
                 $this->change_ticket_status_to_error($create_account_obj->ticket_id);
 
                 return;
-            } 
-        
-        // came out the for loop with a valid user name that can be created 
+            }
+
+        // came out the for loop with a valid user name that can be created
         }
 
         // if you are here it means you came here after breaking through the forloop above
         // so create a new moodle user account with the successful username that has been incremented
-        
+
         // write the data back to Moodle using REST API
         // create the users array in format needed for Moodle RSET API
         $fees_array = [];
@@ -484,12 +493,12 @@ class class_headstart_admission
                                                                                 array(	"type"	=>	"studentcat",
                                                                                         "value"	=>	$create_account_obj->studentcat,
                                                                                     ),
-                                                                                
+
                                                                             )
                                                 )
                                         )
         );
-        
+
         // now to uuser  with form and agent fields
         $ret = $MoodleRest->request('core_user_create_users', $users, MoodleRest::METHOD_POST);
 
@@ -503,7 +512,7 @@ class class_headstart_admission
         {
             error_log("Create new user didnt return expected username: " . $moodle_username);
             error_log(print_r($ret, true));
-                
+
             // change the ticket status to error
             $this->change_ticket_status_to_error($create_account_obj->ticket_id, $ret["message"]);
 
@@ -527,8 +536,8 @@ class class_headstart_admission
 
         // instantiate woocommerce API class
         $woocommerce = new Client(
-                                    'https://sritoni.org/hset-payments/', 
-                                    $this->config['wckey'], 
+                                    'https://sritoni.org/hset-payments/',
+                                    $this->config['wckey'],
                                     $this->config['wcsec'],
                                     [
                                         'wp_api'            => true,
@@ -616,7 +625,7 @@ class class_headstart_admission
 
         // finally, lets create the new order using the Woocommerce API on the remote payment server
         $order_created = $woocommerce->post('orders', $order_data);
-        
+
         // check if the order has been created and if so what is the order ID
 
         return $order_created;
@@ -630,7 +639,7 @@ class class_headstart_admission
         $this->ticket_data  = $wpscfunction->get_ticket($ticket_id);
 
         $create_account_obj = new stdClass;
-        
+
         $fields = get_terms([
             'taxonomy'   => 'wpsc_ticket_custom_fields',
             'hide_empty' => false,
@@ -662,7 +671,7 @@ class class_headstart_admission
                 case 'student-firstname':
                     $create_account_obj->student_firstname = $value;
                     break;
-                
+
                 case 'student-middlename':
                     $create_account_obj->student_middlename = $value;
                     break;
@@ -673,12 +682,12 @@ class class_headstart_admission
 
                 case 'student-dob':
                     $create_account_obj->student_dob = $value;
-                    break;   
-                    
+                    break;
+
                 case 'existing-sritoni-idnumber':
                     $create_account_obj->existing_sritoni_idnumber = $value;
-                    break;  
-                    
+                    break;
+
                 case 'existing-sritoni-username':
                     $create_account_obj->existing_sritoni_username = $value;
                     break;
@@ -770,10 +779,10 @@ class class_headstart_admission
                 default:
                     // do nothing for now
                     break;
-            endswitch;    
+            endswitch;
         endforeach;         // processed all ticket fields
 
-        $create_account_obj->student_fullname = $create_account_obj->student_firstname  . " " 
+        $create_account_obj->student_fullname = $create_account_obj->student_firstname  . " "
                                               . $create_account_obj->student_middlename . " "
                                               . $create_account_obj->student_lastname;
 
@@ -787,8 +796,8 @@ class class_headstart_admission
 
         // instantiate woocommerce API class
         $woocommerce = new Client(
-            'https://sritoni.org/hset-payments/', 
-            $this->config['wckey'], 
+            'https://sritoni.org/hset-payments/',
+            $this->config['wckey'],
             $this->config['wcsec'],
             [
                 'wp_api'            => true,
@@ -820,8 +829,8 @@ class class_headstart_admission
 
         // instantiate woocommerce API class
         $woocommerce = new Client(
-            'https://sritoni.org/hset-payments/', 
-            $this->config['wckey'], 
+            'https://sritoni.org/hset-payments/',
+            $this->config['wckey'],
             $this->config['wcsec'],
             [
                 'wp_api'            => true,
@@ -854,7 +863,7 @@ class class_headstart_admission
         $this->get_data_for_sritoni_account_creation($ticket_id);
 
         $order_created = $this->create_wc_order_hset_payments();
-        
+
         echo "<pre>" . print_r($order_created, true) ."</pre>";
     }
 
@@ -881,7 +890,7 @@ class class_headstart_admission
     }
 
     /**
-     * 
+     *
      */
     private function change_ticket_status_to_error($ticket_id, $error_message)
     {
