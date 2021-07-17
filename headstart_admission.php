@@ -31,22 +31,21 @@ if ( is_admin() )
   $admission_settings = new class_headstart_admission_settings();
 }
 
-// wait for all plugins to be loaded before initializing the new VABACS gateway
-add_action('plugins_loaded', 'init_headstart_admission');
+// instantiate the class for head start admission
+$admission       = new class_headstart_admission();
 
-function init_headstart_admission()
-{
-  // instantiate the class for head start admission
-  $admission       = new class_headstart_admission();
+//// wait for all plugins to be loaded before initializing the new VABACS gateway
+//add_action('plugins_loaded', 'init_headstart_admission');
 
-  add_action('admin_post_nopriv_hset_admission_order_complete_webhook', 'hset_admission_order_complete_webhook_init', 10);
 
-  
-}
+/*
 
 function hset_admission_order_complete_webhook_init()
 {
     $hset_order_complete_webhook = new class_hset_order_complete_webhook();
 
-    $hset_order_complete_webhook->process();
+    $order_id = $hset_order_complete_webhook->process();
+    
+
 }
+*/

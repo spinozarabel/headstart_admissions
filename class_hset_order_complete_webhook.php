@@ -77,7 +77,7 @@ class class_hset_order_complete_webhook
 
                     $this->order_id = $order_id;
 
-                    $this->update_admission_ticket_status();
+                    return $order_id;
                 }
             }
             else 
@@ -96,16 +96,7 @@ class class_hset_order_complete_webhook
 
     }
 
-    public function update_admission_ticket_status()
-    {
-        global $wpscfunction;
-
-        $order_id = $this->order_id;
-        
-
-        // get the order based on order id from WooCommerce using API
-
-    }
+    
 
     private function verify_webhook_signature($request_body)
     {
