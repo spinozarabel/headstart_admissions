@@ -200,6 +200,7 @@ class class_headstart_admission
                 <input type="submit" name="button" 	value="test_create_wc_order"/>
                 <input type="submit" name="button" 	value="test_get_data_for_sritoni_account_creation"/>
                 <input type="submit" name="button" 	value="test_sritoni_account_creation"/>
+                <input type="submit" name="button" 	value="test_custom_code"/>
             </form>
 
             
@@ -226,7 +227,7 @@ class class_headstart_admission
 
             case 'test_get_wc_order':
                 $order_id = "590";
-                $this->test_get_wc_order($order_id);
+                $this->get_wc_order($order_id);
                 break;
 
             case 'test_update_wc_product':
@@ -243,12 +244,39 @@ class class_headstart_admission
 
             case 'test_sritoni_account_creation':
                 $this->test_sritoni_account_creation();
-                break;    
+                break;   
+                
+                case 'test_custom_code':
+                    $this->test_custom_code();
+                    break;
             
             default:
                 // do nothing
                 break;
         }
+    }
+
+    public function test_custom_code()
+    {
+        global $wpscfunction;
+        echo "<h1>" . "List of ALL Ticket custom fields" . "</h1>";
+
+        $custom_fields = get_terms([
+            'taxonomy'   => 'wpsc_ticket_custom_fields',
+            'hide_empty' => false,
+            'orderby'    => 'meta_value_num',
+            'meta_key'	 => 'wpsc_tf_load_order',
+            'order'    	 => 'ASC',
+            'meta_query' => array(
+                'relation' => 'AND',
+                array(
+                    'key'       => 'agentonly',
+                    'value'     => '0',
+                    'compare'   => '='
+                ),
+            )
+        ]);
+        echo "<pre>" . print_r($custom_fields, true) ."</pre>";
     }
 
     public function test_sritoni_connection()
@@ -752,7 +780,7 @@ class class_headstart_admission
         $this->create_account_obj = $create_account_obj;
     }
 
-    private function test_get_wc_order($order_id)
+    private function get_wc_order($order_id)
     {
         // run this since we may be changing API keys. Once in production remove this
         $this->get_config();
