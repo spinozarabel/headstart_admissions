@@ -94,7 +94,7 @@ class class_headstart_admission
         add_action('wpsc_set_change_status', [$this, 'action_on_ticket_status_changed'], 10,3);
 
         // what happens after
-        add_action( 'ninja_forms_after_submission', 'my_ninja_forms_after_submission' );
+        add_action( 'ninja_forms_after_submission', 'my_ninja_forms_after_submission', 10, 1 );
 
     }
 
