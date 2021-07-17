@@ -94,11 +94,11 @@ class class_headstart_admission
         add_action('wpsc_set_change_status', [$this, 'action_on_ticket_status_changed'], 10,3);
 
         // webhook from payment site on order complete. Provides order id in data payload
-        //add_action('admin_post_nopriv_hset_admission_order_complete_webhook', 
-                    //[$this, 'webhookaction_admission_order_complete'], 10);
+        add_action('admin_post_nopriv_hset_admission_order_complete_webhook', 
+                    [$this, 'hset_admission_order_complete_webhook'], 10);
     }
 
-    public function webhookaction_admission_order_complete()
+    public function hset_admission_order_complete_webhook()
     {
         if ( $_SERVER['REMOTE_ADDR']              == '68.183.189.119' &&
              $_SERVER['HTTP_X_WC_WEBHOOK_SOURCE'] == 'https://sritoni.org/hset-payments/'     

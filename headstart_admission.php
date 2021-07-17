@@ -31,18 +31,27 @@ if ( is_admin() )
   $admission_settings = new class_headstart_admission_settings();
 }
 
-// instantiate the class for head start admission
-$admission       = new class_headstart_admission();
 
-//// wait for all plugins to be loaded before initializing the new VABACS gateway
-// add_action('plugins_loaded', 'init_headstart_admission');
+
+// wait for all plugins to be loaded before initializing the new VABACS gateway
+add_action('plugins_loaded', 'init_headstart_admission');
+
+function init_headstart_admission()
+{
+  // instantiate the class for head start admission
+  $admission       = new class_headstart_admission();
+
+}
+
+
 // webhook from payment site on order complete. Provides order id in data payload
-add_action('admin_post_nopriv_hset_admission_order_complete_webhook', 
-                                    'hset_admission_order_complete_webhook', 10);
-
+//add_action('admin_post_nopriv_hset_admission_order_complete_webhook', 
+                                    //'hset_admission_order_complete_webhook', 10);
+/*
 function hset_admission_order_complete_webhook()
 {
     $hset_order_complete_webhook = new class_hset_order_complete_webhook();
 
     $order_id = $hset_order_complete_webhook->process();
 }
+*/
