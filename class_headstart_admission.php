@@ -94,11 +94,11 @@ class class_headstart_admission
         add_action('wpsc_set_change_status', [$this, 'action_on_ticket_status_changed'], 10,3);
 
         // what happens after
-        add_action( 'ninja_forms_after_submission', 'my_ninja_forms_after_submission' );
+        add_action( 'ninja_forms_after_submission', [$this, 'map_ninja_form_to_ticket'] );
 
     }
 
-    public function my_ninja_forms_after_submission( $form_data )
+    public function map_ninja_form_to_ticket( $form_data )
     {
         error_log("logging form_data from Ninja forms just submitted");
         error_log(print_r($form_data));
