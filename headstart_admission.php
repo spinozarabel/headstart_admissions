@@ -35,8 +35,10 @@ if ( is_admin() )
 $admission       = new class_headstart_admission();
 
 //// wait for all plugins to be loaded before initializing the new VABACS gateway
-//add_action('plugins_loaded', 'init_headstart_admission');
-
+// add_action('plugins_loaded', 'init_headstart_admission');
+// webhook from payment site on order complete. Provides order id in data payload
+add_action('admin_post_nopriv_hset_admission_order_complete_webhook', 
+                                    [$admission, 'webhookaction_admission_order_complete'], 10);
 
 /*
 

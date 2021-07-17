@@ -94,8 +94,8 @@ class class_headstart_admission
         add_action('wpsc_set_change_status', [$this, 'action_on_ticket_status_changed'], 10,3);
 
         // webhook from payment site on order complete. Provides order id in data payload
-        add_action('admin_post_nopriv_hset_admission_order_complete_webhook', 
-                    [$this, 'webhookaction_admission_order_complete'], 10);
+        //add_action('admin_post_nopriv_hset_admission_order_complete_webhook', 
+                    //[$this, 'webhookaction_admission_order_complete'], 10);
     }
 
     public function webhookaction_admission_order_complete()
