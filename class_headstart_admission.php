@@ -101,7 +101,7 @@ class class_headstart_admission
     public function map_ninja_form_to_ticket( $form_data )
     {
         error_log("logging form_data from Ninja forms just submitted");
-        error_log(print_r($form_data));
+        error_log(print_r($form_data, true));
     }
 
 
