@@ -98,10 +98,75 @@ class class_headstart_admission
 
     }
 
+    public function action_after_login($user_login, $user)
+    {
+        error_log("data dump of user object after login");
+        error_log($user_login);
+    }
+
     public function map_ninja_form_to_ticket( $form_data )
     {
-        error_log("logging form_data from Ninja forms just submitted");
-        error_log(print_r($form_data, true));
+        global $wpscfunction;
+
+        // $form_data['fields']['id']['seetings']['admin_label']
+        // $form_data['fields']['id'][''value']
+        // Loop through each of the ticket fields, match its slug to the admin_label and get its corresponding value
+
+        $ticket_args = [];  // Initialize the new ticket values array
+
+        $fields_nf = $form_data['fields'];
+
+        $keymap = array_keys($fields_nf);
+
+        $ticket_fields = get_terms([
+            'taxonomy'   => 'wpsc_ticket_custom_fields',
+            'hide_empty' => false,
+            'orderby'    => 'meta_value_num',
+            'meta_key'	 => 'wpsc_tf_load_order',
+            'order'    	 => 'ASC',
+            'meta_query' => array(
+                'relation' => 'AND',
+                array(
+                    'key'       => 'agentonly',
+                    'value'     => '0',
+                    'compare'   => '='
+                ),
+            )
+        ]);
+
+        $admin_label_fields_nf = array_column($fields_nf['settings'], 'admin_label');
+
+        foreach ($ticket_fields as $ticket_field) 
+        {
+            if ($ticket_field->slug == 'ticket_description'    ||
+                $ticket_field->slug == 'ticket_subject'        ||
+                $ticket_field->slug == 'ticket_priority')
+
+                return;     // we don;t modify these fields in the ticket, they are unused.
+            
+            switch (true):
+                case ($ticket_field->slug == 'customer_name'):
+                    // look for the mapping slug in the ninja forms fields
+                    $field_nf_id= array_search('applicant-name', $admin_label_fields_nf);
+
+                    // set the value from the ninja form field found to the ticket field
+                    // we need to use the keymap because array_search doesn't presevre keys
+                    $ticket_args[$ticket_field->slug] = $fields_nf[$keymap[$field_nf_id]]['value'];
+
+                    break;
+
+                case ($ticket_field->slug == 'customer_email'):
+                    // look for the mapping slug in the ninja forms fields
+                    $field_nf_id= array_search('email', $admin_label_fields_nf);
+
+                    // set the value from the ninja form field found to the ticket field
+                    $ticket_args[$ticket_field->slug] = $fields_nf[$keymap[$field_nf_id]]['value'];
+
+                    break;
+            
+            endswitch;
+
+        }
     }
 
 

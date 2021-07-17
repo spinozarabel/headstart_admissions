@@ -36,6 +36,13 @@ if ( is_admin() )
 // wait for all plugins to be loaded before initializing the new VABACS gateway
 add_action('plugins_loaded', 'init_headstart_admission');
 
+function  action_after_login($user_login, $user)
+{
+  //  if user email is a headstart one then get that student's user data from SriTooni and savee
+  // data as JSOn in user meta. Check if user meta exists, if it does do not get the data gaian. Just once 1st time login.
+
+}
+
 function init_headstart_admission()
 {
   // instantiate the class for head start admission
@@ -44,13 +51,9 @@ function init_headstart_admission()
   add_action('admin_post_nopriv_hset_admission_order_complete_webhook', 
                                     'webhook_init', 10);
 
-  
+  add_action( 'wp_login', [$admission, 'action_after_login'], 10,2 );
 }
 
-
-// webhook from payment site on order complete. Provides order id in data payload
-//add_action('admin_post_nopriv_hset_admission_order_complete_webhook', 
-                                    //'hset_admission_order_complete_webhook', 10);
 
 function webhook_init()
 {
