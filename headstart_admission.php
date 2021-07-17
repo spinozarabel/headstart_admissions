@@ -38,16 +38,11 @@ $admission       = new class_headstart_admission();
 // add_action('plugins_loaded', 'init_headstart_admission');
 // webhook from payment site on order complete. Provides order id in data payload
 add_action('admin_post_nopriv_hset_admission_order_complete_webhook', 
-                                    [$admission, 'webhookaction_admission_order_complete'], 10);
+                                    'webhookaction_admission_order_complete', 10);
 
-/*
-
-function hset_admission_order_complete_webhook_init()
+function webhookaction_admission_order_complete()
 {
     $hset_order_complete_webhook = new class_hset_order_complete_webhook();
 
     $order_id = $hset_order_complete_webhook->process();
-    
-
 }
-*/
