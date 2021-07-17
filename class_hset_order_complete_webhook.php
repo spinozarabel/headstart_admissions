@@ -77,6 +77,8 @@ class class_hset_order_complete_webhook
 
                     $this->order_id = $order_id;
 
+                    error_log($data->action . " " . $order_id);
+
                     return $order_id;
                 }
             }
