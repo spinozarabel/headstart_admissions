@@ -95,51 +95,6 @@ class class_headstart_admission
 
     }
 
-    public function hset_admission_order_complete_webhook()
-    {
-        if ( $_SERVER['REMOTE_ADDR']              == '68.183.189.119' &&
-             $_SERVER['HTTP_X_WC_WEBHOOK_SOURCE'] == 'https://sritoni.org/hset-payments/'     
-           )
-        {
-
-            $signature      = $_SERVER['HTTP_X_WC_WEBHOOK_SIGNATURE'];
-
-            $request_body   = file_get_contents('php://input');
-
-            // if signatures verifies with secret, accept the data
-            if (base64_encode(hash_hmac('sha256', $request_body, $this->config['wc_webhook_secret'], true)) == $signature)
-            {
-                $data = json_decode($request_body, false);  // json decoded as object
-
-                if ($data->action = "woocommerce_order_status_completed")
-                {
-                    $order_id = $data->arg;
-
-                    $this->order_id = $order_id;
-
-                    $order = $this->test_get_wc_order($order_id);
-
-                    // we added theis order meta precisely for this purpose. to get the ticket_id from the worder ebhook
-                    $ticket_id = $order->admission_number;
-
-                    error_log("Webhook completed order_id:" . $order_id . " Corresponding to Admission Ticket ID: " . $ticket_id);
-
-                    $this->update_ticket_status_paid($ticket_id);
-                }
-            }
-            else 
-            {
-                error_log("Webhook signature NOT verified");
-                die;
-            }
-        }
-        else
-        {
-            error_log("Webhook source - NOT verified");
-            error_log(print_r($_SERVER, true));
-            die;
-        }
-    }
 
     /**
      * 
