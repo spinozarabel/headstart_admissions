@@ -156,14 +156,11 @@ class class_headstart_admission
                 case ($ticket_field->slug == 'customer_name'):
 
                     // look for the mapping slug in the ninja forms field's admin label
-                    $key = array_search('customer_name', $admin_label_array);
-
-                    // since array search destroys keys, find the original key using our map acquired at top
-                    $field_key = $keymap[$key];
+                    $key = array_search('customer-name', $admin_label_array);
                 
-                    $ticket_args[$ticket_field->slug]= $fields_ninjaforms[$field_key]['value'] ?? "Blankdata";
+                    $ticket_args[$ticket_field->slug]= $value_array[$key];
 
-                    error_log('customer-name: ' . $fields_ninjaforms[$field_key]['value']);
+                    error_log($ticket_field->slug . ': ' . $ticket_args[$ticket_field->slug]);
 
                     break;
 
@@ -175,12 +172,9 @@ class class_headstart_admission
                     // look for the mapping slug in the ninja forms field's admin label
                     $key = array_search('ticket_category', $admin_label_array);
 
-                    // since array search destroys keys, find the original key using our map acquired at top
-                    $field_key = $keymap[$key];
-                
-                    $ticket_args[$ticket_field->slug]= $fields_ninjaforms[$field_key]['value'] ?? "Blankdata";
+                    $ticket_args[$ticket_field->slug]= $value_array[$key];
 
-                    error_log('ticket_category: ' . $fields_ninjaforms[$field_key]['value']);
+                    error_log($ticket_field->slug . ': ' . $ticket_args[$ticket_field->slug]);
 
                     break;
 
@@ -192,12 +186,9 @@ class class_headstart_admission
                     // look for the mapping slug in the ninja forms field's admin label
                     $key = array_search('email', $admin_label_array);
 
-                    // since array search destroys keys, find the original key using our map acquired at top
-                    $field_key = $keymap[$key];
-                
-                    $ticket_args[$ticket_field->slug]= $fields_ninjaforms[$field_key]['value'] ?? "Blankdata";
+                    $ticket_args[$ticket_field->slug]= $value_array[$key];
 
-                    error_log('email: ' . $fields_ninjaforms[$field_key]['value']);
+                    error_log($ticket_field->slug . ': ' . $ticket_args[$ticket_field->slug]);
 
                     break;
 
@@ -225,12 +216,9 @@ class class_headstart_admission
                         // look for the mapping slug in the ninja forms field's admin label
                         $key = array_search('student-first-name', $admin_label_array);
 
-                        // since array search destroys keys, find the original key using our map acquired at top
-                        $field_key = $keymap[$key];
-                    
-                        $ticket_args[$ticket_field->slug]= $fields_ninjaforms[$field_key]['value'] ?? "Blankdata";
+                        $ticket_args[$ticket_field->slug]= $value_array[$key];
 
-                        error_log('student-first-name: ' . $fields_ninjaforms[$field_key]['value']);
+                        error_log($ticket_field->slug . ': ' . $ticket_args[$ticket_field->slug]);
 
                         break;
 
@@ -242,12 +230,9 @@ class class_headstart_admission
                         // look for the mapping slug in the ninja forms field's admin label
                         $key = array_search('student-last-name', $admin_label_array);
 
-                        // since array search destroys keys, find the original key using our map acquired at top
-                        $field_key = $keymap[$key];
-                    
-                        $ticket_args[$ticket_field->slug]= $fields_ninjaforms[$field_key]['value'] ?? "Blankdata";
+                        $ticket_args[$ticket_field->slug]= $value_array[$key];
 
-                        error_log('student-last-name: ' . $fields_ninjaforms[$field_key]['value']);
+                        error_log($ticket_field->slug . ': ' . $ticket_args[$ticket_field->slug]);
 
                         break;
 
@@ -259,12 +244,9 @@ class class_headstart_admission
                         // look for the mapping slug in the ninja forms field's admin label
                         $key = array_search('student-middle-name', $admin_label_array);
 
-                        // since array search destroys keys, find the original key using our map acquired at top
-                        $field_key = $keymap[$key];
-                    
-                        $ticket_args[$ticket_field->slug]= $fields_ninjaforms[$field_key]['value'] ?? "Blankdata";
+                        $ticket_args[$ticket_field->slug]= $value_array[$key];
 
-                        error_log('student-middle-name: ' . $fields_ninjaforms[$field_key]['value']);
+                        error_log($ticket_field->slug . ': ' . $ticket_args[$ticket_field->slug]);
 
                         break;
 
@@ -276,12 +258,9 @@ class class_headstart_admission
                         // look for the mapping slug in the ninja forms field's admin label
                         $key = array_search('date-of-birth', $admin_label_array);
 
-                        // since array search destroys keys, find the original key using our map acquired at top
-                        $field_key = $keymap[$key];
-                    
-                        $ticket_args[$ticket_field->slug]= $fields_ninjaforms[$field_key]['value'] ?? "Blankdata";
+                        $ticket_args[$ticket_field->slug]= $value_array[$key];
 
-                        error_log('date-of-birth: ' . $fields_ninjaforms[$field_key]['value']);
+                        error_log($ticket_field->slug . ': ' . $ticket_args[$ticket_field->slug]);
 
                         break;
                     
