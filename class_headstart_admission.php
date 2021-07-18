@@ -517,7 +517,7 @@ class class_headstart_admission
     {
         // tthe following piece of code gets executed and results displayed in the  SriToni tools page when button is pressed
         global $wpscfunction;
-        $ticket_id = 3;
+        $ticket_id = 2;
         $ticket_data = $wpscfunction->get_ticket($ticket_id);
         echo "<pre>" . print_r($ticket_data, true) ."</pre>";
     }
