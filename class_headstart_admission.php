@@ -116,9 +116,12 @@ class class_headstart_admission
 
         $fields_ninjaforms = $form_data['fields'];
 
-        $admin_label_array =array_column(array_column($fields_ninjaforms, 'settings'), 'admin_label');
+        $admin_label_array = array_column(array_column($fields_ninjaforms, 'settings'), 'admin_label');
+
+        $value_array       = array_column(array_column($fields_ninjaforms, 'settings'), 'value');
 
         error_log("admin label array: " . print_r($admin_label_array, true));
+        error_log("value array      : " . print_r($value_array, true));
 
         $keymap = array_keys($fields_ninjaforms);
 
