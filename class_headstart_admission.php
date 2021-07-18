@@ -508,7 +508,7 @@ class class_headstart_admission
         echo "<pre>" . print_r($vAccount, true) ."</pre>";
     }
 
-    private function update_user_meta_form($ticket_id)
+    public function update_user_meta_form($ticket_id)
     {
         //
     }
@@ -526,7 +526,7 @@ class class_headstart_admission
     {
         // the folowing piece of code dumps details of ticket id =1;
         global $wpscfunction;
-        $ticket_id = 3;
+        $ticket_id = 2;
 
         $fields = get_terms([
             'taxonomy'   => 'wpsc_ticket_custom_fields',
