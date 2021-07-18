@@ -118,11 +118,11 @@ class class_headstart_admission
 
         $admin_label_array =array_column(array_column($fields_ninjaforms, 'settings'), 'admin_label');
 
-        // error_log("admin label array: " . print_r($admin_label_array, true));
+        error_log("admin label array: " . print_r($admin_label_array, true));
 
         $keymap = array_keys($fields_ninjaforms);
 
-        // error_log("admin label keymap: " . print_r($keymap, true));
+        error_log("admin label keymap: " . print_r($keymap, true));
 
         $ticket_fields = get_terms([
             'taxonomy'   => 'wpsc_ticket_custom_fields',
