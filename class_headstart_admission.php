@@ -100,8 +100,12 @@ class class_headstart_admission
 
     public function action_after_login($user_login, $user)
     {
-        error_log("data dump of user object after login");
-        error_log($user_login);
+        // check if user has a headstart mail. If not return;
+        if (stripos($user->data->user_email, "headstart.edu.in") === false)
+        {
+            return;
+        }
+        // so we have a user who has logged in usinh a headstart emailID. Let's check id user meta is 
     }
 
     public function map_ninja_form_to_ticket( $form_data )
@@ -268,6 +272,7 @@ class class_headstart_admission
         global $wpscfunction;
 
         // get the below value from the WP tables using Heidi. This is hard coded and needs to change accordingly
+        // TODO get the status id just from slug rather than hard coding it here like this
         $status_id_order_completed = 136;   // this is the term_id and the slug is payment-process-completed
 
         $wpscfunction->change_status($ticket_id, $status_id_order_completed);
@@ -313,7 +318,7 @@ class class_headstart_admission
 
 
             default:
-                error_log("No, the changed status has NOT triggered any action for ticket ID: , " . $ticket_id);
+                // error_log("No, the changed status has NOT triggered any action for ticket ID: , " . $ticket_id);
                 break;
         }
     }

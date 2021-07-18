@@ -51,7 +51,7 @@ function init_headstart_admission()
   add_action('admin_post_nopriv_hset_admission_order_complete_webhook', 
                                     'webhook_init', 10);
 
-  add_action( 'wp_login', [$admission, 'action_after_login'], 10,2 );
+  // add_action( 'wp_login', [$admission, 'action_after_login'], 10,2 );
 }
 
 
