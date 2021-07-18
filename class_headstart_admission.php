@@ -264,7 +264,7 @@ class class_headstart_admission
                         // since array search destroys keys, find the original key using our map acquired at top
                         $field_key = $keymap[$key];
                     
-                        $ticket_args[$ticket_field->slug]= $fields_ninjaforms[$field_key]['value'];
+                        $ticket_args[$ticket_field->slug]= $fields_ninjaforms[$field_key]['value'] ?? "Blankdata";
 
                         break;
                     
@@ -275,7 +275,7 @@ class class_headstart_admission
 
         error_log("admin label keymap: " . print_r($ticket_args, true));
         // we have all the necessary ticket fields filled from the Ninja forms, now we can create a new ticket
-        $ticket_id = $wpscfunction->create_ticket($ticket_args);
+        //$ticket_id = $wpscfunction->create_ticket($ticket_args);
     }
 
 
