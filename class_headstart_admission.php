@@ -120,12 +120,7 @@ class class_headstart_admission
 
         $value_array       = array_column(array_column($fields_ninjaforms, 'settings'), 'value');
 
-        error_log("admin label array: " . print_r($admin_label_array, true));
-        error_log("value array      : " . print_r($value_array, true));
-
         $keymap = array_keys($fields_ninjaforms);
-
-        error_log("admin label keymap: " . print_r($keymap, true));
 
         $ticket_fields = get_terms([
             'taxonomy'   => 'wpsc_ticket_custom_fields',
@@ -160,8 +155,6 @@ class class_headstart_admission
                 
                     $ticket_args[$ticket_field->slug]= $value_array[$key];
 
-                    error_log($ticket_field->slug . ': ' . $ticket_args[$ticket_field->slug]);
-
                     break;
 
 
@@ -179,8 +172,6 @@ class class_headstart_admission
 
                     $ticket_args[$ticket_field->slug]= $term->term_id;
 
-                    error_log($ticket_field->slug . ': ' . $ticket_args[$ticket_field->slug]);
-
                     break;
 
 
@@ -192,8 +183,6 @@ class class_headstart_admission
                     $key = array_search('email', $admin_label_array);
 
                     $ticket_args[$ticket_field->slug]= $value_array[$key];
-
-                    error_log($ticket_field->slug . ': ' . $ticket_args[$ticket_field->slug]);
 
                     break;
 
@@ -223,8 +212,6 @@ class class_headstart_admission
 
                         $ticket_args[$ticket_field->slug]= $value_array[$key];
 
-                        error_log($ticket_field->slug . ': ' . $ticket_args[$ticket_field->slug]);
-
                         break;
 
 
@@ -236,8 +223,6 @@ class class_headstart_admission
                         $key = array_search('student-last-name', $admin_label_array);
 
                         $ticket_args[$ticket_field->slug]= $value_array[$key];
-
-                        error_log($ticket_field->slug . ': ' . $ticket_args[$ticket_field->slug]);
 
                         break;
 
@@ -251,8 +236,6 @@ class class_headstart_admission
 
                         $ticket_args[$ticket_field->slug]= $value_array[$key];
 
-                        error_log($ticket_field->slug . ': ' . $ticket_args[$ticket_field->slug]);
-
                         break;
 
 
@@ -265,8 +248,6 @@ class class_headstart_admission
 
                         $ticket_args[$ticket_field->slug]= $value_array[$key];
 
-                        error_log($ticket_field->slug . ': ' . $ticket_args[$ticket_field->slug]);
-
                         break;
                     
             
@@ -274,7 +255,6 @@ class class_headstart_admission
 
         endforeach;
 
-        error_log("admin label keymap: " . print_r($ticket_args, true));
         // we have all the necessary ticket fields filled from the Ninja forms, now we can create a new ticket
         $ticket_id = $wpscfunction->create_ticket($ticket_args);
     }
