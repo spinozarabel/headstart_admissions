@@ -168,7 +168,7 @@ class class_headstart_admission
                 case ($ticket_field->slug == 'ticket_category'):
 
                     // look for the mapping slug in the ninja forms field's admin label
-                    $key = array_search('ticket-category', $admin_label_array);
+                    $key = array_search('ticket_category', $admin_label_array);
 
                     // since array search destroys keys, find the original key using our map acquired at top
                     $field_key = $keymap[$key];
@@ -274,7 +274,7 @@ class class_headstart_admission
         endforeach;
 
         // we have all the necessary ticket fields filled from the Ninja forms, now we can create a new ticket
-        //$ticket_id = $wpscfunction->create_ticket($ticket_args);
+        $ticket_id = $wpscfunction->create_ticket($ticket_args);
     }
 
 
