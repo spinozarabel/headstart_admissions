@@ -461,6 +461,16 @@ class class_headstart_admission
             )
         ]);
         echo "<pre>" . print_r($custom_fields, true) ."</pre>";
+
+        $category_ids = array();
+        $categories = get_terms([
+        'taxonomy'   => 'wpsc_categories',
+        'hide_empty' => false,
+        'orderby'    => 'meta_value_num',
+        'order'    	 => 'ASC',
+        'meta_query' => array('order_clause' => array('key' => 'wpsc_category_load_order')),
+        ]);
+        echo "<pre>" . print_r($categories, true) ."</pre>";
     }
 
     public function test_sritoni_connection()
