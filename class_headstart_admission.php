@@ -114,9 +114,11 @@ class class_headstart_admission
 
         $ticket_args = [];  // Initialize the new ticket values array
 
-        $fields_nf = $form_data['fields'];
+        $fields_ninjaforms = $form_data['fields'];
 
-        $keymap = array_keys($fields_nf);
+        $admin_label_array =array_column(array_column($fields_ninjaforms, 'settings'), 'admin_label');
+
+        $keymap = array_keys($fields_ninjaforms);
 
         $ticket_fields = get_terms([
             'taxonomy'   => 'wpsc_ticket_custom_fields',
@@ -134,39 +136,141 @@ class class_headstart_admission
             )
         ]);
 
-        $admin_label_fields_nf = array_column($fields_nf['settings'], 'admin_label');
-
-        foreach ($ticket_fields as $ticket_field) 
-        {
-            if ($ticket_field->slug == 'ticket_description'    ||
-                $ticket_field->slug == 'ticket_subject'        ||
-                $ticket_field->slug == 'ticket_priority')
-
+        foreach ($ticket_fields as $ticket_field):
+        
+            if ($ticket_field->slug == 'ticket_priority')
+            {
                 return;     // we don;t modify these fields in the ticket, they are unused.
+
+            } 
             
             switch (true):
+                // customer_name ticket field mapping.
                 case ($ticket_field->slug == 'customer_name'):
-                    // look for the mapping slug in the ninja forms fields
-                    $field_nf_id= array_search('applicant-name', $admin_label_fields_nf);
 
-                    // set the value from the ninja form field found to the ticket field
-                    // we need to use the keymap because array_search doesn't presevre keys
-                    $ticket_args[$ticket_field->slug] = $fields_nf[$keymap[$field_nf_id]]['value'];
+                    // look for the mapping slug in the ninja forms field's admin label
+                    $key = array_search('customer_name', $admin_label_array);
+
+                    // since array search destroys keys, find the original key using our map acquired at top
+                    $field_key = $keymap[$key];
+                
+                    $ticket_args[$ticket_field->slug]= $fields_ninjaforms[$field_key]['value'];
 
                     break;
 
+
+
+                // customer_name ticket field mapping.
+                case ($ticket_field->slug == 'ticket_category'):
+
+                    // look for the mapping slug in the ninja forms field's admin label
+                    $key = array_search('ticket-category', $admin_label_array);
+
+                    // since array search destroys keys, find the original key using our map acquired at top
+                    $field_key = $keymap[$key];
+                
+                    $ticket_args[$ticket_field->slug]= $fields_ninjaforms[$field_key]['value'];
+
+                    break;
+
+
+
+                    // customer_name ticket field mapping.
                 case ($ticket_field->slug == 'customer_email'):
-                    // look for the mapping slug in the ninja forms fields
-                    $field_nf_id= array_search('email', $admin_label_fields_nf);
 
-                    // set the value from the ninja form field found to the ticket field
-                    $ticket_args[$ticket_field->slug] = $fields_nf[$keymap[$field_nf_id]]['value'];
+                    // look for the mapping slug in the ninja forms field's admin label
+                    $key = array_search('email', $admin_label_array);
+
+                    // since array search destroys keys, find the original key using our map acquired at top
+                    $field_key = $keymap[$key];
+                
+                    $ticket_args[$ticket_field->slug]= $fields_ninjaforms[$field_key]['value'];
 
                     break;
+
+
+                    // customer_name ticket field mapping.
+                    case ($ticket_field->slug == 'ticket_subject'):
+
+                        // default for all users
+                        $ticket_args[$ticket_field->slug]= 'Admission';
+    
+                        break;
+
+                    // customer_name ticket field mapping.
+                    case ($ticket_field->slug == 'ticket_description'):
+
+                        // default for all users
+                        $ticket_args[$ticket_field->slug]= 'Admission';
+    
+                        break;    
+
+
+                        // customer_name ticket field mapping.
+                    case ($ticket_field->slug == 'student-first-name'):
+
+                        // look for the mapping slug in the ninja forms field's admin label
+                        $key = array_search('student-first-name', $admin_label_array);
+
+                        // since array search destroys keys, find the original key using our map acquired at top
+                        $field_key = $keymap[$key];
+                    
+                        $ticket_args[$ticket_field->slug]= $fields_ninjaforms[$field_key]['value'];
+
+                        break;
+
+
+
+                    // customer_name ticket field mapping.
+                    case ($ticket_field->slug == 'student-last-name'):
+
+                        // look for the mapping slug in the ninja forms field's admin label
+                        $key = array_search('student-last-name', $admin_label_array);
+
+                        // since array search destroys keys, find the original key using our map acquired at top
+                        $field_key = $keymap[$key];
+                    
+                        $ticket_args[$ticket_field->slug]= $fields_ninjaforms[$field_key]['value'];
+
+                        break;
+
+
+
+                    // customer_name ticket field mapping.
+                    case ($ticket_field->slug == 'student-middle-name'):
+
+                        // look for the mapping slug in the ninja forms field's admin label
+                        $key = array_search('student-middle-name', $admin_label_array);
+
+                        // since array search destroys keys, find the original key using our map acquired at top
+                        $field_key = $keymap[$key];
+                    
+                        $ticket_args[$ticket_field->slug]= $fields_ninjaforms[$field_key]['value'];
+
+                        break;
+
+
+                    
+                    // customer_name ticket field mapping.
+                    case ($ticket_field->slug == 'date-of-birth'):
+
+                        // look for the mapping slug in the ninja forms field's admin label
+                        $key = array_search('date-of-birth', $admin_label_array);
+
+                        // since array search destroys keys, find the original key using our map acquired at top
+                        $field_key = $keymap[$key];
+                    
+                        $ticket_args[$ticket_field->slug]= $fields_ninjaforms[$field_key]['value'];
+
+                        break;
+                    
             
             endswitch;
 
-        }
+        endforeach;
+
+        // we have all the necessary ticket fields filled from the Ninja forms, now we can create a new ticket
+        $ticket_id = $wpscfunction->create_ticket($ticket_args);
     }
 
 
