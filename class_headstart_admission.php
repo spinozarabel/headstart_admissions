@@ -522,7 +522,7 @@ class class_headstart_admission
     {
         // tthe following piece of code gets executed and results displayed in the  SriToni tools page when button is pressed
         global $wpscfunction;
-        $ticket_id = 3;
+        $ticket_id = 4;
         $ticket_data = $wpscfunction->get_ticket($ticket_id);
         echo "<pre>" . print_r($ticket_data, true) ."</pre>";
     }
@@ -531,7 +531,7 @@ class class_headstart_admission
     {
         // the folowing piece of code dumps details of ticket id =1;
         global $wpscfunction;
-        $ticket_id = 3;
+        $ticket_id = 4;
 
         $fields = get_terms([
             'taxonomy'   => 'wpsc_ticket_custom_fields',
