@@ -177,7 +177,7 @@ class class_headstart_admission
                     // now to get the category id using the slug we got from the ninja form field
                     $term = get_term_by('slug', $category_name, 'wpsc_categories');
 
-                    $ticket_args[$ticket_field->slug]= $term->id;
+                    $ticket_args[$ticket_field->slug]= $term->term_id;
 
                     error_log($ticket_field->slug . ': ' . $ticket_args[$ticket_field->slug]);
 
