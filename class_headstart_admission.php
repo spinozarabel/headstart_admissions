@@ -172,7 +172,12 @@ class class_headstart_admission
                     // look for the mapping slug in the ninja forms field's admin label
                     $key = array_search('ticket_category', $admin_label_array);
 
-                    $ticket_args[$ticket_field->slug]= $value_array[$key];
+                    $category_name = $value_array[$key];
+
+                    // now to get the category id using the slug we got from the ninja form field
+                    $term = get_term_by('slug', $category_name, 'wpsc_categories');
+
+                    $ticket_args[$ticket_field->slug]= $term->id;
 
                     error_log($ticket_field->slug . ': ' . $ticket_args[$ticket_field->slug]);
 
