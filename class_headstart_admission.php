@@ -147,7 +147,7 @@ class class_headstart_admission
         
             if ($ticket_field->slug == 'ticket_priority')
             {
-                return;     // we don;t modify these fields in the ticket, they are unused.
+                continue;     // we don;t modify these fields in the ticket, they are unused.
 
             } 
             
