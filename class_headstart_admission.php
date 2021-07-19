@@ -516,7 +516,7 @@ class class_headstart_admission
 
             $endpoint   = "customers";
 
-            $customer = $woocommerce->get($endpoint, array('email' => 'sritoni2@headstart.edu.in'));
+            $customer = $woocommerce->post($endpoint, array('email' => 'sritoni2@headstart.edu.in'));
 
             echo "<pre>" . print_r($customer, true) ."</pre>";                           
 
