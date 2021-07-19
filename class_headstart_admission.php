@@ -978,9 +978,15 @@ class class_headstart_admission
     {
         $ticket_id = 8;
 
-        $this->get_data_for_sritoni_account_creation($ticket_id);
+        $data_object = $this->get_data_for_sritoni_account_creation($ticket_id);
 
-        echo "<pre>" . print_r($this->data_object, true) ."</pre>";
+        echo "<pre>" . print_r($data_object, true) ."</pre>";
+
+        $category_id = $data_object->ticket_meta['ticket_category'];
+
+        // from category ID get the category name
+        $term = get_term_by('id',$category_id,'wpsc_categories');
+        echo "<pre>" . $term->name ."</pre>";
     }
 
     private function test_sritoni_account_creation()
