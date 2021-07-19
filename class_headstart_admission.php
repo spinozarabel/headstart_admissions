@@ -448,7 +448,7 @@ class class_headstart_admission
             )
         ]);
 
-        foreach ($fields as $key->$field)
+        foreach ($fields as $key =>$field)
         {
             $ticket_fields[$field->slug] = $field;
         }
