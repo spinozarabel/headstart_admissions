@@ -860,6 +860,7 @@ class class_headstart_admission
             if ($field->slug == "ticket_category"   ||
                 $field->slug == "ticket_status"     ||
                 $field->slug == "ticket_priority"   ||
+                $field->slug == "ticket_subject"    ||
                 $field->slug == "customer_name"     ||
                 $field->slug == "customer_email"    ||
                 $field->slug == "ticket_email"
