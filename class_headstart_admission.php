@@ -986,7 +986,7 @@ class class_headstart_admission
 
         // from category ID get the category name
         $term = get_term_by('id',$category_id,'wpsc_categories');
-        echo "<pre>" . $term->name ."</pre>";
+        echo "<pre>" . "Category slug and category name" . $term->slug . " : " . $term->name . "</pre>";
     }
 
     private function test_sritoni_account_creation()
