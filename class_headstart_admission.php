@@ -445,7 +445,12 @@ class class_headstart_admission
                 ),
             )
         ]);
-        echo "<pre>" . print_r($custom_fields, true) ."</pre>";
+
+        foreach ($fields as $key->$field)
+        {
+            $ticket_fields[$field->slug] = get_term_by( 'slug', $field->slug, 'wpsc_ticket_custom_fields' )->name;
+        }
+        echo "<pre>" . print_r($ticket_fields, true) ."</pre>";
 
         $category_ids = array();
         $categories = get_terms([
