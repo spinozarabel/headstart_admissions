@@ -66,6 +66,9 @@ class class_headstart_admission
 
 	}
 
+    /**
+     *  reads in a config php file and gets the API secrets. The file has to be in gitignore and protected
+     */
     private function get_config()
     {
       $this->config = include( __DIR__."/" . $this->plugin_name . "_config.php");
@@ -88,12 +91,13 @@ class class_headstart_admission
     private function define_public_hooks()
     {
         // on admission form submission update user meta with form data
-        add_action( 'wpsc_ticket_created', [$this, 'update_user_meta_form'], 10, 1 );
+        // add_action( 'wpsc_ticket_created', [$this, 'update_user_meta_form'], 10, 1 );
 
         // do_action('wpsc_set_change_status', $ticket_id, $status_id, $prev_status);
         add_action('wpsc_set_change_status', [$this, 'action_on_ticket_status_changed'], 10,3);
 
-        // what happens after
+        // after a NInja form submission, its data is mapped to a support ticket
+        // This is the principal source of data for subsequent actions such as account creation
         add_action( 'ninja_forms_after_submission', [$this, 'map_ninja_form_to_ticket'] );
 
     }
@@ -105,8 +109,17 @@ class class_headstart_admission
         {
             return;
         }
-        // so we have a user who has logged in usinh a headstart emailID. Let's check id user meta is 
+        // so we have a user who has logged in usinh a headstart emailID.
+        // we have a chance to get the user's SRiToni data if needed to prefill forms with etc.
     }
+
+    /**
+     *  @return nul Nothing is returned
+     *  The function takes the Ninja form immdediately after submission.
+     *  The form data is captured into the fields of a new ticket that is to be created as a result of this submission.
+     *  Ensure that the data captured into the ticket is adequate for creating a new Payment Shop Order
+     *  and for creating  a new SriToni user account
+     */
 
     public function map_ninja_form_to_ticket( $form_data )
     {
@@ -116,16 +129,19 @@ class class_headstart_admission
         // $form_data['fields']['id'][''value']
         // Loop through each of the ticket fields, match its slug to the admin_label and get its corresponding value
 
-        $ticket_args = [];  // Initialize the new ticket values array
+        // Initialize the new ticket values array needed for a new ticket creation
+        $ticket_args = [];  
 
+        // extract the fields array from the form data
         $fields_ninjaforms = $form_data['fields'];
 
+        // extract a single column from all fields containing the admin_label key
         $admin_label_array = array_column(array_column($fields_ninjaforms, 'settings'), 'admin_label');
 
+        // extract the corresponding value array. They both will share the same  numerical index.
         $value_array       = array_column(array_column($fields_ninjaforms, 'settings'), 'value');
 
-        $keymap = array_keys($fields_ninjaforms);
-
+        // get the ticket field objects using term search. We are getting only the non-agent ticket fields here for mapping
         $ticket_fields = get_terms([
             'taxonomy'   => 'wpsc_ticket_custom_fields',
             'hide_empty' => false,
@@ -144,13 +160,15 @@ class class_headstart_admission
 
         foreach ($ticket_fields as $ticket_field):
         
-            if ($ticket_field->slug == 'ticket_priority')
+            if ($ticket_field->slug == 'ticket_priority' || 
+                $ticket_field->slug == 'wp-user-id-hset-payments')
             {
-                continue;     // we don;t modify these fields in the ticket, they are unused.
-
+                continue;     // we don't modify this field in the ticket - unused.
             } 
-            
+
+            // capture the ones of interest to us
             switch (true):
+                
                 // customer_name ticket field mapping.
                 case ($ticket_field->slug == 'customer_name'):
 
@@ -163,7 +181,7 @@ class class_headstart_admission
 
 
 
-                // customer_name ticket field mapping.
+                    // ticket_category field mapping. The slug has to pre-eexist with an id.
                 case ($ticket_field->slug == 'ticket_category'):
 
                     // look for the mapping slug in the ninja forms field's admin label
@@ -174,13 +192,14 @@ class class_headstart_admission
                     // now to get the category id using the slug we got from the ninja form field
                     $term = get_term_by('slug', $category_name, 'wpsc_categories');
 
+                    // we give the category's term_id, not its name, when we create the ticket.
                     $ticket_args[$ticket_field->slug]= $term->term_id;
 
                     break;
 
 
 
-                    // customer_name ticket field mapping.
+                    // customer email ticket field mapping.
                 case ($ticket_field->slug == 'customer_email'):
 
                     // look for the mapping slug in the ninja forms field's admin label
@@ -191,7 +210,7 @@ class class_headstart_admission
                     break;
 
 
-                    // customer_name ticket field mapping.
+                        // the subject is fixed to Admission
                     case ($ticket_field->slug == 'ticket_subject'):
 
                         // default for all users
@@ -199,7 +218,7 @@ class class_headstart_admission
     
                         break;
 
-                    // customer_name ticket field mapping.
+                        // Description is a fixed string
                     case ($ticket_field->slug == 'ticket_description'):
 
                         // default for all users
@@ -208,7 +227,7 @@ class class_headstart_admission
                         break;    
 
 
-                        // customer_name ticket field mapping.
+                        // Student's first name
                     case ($ticket_field->slug == 'student-first-name'):
 
                         // look for the mapping slug in the ninja forms field's admin label
@@ -220,7 +239,7 @@ class class_headstart_admission
 
 
 
-                    // customer_name ticket field mapping.
+                    // Student's last name
                     case ($ticket_field->slug == 'student-last-name'):
 
                         // look for the mapping slug in the ninja forms field's admin label
@@ -232,7 +251,7 @@ class class_headstart_admission
 
 
 
-                    // customer_name ticket field mapping.
+                    // student's middle name
                     case ($ticket_field->slug == 'student-middle-name'):
 
                         // look for the mapping slug in the ninja forms field's admin label
@@ -244,7 +263,7 @@ class class_headstart_admission
 
 
                     
-                    // customer_name ticket field mapping.
+                    // student's date of birth in YYYY-mm-dd format
                     case ($ticket_field->slug == 'date-of-birth'):
 
                         // look for the mapping slug in the ninja forms field's admin label
@@ -253,11 +272,34 @@ class class_headstart_admission
                         $ticket_args[$ticket_field->slug]= $value_array[$key];
 
                         break;
+
+                    
+                    // 
+                    case ($ticket_field->slug == 'blood-group'):
+
+                        // look for the mapping slug in the ninja forms field's admin label
+                        $key = array_search('blood-group', $admin_label_array);
+
+                        $ticket_args[$ticket_field->slug]= $value_array[$key];
+
+                        break;
+
+                    // 
+                    case ($ticket_field->slug == 'address'):
+
+                        // look for the mapping slug in the ninja forms field's admin label
+                        $key = array_search('address', $admin_label_array);
+
+                        $ticket_args[$ticket_field->slug]= $value_array[$key];
+
+                        break;
+
+                    // rest of the fields come here
                     
             
-            endswitch;
+            endswitch;          // end switching throgh the ticket fields looking for a match
 
-        endforeach;
+        endforeach;             // finish looping through the ticket fields for mapping Ninja form data to ticket
 
         // we have all the necessary ticket fields filled from the Ninja forms, now we can create a new ticket
         $ticket_id = $wpscfunction->create_ticket($ticket_args);
@@ -291,29 +333,24 @@ class class_headstart_admission
         // buuild an object containing all relevant data from ticket useful for crating user accounts and payments
         $this->get_data_for_sritoni_account_creation($ticket_id);
 
-        // error_log("ticket id: " . $ticket_id . " Previous status_id: " . $prev_status . " Current status: " . $status_id . "\n");
-
-        // add any logoc that you want here based on status
+        // add any logoc that you want here based on new status
         switch (true)
         {
             case ($wpscfunction->get_status_name($status_id) === 'Admission Granted'):
                 // status changed to Admission Granted.
                 // The payment process needs to be triggered
                 // extract the ticket details and pass parameters to hset-payments site for order creation
-                // error_log("yes, i came to the right place for Admission Granted for ticket ID: , " . $ticket_id);
 
                 $new_order = $this->create_wc_order_hset_payments();
 
-                // update the agent field with the newly created order ID
+                // TO DO: pdate the agent field with the newly created order ID
 
                 break;
 
             case ($wpscfunction->get_status_name($status_id) === 'Admission Confirmed'):
-                // status changed to Admission confirmed.
-                // create a user account on SriToni for the user in this ticket
-                // extract the ticket details and pass parameters to sritoni create account function
-                // error_log("yes, i came to the right place for sritoni user creation for ticket ID: , " . $ticket_id);
-                $this->create_update_sritoni_account();
+                
+                $this->create_sritoni_account();
+
                 break;
 
 
@@ -430,9 +467,7 @@ class class_headstart_admission
         global $wpscfunction;
         echo "<h1>" . "List of ALL Ticket custom fields" . "</h1>";
 
-        $ticket_id = 8;
-
-        $fields = get_terms([
+        $custom_fields = get_terms([
             'taxonomy'   => 'wpsc_ticket_custom_fields',
             'hide_empty' => false,
             'orderby'    => 'meta_value_num',
@@ -447,12 +482,7 @@ class class_headstart_admission
                 ),
             )
         ]);
-
-        foreach ($fields as $key =>$field)
-        {
-            $ticket_fields[$field->slug] = $field;
-        }
-        echo "<pre>" . print_r($ticket_fields, true) ."</pre>";
+        echo "<pre>" . print_r($custom_fields, true) ."</pre>";
 
         $category_ids = array();
         $categories = get_terms([
@@ -556,38 +586,22 @@ class class_headstart_admission
 
 
 
-    /**
-     *  @return void:nul
-     *  Creates a new account of not a existing user.
-     *  If an existing user then just updates the SriToni user account with profiel details.
-     */
-
-    private function create_update_sritoni_account()
-    {
-        // before coming here the create account object is already created. We jsut use it here.
-        $create_account_obj = $this->create_account_obj;
-
-        if (empty($create_account_obj->existing_sritoni_username) && empty($create_account_obj->existing_sritoni_idnumber))
-        {
-            // New account needs to be created
-            $this->create_sritoni_account();
-
-            return;
-        }
-        else
-        {
-            // Account needs to be updated with data from form and agents
-            $this->update_sritoni_account();
-
-            return;
-        }
-    }
 
     /**
      *  This is called after the create_account object has been already created  so need to call it.
      */
     private function create_sritoni_account()
     {
+        // before coming here the create account object is already created. We jsut use it here.
+        $data_object = $this->data_object;
+
+        if (!empty($data_object->existing_sritoni_username) || !empty($data_object->existing_sritoni_idnumber))
+        {
+            return;
+        }
+
+        // if you get here, you DO NOT have a username and DO NOT have an idnumber
+
         // run this again since we may be changing API keys. Once in production remove this
         $this->get_config();
 
@@ -596,9 +610,7 @@ class class_headstart_admission
         $moodle_url 	= $config["moodle_url"] . '/webservice/rest/server.php';
         $moodle_token	= $config["moodle_token"];
 
-        $create_account_obj = $this->create_account_obj;
-
-        $moodle_username = $create_account_obj->username;
+        $moodle_username = $data_object->username;
 
         // prepare the Moodle Rest API object
         $MoodleRest = new MoodleRest();
@@ -617,7 +629,7 @@ class class_headstart_admission
             // An account with this user already exssts. So add  a number to the username and retry
             for ($i=0; $i < 5; $i++)
             {
-                $moodle_username = $create_account_obj->username . $i;
+                $moodle_username = $data_object->username . $i;
                 $parameters   = array("criteria" => array(array("key" => "username", "value" => $moodle_username)));
                 $moodle_users = $MoodleRest->request('core_user_get_users', $parameters, MoodleRest::METHOD_GET);
                 if ( !( $moodle_users["users"][0] ) )
@@ -626,10 +638,12 @@ class class_headstart_admission
                     break;
                 }
 
-                error_log("Couldnt find username, the account exists for upto username 4 ! check");
+                $error_message = "Couldnt find username, the account exists for upto username + 4 ! check and retry change of status";
+
+                error_log($error_message);
 
                 // change the ticket status to error
-                $this->change_ticket_status_to_error($create_account_obj->ticket_id);
+                $this->change_status_error_creating_sritoni_account($data_object->ticket_id, $error_message);
 
                 return;
             }
@@ -647,28 +661,28 @@ class class_headstart_admission
 
     	$users = array("users" => array(
                                             array(	"username" 	    => $moodle_username,
-                                                    "idnumber"      => $create_account_obj->idnumber,
+                                                    "idnumber"      => $data_object->idnumber,
                                                     "auth"          => "oauth2",
-                                                    "firstname"     => $create_account_obj->student_firstname,
-                                                    "lastname"      => $create_account_obj->student_lastname,
+                                                    "firstname"     => $data_object->student_firstname,
+                                                    "lastname"      => $data_object->student_lastname,
                                                     "email"         => $moodle_username . "@headstart.edu.in",
-                                                    "middlename"    => $create_account_obj->student_middlename,
-                                                    "institution"   => $create_account_obj->institution,
-                                                    "department"    => $create_account_obj->department,
-                                                    "phone1"        => $create_account_obj->principal_phone_number,
-                                                    "address"       => $create_account_obj->student_address,
+                                                    "middlename"    => $data_object->student_middlename,
+                                                    "institution"   => $data_object->institution,
+                                                    "department"    => $data_object->department,
+                                                    "phone1"        => $data_object->principal_phone_number,
+                                                    "address"       => $data_object->student_address,
                                                     "maildisplay"   => 0,
                                                     "createpassword"=> 0,
 
                                                     "customfields" 	=> array(
                                                                                 array(	"type"	=>	"class",
-                                                                                        "value"	=>	$create_account_obj->class,
+                                                                                        "value"	=>	$data_object->class,
                                                                                     ),
                                                                                 array(	"type"	=>	"environment",
-                                                                                        "value"	=>	$create_account_obj->environment,
+                                                                                        "value"	=>	$data_object->environment,
                                                                                     ),
                                                                                 array(	"type"	=>	"studentcat",
-                                                                                        "value"	=>	$create_account_obj->studentcat,
+                                                                                        "value"	=>	$data_object->studentcat,
                                                                                     ),
 
                                                                             )
@@ -691,7 +705,7 @@ class class_headstart_admission
             error_log(print_r($ret, true));
 
             // change the ticket status to error
-            $this->change_ticket_status_to_error($create_account_obj->ticket_id, $ret["message"]);
+            $this->change_status_error_creating_sritoni_account($data_object->ticket_id, $ret["message"]);
 
             return null;
         }
@@ -705,11 +719,8 @@ class class_headstart_admission
      */
     private function create_wc_order_hset_payments()
     {
-        // run this since we may be changing API keys. Once in production remove this
-        $this->get_config();
-
         // before coming here the create account object is already created. We jsut use it here.
-        $create_account_obj = $this->create_account_obj;
+        $data_object = $this->data_object;
 
         // instantiate woocommerce API class
         $woocommerce = new Client(
@@ -721,9 +732,8 @@ class class_headstart_admission
                                         'version'           => 'wc/v3',
                                         'query_string_auth' => true,
 
-                                    ]
-        );
-
+                                    ]);
+        
         // Admission fee to HSET product ID. This is the admission product whose price and description can be customized
         $product_id = 581;
 
@@ -731,8 +741,8 @@ class class_headstart_admission
 
         // customize the Admission product for this user
         $product_data = [
-                            'name'          => $create_account_obj->product_customized_name,
-                            'regular_price' => $create_account_obj->admission_fee_payable
+                            'name'          => get_term_by('slug', $data_object->ticket_field["product_customized_name"], true),
+                            'regular_price' => get_term_by('slug', $data_object->ticket_field["admission-fee-payable"], true),
                         ];
         $product = $woocommerce->put($endpoint, $product_data);
 
@@ -744,25 +754,25 @@ class class_headstart_admission
             'set_paid'              => false,
             'status'                => 'on-hold',
             'billing' => [
-                'first_name'    => $create_account_obj->customer_name,
+                'first_name'    => $data_object->customer_name,
                 'last_name'     => '',
-                'address_1'     => $create_account_obj->student_address,
+                'address_1'     => $data_object->student_address,
                 'address_2'     => '',
                 'city'          => 'Bangalore',
                 'state'         => 'Karnataka',
-                'postcode'      => $create_account_obj->student_pin,
+                'postcode'      => $data_object->student_pin,
                 'country'       => 'India',
-                'email'         => $create_account_obj->customer_email,
-                'phone'         => $create_account_obj->principal_phone_number,
+                'email'         => $data_object->customer_email,
+                'phone'         => $data_object->principal_phone_number,
             ],
             'shipping' => [
-                'first_name'    => $create_account_obj->customer_name,
+                'first_name'    => $data_object->customer_name,
                 'last_name'     => '',
-                'address_1'     => $create_account_obj->student_address,
+                'address_1'     => $data_object->student_address,
                 'address_2'     => '',
                 'city'          => 'Bangalore',
                 'state'         => 'Karnataka',
-                'postcode'      => $create_account_obj->student_pin,
+                'postcode'      => $data_object->student_pin,
                 'country'       => 'India'
             ],
             'line_items' => [
@@ -786,15 +796,15 @@ class class_headstart_admission
                 ],
                 [
                     'key' => 'name_on_remote_order',
-                    'value' => $create_account_obj->student_fullname,
+                    'value' => $data_object->student_fullname,
                 ],
                 [
                     'key' => 'payer_bank_account_number',
-                    'value' => $create_account_obj->payer_bank_account_number,
+                    'value' => $data_object->payer_bank_account_number,
                 ],
                 [
                     'key' => 'admission_number',
-                    'value' => $create_account_obj->ticket_id,
+                    'value' => $data_object->ticket_id,
                 ],
 
             ],
@@ -808,6 +818,14 @@ class class_headstart_admission
         return $order_created;
     }
 
+    /**
+     * This function grabs the ticket fields and data from a given ticket id
+     * It then creates a new data_object that contains all of the ticket data, to be used anywhere needed
+     * This data_object is also set as a property of this
+     *  @param str:$ticket_id
+     *  @return obj:$data_object
+     */
+
     private function get_data_for_sritoni_account_creation($ticket_id)
     {
         global $wpscfunction;
@@ -815,7 +833,7 @@ class class_headstart_admission
         $this->ticket_id    = $ticket_id;
         $this->ticket_data  = $wpscfunction->get_ticket($ticket_id);
 
-        $create_account_obj = new stdClass;
+        $data_object = new stdClass;
 
         $fields = get_terms([
             'taxonomy'   => 'wpsc_ticket_custom_fields',
@@ -823,166 +841,55 @@ class class_headstart_admission
             'orderby'    => 'meta_value_num',
             'meta_key'	 => 'wpsc_tf_load_order',
             'order'    	 => 'ASC',
-            /*
+            
             'meta_query' => array(
                                     array(
                                         'key'       => 'agentonly',
-                                        'value'     => '1',
-                                        'compare'   => '<='             // get all ticket meta fields
-                                    ),
+                                        'value'     => ["0", "1"],  // get all ticket meta fields
+                                        'compare'   => 'IN',             
+                                        ),
                                 ),
-            */
+            
         ]);
 
-        $create_account_obj->ticket_id      = $ticket_id;
-        $create_account_obj->customer_name  = $this->ticket_data['customer_name'];
-        $create_account_obj->customer_email = $this->ticket_data['customer_email'];
+        // create a new associative array that holds the ticket field object keyed by slug. This way we can get it on demand
+        $ticket_fields = [];
 
-        foreach ($fields as $field):
-            if (empty($field)) continue;
+        foreach ($fields as $field)
+        {
+            $ticket_meta[$field->slug] = get_ticket_meta($ticket_id, $field->slug, true);
+        }
 
-            $value = $wpscfunction->get_ticket_meta($ticket_id, $field->slug, true);
+        $data_object->ticket_id      = $ticket_id;
+        $data_object->ticket_data    = $this->ticket_data;
+        $data_object->ticket_meta    = $ticket_meta;        // to access: $data_object->ticket_meta[fieldslug]
 
-            switch ($field->slug):
+        $this->data_object           = $data_object;
 
-                case 'student-firstname':
-                    $create_account_obj->student_firstname = $value;
-                    break;
-
-                case 'student-middlename':
-                    $create_account_obj->student_middlename = $value;
-                    break;
-
-                case 'student-lastname':
-                    $create_account_obj->student_lastname = $value;
-                    break;
-
-                case 'student-dob':
-                    $create_account_obj->student_dob = $value;
-                    break;
-
-                case 'existing-sritoni-idnumber':
-                    $create_account_obj->existing_sritoni_idnumber = $value;
-                    break;
-
-                case 'existing-sritoni-username':
-                    $create_account_obj->existing_sritoni_username = $value;
-                    break;
-
-                case 'bank-account-number':
-                    $create_account_obj->payer_bank_account_number = $value;
-                    break;
-
-                case 'admission-fee-payable':
-                    $create_account_obj->admission_fee_payable = $value;
-                    break;
-
-                case 'product-customized-name':
-                    $create_account_obj->product_customized_name = $value;
-                    break;
-
-                case 'username':
-                    $create_account_obj->username = $value;
-                    break;
-
-                case 'idnumber':
-                    $create_account_obj->idnumber = $value;
-                    break;
-
-                case 'studentcat':
-                    $create_account_obj->studentcat = $value;
-                    break;
-
-                case 'class':
-                    $create_account_obj->class = $value;
-                    break;
-
-                case 'environment':
-                    $create_account_obj->environment = $value;
-                    break;
-
-                case 'department':
-                    $create_account_obj->department = $value;
-                    break;
-
-                case 'cohort':
-                    $create_account_obj->cohort = $value;
-                    break;
-
-                case 'institution':
-                    $create_account_obj->institution = $value;
-                    break;
-
-                case 'blood-group':
-                    $create_account_obj->blood_group = $value;
-                    break;
-
-                case 'father-name':
-                    $create_account_obj->father_name = $value;
-                    break;
-
-                case 'mother-name':
-                    $create_account_obj->mother_name = $value;
-                    break;
-
-                case 'email-father':
-                    $create_account_obj->email_father = $value;
-                    break;
-
-                case 'email-mother':
-                    $create_account_obj->email_mother = $value;
-                    break;
-
-                case 'principal-phone-number':
-                    $create_account_obj->principal_phone_number = $value;
-                    break;
-
-                case 'address':
-                    $create_account_obj->student_address = $value;
-                    break;
-
-                case 'mother-phone-number':
-                    $create_account_obj->mother_phone_number = $value;
-                    break;
-
-                case 'father-phone-number':
-                    $create_account_obj->father_phone_number = $value;
-                    break;
-
-                case 'student-pin':
-                    $create_account_obj->student_pin = $value;
-                    break;
-
-                default:
-                    // do nothing for now
-                    break;
-            endswitch;
-        endforeach;         // processed all ticket fields
-
-        $create_account_obj->student_fullname = $create_account_obj->student_firstname  . " "
-                                              . $create_account_obj->student_middlename . " "
-                                              . $create_account_obj->student_lastname;
-
-        $this->create_account_obj = $create_account_obj;
+        return $data_object;
     }
+
+    /**
+     *  @param int:$order_id
+     *  @return obj:$order
+     * Uses the WooCommerce API to get back the order object for a given order_id
+     * It prints outthe order object but this is only visible in a test page and gets overwritten by a short code elsewhere
+     */
 
     private function get_wc_order($order_id)
     {
-        // run this since we may be changing API keys. Once in production remove this
-        $this->get_config();
-
         // instantiate woocommerce API class
         $woocommerce = new Client(
-            'https://sritoni.org/hset-payments/',
-            $this->config['wckey'],
-            $this->config['wcsec'],
-            [
-                'wp_api'            => true,
-                'version'           => 'wc/v3',
-                'query_string_auth' => true,
+                                    'https://sritoni.org/hset-payments/',
+                                    $this->config['wckey'],
+                                    $this->config['wcsec'],
+                                    [
+                                        'wp_api'            => true,
+                                        'version'           => 'wc/v3',
+                                        'query_string_auth' => true,
 
-            ]
-        );
+                                    ]);
+        
 
         $endpoint   = "orders/" . $order_id;
         $params     = array($order_id);
@@ -993,6 +900,10 @@ class class_headstart_admission
         return $order;
     }
 
+
+    /**
+     * 
+     */
     private function test_update_wc_product()
     {
         // run this since we may be changing API keys. Once in production remove this
@@ -1002,29 +913,28 @@ class class_headstart_admission
 
         $this->get_data_for_sritoni_account_creation($ticket_id);
 
-        $create_account_obj = $this->create_account_obj;
+        $data_object = $this->data_object;
 
         // instantiate woocommerce API class
         $woocommerce = new Client(
-            'https://sritoni.org/hset-payments/',
-            $this->config['wckey'],
-            $this->config['wcsec'],
-            [
-                'wp_api'            => true,
-                'version'           => 'wc/v3',
-                'query_string_auth' => true,
+                                    'https://sritoni.org/hset-payments/',
+                                    $this->config['wckey'],
+                                    $this->config['wcsec'],
+                                    [
+                                        'wp_api'            => true,
+                                        'version'           => 'wc/v3',
+                                        'query_string_auth' => true,
 
-            ]
-        );
-
+                                    ]);
+        
         // Admission fee to HSET product ID
         $product_id = 581;
 
         $endpoint   = "products/" . $product_id;
 
         $product_data = [
-                            'name'          => $create_account_obj->product_customized_name,
-                            'regular_price' => $create_account_obj->admission_fee_payable
+                            'name'          => $data_object->product_customized_name,
+                            'regular_price' => $data_object->admission_fee_payable
                         ];
 
         $product = $woocommerce->put($endpoint, $product_data);
@@ -1048,11 +958,11 @@ class class_headstart_admission
 
     private function test_get_data_for_sritoni_account_creation()
     {
-        $ticket_id = 3;
+        $ticket_id = 8;
 
         $this->get_data_for_sritoni_account_creation($ticket_id);
 
-        echo "<pre>" . print_r($this->create_account_obj, true) ."</pre>";
+        echo "<pre>" . print_r($this->data_object, true) ."</pre>";
     }
 
     private function test_sritoni_account_creation()
@@ -1069,9 +979,18 @@ class class_headstart_admission
     /**
      *
      */
-    private function change_ticket_status_to_error($ticket_id, $error_message)
+    private function change_status_error_creating_sritoni_account($ticket_id, $error_message)
     {
         global $wpscfunction;
+
+        $status_id = 95;    // corresponds to status error creating sritoni account
+
+        $wpscfunction->change_status($ticket_id, $status_id);
+
+        // update agent field error message with the passed in error message
+
+
+
 
 
     }
