@@ -514,7 +514,7 @@ class class_headstart_admission
                                         ]);
 
 
-            $endpoint   = "customers";
+            $endpoint   = "customers?";
 
             $customer = $woocommerce->get($endpoint, ["email" => "sritoni2@headstart.edu.in"]);
 
