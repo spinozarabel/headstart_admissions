@@ -432,7 +432,7 @@ class class_headstart_admission
 
         $ticket_id = 8;
 
-        $custom_fields = get_terms([
+        $ticket_fields = get_terms([
             'taxonomy'   => 'wpsc_ticket_custom_fields',
             'hide_empty' => false,
             'orderby'    => 'meta_value_num',
@@ -448,7 +448,7 @@ class class_headstart_admission
             )
         ]);
 
-        foreach ($custom_fields as $key->$field)
+        foreach ($ticket_fields as $key->$field)
         {
             $ticket_fields[$field->slug] = $field;
         }
