@@ -446,7 +446,7 @@ class class_headstart_admission
             )
         ]);
 
-        foreach ($fields as $key->$field)
+        foreach ($custom_fields as $key->$field)
         {
             $ticket_fields[$field->slug] = get_term_by( 'slug', $field->slug, 'wpsc_ticket_custom_fields' )->name;
         }
