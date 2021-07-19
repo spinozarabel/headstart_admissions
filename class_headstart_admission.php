@@ -452,7 +452,7 @@ class class_headstart_admission
         {
             $ticket_fields[$field->slug] = $field;
         }
-        echo "<pre>" . print_r($fields, true) ."</pre>";
+        echo "<pre>" . print_r($ticket_fields, true) ."</pre>";
 
         $category_ids = array();
         $categories = get_terms([
