@@ -399,8 +399,8 @@ class class_headstart_admission
             <form action="" method="post" id="form1">
                 <input type="submit" name="button" 	value="test_SriToni_connection"/>
                 <input type="submit" name="button" 	value="test_cashfree_connection"/>
-                <input type="submit" name="button" 	value="test_get_ticket"/>
-                <input type="submit" name="button" 	value="test_get_ticket_data"/>
+                <input type="submit" name="button" 	value="test_available"/>
+                <input type="submit" name="button" 	value="test_available1"/>
                 <input type="submit" name="button" 	value="test_get_wc_order"/>
                 <input type="submit" name="button" 	value="test_update_wc_product"/>
                 <input type="submit" name="button" 	value="test_create_wc_order"/>
@@ -423,11 +423,11 @@ class class_headstart_admission
                 $this->test_cashfree_connection();
                 break;
 
-            case 'test_get_ticket':
+            case 'test_available1':
                 $this->test_get_ticket();
                 break;
 
-            case 'test_get_ticket_data':
+            case 'test_available2':
                 $this->test_get_ticket_data();
                 break;
 
@@ -549,42 +549,6 @@ class class_headstart_admission
     {
         //
     }
-
-    public function test_get_ticket()
-    {
-        // tthe following piece of code gets executed and results displayed in the  SriToni tools page when button is pressed
-        global $wpscfunction;
-        $ticket_id = 8;
-        $ticket_data = $wpscfunction->get_ticket($ticket_id);
-        echo "<pre>" . print_r($ticket_data, true) ."</pre>";
-    }
-
-    public function test_get_ticket_data()
-    {
-        // the folowing piece of code dumps details of ticket id =1;
-        global $wpscfunction;
-        $ticket_id = 8;
-
-        $fields = get_terms([
-            'taxonomy'   => 'wpsc_ticket_custom_fields',
-            'hide_empty' => false,
-            'orderby'    => 'meta_value_num',
-            'meta_key'	 => 'wpsc_tf_load_order',
-            'order'    	 => 'ASC',
-
-        ]);
-
-        foreach ($fields as $field)
-        {
-            if (empty($field)) continue;
-            $value = $wpscfunction->get_ticket_meta($ticket_id,$field->slug,true);
-
-            echo nl2br($field->slug . ": " . $value . "\n");
-
-        }
-    }
-
-
 
 
     /**
