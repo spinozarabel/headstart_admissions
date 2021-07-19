@@ -857,7 +857,7 @@ class class_headstart_admission
 
         foreach ($fields as $field)
         {
-            $ticket_meta[$field->slug] = get_ticket_meta($ticket_id, $field->slug, true);
+            $ticket_meta[$field->slug] = $wpscfunction->get_ticket_meta($ticket_id, $field->slug, true);
         }
 
         $data_object->ticket_id      = $ticket_id;
