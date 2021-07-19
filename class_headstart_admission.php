@@ -857,13 +857,30 @@ class class_headstart_admission
 
         foreach ($fields as $field)
         {
-            $ticket_meta[$field->slug] = $wpscfunction->get_ticket_meta($ticket_id, $field->slug, true);
+            if ($field->slug == "ticket_category"   ||
+                $field->slug == "ticket_status"     ||
+                $field->slug == "ticket_priority"   ||
+                $field->slug == "customer_name"     ||
+                $field->slug == "customer_email"    ||
+                $field->slug == "ticket_email"
+            )
+            {
+                // this data is avaulable directly from ticket data and is blank in ticket meta so this work around
+                $ticket_meta[$field->slug] = $this->ticket_data[$field->slug];
+            }
+            else
+            {
+                $ticket_meta[$field->slug] = $wpscfunction->get_ticket_meta($ticket_id, $field->slug, true);
+            }  
         }
 
         $data_object->ticket_id      = $ticket_id;
         $data_object->ticket_data    = $this->ticket_data;
         $data_object->ticket_meta    = $ticket_meta;        // to access: $data_object->ticket_meta[fieldslug]
 
+        // ticket_meta data for category, status, subject, description, applicant name and email are blank
+        // use only for stuff like student name, etc.
+        // get that other data from ticket_data array if needed.
         $this->data_object           = $data_object;
 
         return $data_object;
