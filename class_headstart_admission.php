@@ -339,7 +339,13 @@ class class_headstart_admission
             case ($wpscfunction->get_status_name($status_id) === 'Admission Granted'):
                 // status changed to Admission Granted.
                 // The payment process needs to be triggered
-                // extract the ticket details and pass parameters to hset-payments site for order creation
+
+                // if the applicant email is a headstart one, then we will use the VA details for the payment
+                $wpuserid_hsetpayments = $this->get_wp_userid_hset_payments();
+
+                
+
+
 
                 $new_order = $this->create_wc_order_hset_payments();
 
@@ -357,6 +363,34 @@ class class_headstart_admission
             default:
                 // error_log("No, the changed status has NOT triggered any action for ticket ID: , " . $ticket_id);
                 break;
+        }
+    }
+
+
+    private function get_wp_userid_hset_payments()
+    {
+        if (stripos($data_object->ticket_data["customer_email"], 'headstart.edu.in') !== false)
+        {
+            // this user has a headstart account. Get the wp userid from the hset-payments site
+            // instantiate woocommerce API class
+            $woocommerce = new Client(
+                                        'https://sritoni.org/hset-payments/',
+                                        $this->config['wckey'],
+                                        $this->config['wcsec'],
+                                        [
+                                            'wp_api'            => true,
+                                            'version'           => 'wc/v3',
+                                            'query_string_auth' => true,
+
+                                        ]);
+
+
+            $endpoint   = "customers";
+
+            $customer = $woocommerce->get($endpoint, array('email' => $data_object->ticket_data["customer_email"]));
+
+        
+
         }
     }
 
@@ -399,7 +433,7 @@ class class_headstart_admission
             <form action="" method="post" id="form1">
                 <input type="submit" name="button" 	value="test_SriToni_connection"/>
                 <input type="submit" name="button" 	value="test_cashfree_connection"/>
-                <input type="submit" name="button" 	value="test_available"/>
+                <input type="submit" name="button" 	value="test_woocommerce_customer"/>
                 <input type="submit" name="button" 	value="test_available1"/>
                 <input type="submit" name="button" 	value="test_get_wc_order"/>
                 <input type="submit" name="button" 	value="test_update_wc_product"/>
@@ -423,8 +457,8 @@ class class_headstart_admission
                 $this->test_cashfree_connection();
                 break;
 
-            case 'test_available1':
-                $this->test_get_ticket();
+            case 'test_woocommerce_customer':
+                $this->test_woocommerce_customer();
                 break;
 
             case 'test_available2':
@@ -459,6 +493,33 @@ class class_headstart_admission
             default:
                 // do nothing
                 break;
+        }
+    }
+
+    public function test_woocommerce_customer()
+    {
+        if (stripos('sritoni2@headstart.edu.in', 'headstart.edu.in') !== false)
+        {
+            // this user has a headstart account. Get the wp userid from the hset-payments site
+            // instantiate woocommerce API class
+            $woocommerce = new Client(
+                                        'https://sritoni.org/hset-payments/',
+                                        $this->config['wckey'],
+                                        $this->config['wcsec'],
+                                        [
+                                            'wp_api'            => true,
+                                            'version'           => 'wc/v3',
+                                            'query_string_auth' => true,
+
+                                        ]);
+
+
+            $endpoint   = "customers";
+
+            $customer = $woocommerce->get($endpoint, array('email' => 'sritoni2@headstart.edu.in'));
+
+            echo "<pre>" . print_r($customer, true) ."</pre>";                           
+
         }
     }
 
