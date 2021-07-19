@@ -430,6 +430,8 @@ class class_headstart_admission
         global $wpscfunction;
         echo "<h1>" . "List of ALL Ticket custom fields" . "</h1>";
 
+        $ticket_id = 8;
+
         $custom_fields = get_terms([
             'taxonomy'   => 'wpsc_ticket_custom_fields',
             'hide_empty' => false,
@@ -448,7 +450,7 @@ class class_headstart_admission
 
         foreach ($custom_fields as $key->$field)
         {
-            $ticket_fields[$field->slug] = get_term_by( 'slug', $field->slug, 'wpsc_ticket_custom_fields' )->name;
+            $ticket_fields[$field->slug] = $field;
         }
         echo "<pre>" . print_r($ticket_fields, true) ."</pre>";
 
