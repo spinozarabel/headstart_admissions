@@ -64,6 +64,8 @@ class class_headstart_admission
 		$this->define_public_hooks();
         $this->get_config();
 
+        $this->verbose = true;
+
 	}
 
     /**
@@ -504,7 +506,10 @@ class class_headstart_admission
             else
             {
                 // the VA for this user already exists in the user meta. So all good.
-                return $customers[0]->id; 
+                $this->verbose? error_log("Valid VA exists for user email: " . $customers[0]->email) : false;
+                $this->verbose? error_log("Valid VAID exists for user email: " . $va_id->email) : false;
+
+                return $customers[0]; 
             }
         }
         else
