@@ -579,11 +579,12 @@ class class_headstart_admission
             $beneficiary_name = $array_value[$index] ?? null;
 
             $user_meta_data = array(
-                                        "meta_data" => array(
-                                                                "key"   => "beneficiary_name",
-                                                                "value" => "HEAD START EDUCATIONAL TRUST",
+                                        "meta_data" => array(   array(
+                                                                    "key"   => "beneficiary_name",
+                                                                    "value" => "HEAD START EDUCATIONAL TRUST",
+                                                                    )
                                                             )
-            );
+                                    );
             $endpoint   = "customers/" . $customers[0]->id;
             $ret = $woocommerce->put($endpoint, $user_meta_data);
 
