@@ -581,7 +581,7 @@ class class_headstart_admission
             $user_meta_data = array(
                                         "meta_data" => array(   array(
                                                                     "key"   => "beneficiary_name",
-                                                                    "value" => "HEAD START EDUCATIONAL TRUST",
+                                                                    "value" => "Head Start Educational Trust",
                                                                     )
                                                             )
                                     );
