@@ -529,9 +529,15 @@ class class_headstart_admission
 
             $customers = $woocommerce->get($endpoint, $params);
 
-            $array_va_id = array_column($customers[0]->meta_data, "va_id");
+            $array_va_id_key = array_column($customers[0]->meta_data, "key");
+            $array_va_id_value = array_column($customers[0]->meta_data, "value");
 
-            echo "<pre>" . print_r($customers[0], true) ."</pre>";                           
+            $index = array_search("va_id", $array_va_id_key);
+            $va_id = $array_va_id_value[$index];
+
+
+            echo "<pre>" . print_r($customers[0], true) ."</pre>";   
+            echo "<pre>" . print_r($va_id, true) ."</pre>";                       
 
         }
     }
