@@ -529,15 +529,30 @@ class class_headstart_admission
 
             $customers = $woocommerce->get($endpoint, $params);
 
+            echo "<pre>" . print_r($customers[0], true) ."</pre>";  
+
+
             $array_va_id_key = array_column($customers[0]->meta_data, "key");
             $array_va_id_value = array_column($customers[0]->meta_data, "value");
 
             $index = array_search("va_id", $array_va_id_key);
-            $va_id = $array_va_id_value[$index];
+            $va_id = $array_va_id_value[$index] ?? null;
+
+            if (empty($va_id))
+            {
+                // the VA ID does not exist for this Head start user.
+                // 2 possibilities; Account exists but details not registeed in SriToni user accounts
+                // this Head Start user's VA is not created
+    
+            }
+            else
+            {
+                echo "<pre>" . print_r($va_id, true) ."</pre>"; 
+            }
 
 
-            echo "<pre>" . print_r($customers[0], true) ."</pre>";   
-            echo "<pre>" . print_r($va_id, true) ."</pre>";                       
+             
+                                  
 
         }
     }
