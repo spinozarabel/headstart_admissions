@@ -523,7 +523,7 @@ class class_headstart_admission
 
             $customers = $woocommerce->get($endpoint, $params);
 
-            echo "<pre>" . print_r($customer[0], true) ."</pre>";                           
+            echo "<pre>" . print_r($customers[0], true) ."</pre>";                           
 
         }
     }
