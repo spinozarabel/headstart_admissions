@@ -369,6 +369,8 @@ class class_headstart_admission
 
     private function get_wp_user_hset_payments()
     {
+        $data_object = $this->data_object;
+
         // does this user have a head start email ID?
         if (stripos($data_object->ticket_data["customer_email"], 'headstart.edu.in') !== false)
         {
@@ -616,65 +618,14 @@ class class_headstart_admission
 
     public function test_woocommerce_customer()
     {
-        if (stripos('aadhya.hibare@headstart.edu.in', 'headstart.edu.in') !== false)
-        {
-            // this user has a headstart account. Get the wp userid from the hset-payments site
-            // instantiate woocommerce API class
-            $woocommerce = new Client(
-                                        'https://sritoni.org/hset-payments/',
-                                        $this->config['wckey'],
-                                        $this->config['wcsec'],
-                                        [
-                                            'wp_api'            => true,
-                                            'version'           => 'wc/v3',
-                                            'query_string_auth' => true,
+        $this->get_data_for_sritoni_account_creation(8);
 
-                                        ]);
+        $wpuserobj = $this->get_wp_user_hset_payments();
 
 
-            $endpoint   = "customers";
-
-            $params = array(
-                                "role"  => "subscriber",
-                                "email" => "sritoni2@headstart.edu.in",
-                            );
-
-            $customers = $woocommerce->get($endpoint, $params);
-
-            $moodleuserid = $customers[0]->username;
-
-            //echo "<pre>" . print_r($customers[0], true) ."</pre>";  
-
-
-            $array_key      = array_column($customers[0]->meta_data, "key");
-            $array_value    = array_column($customers[0]->meta_data, "value");
-
-            $index = array_search("va_id", $array_key);
-            $va_id = $array_value[$index] ?? null;
-
-            $index = array_search("beneficiary_name", $array_key);
-            $beneficiary_name = $array_value[$index] ?? null;
-
-            $user_meta_data = array(
-                                        "meta_data" => array(   array(
-                                                                    "key"   => "beneficiary_name",
-                                                                    "value" => "Head Start Educational Trust",
-                                                                    )
-                                                            )
-                                    );
-            $endpoint   = "customers/" . $customers[0]->id;
-            //$ret = $woocommerce->put($endpoint, $user_meta_data);
-
-            $endpoint   = "customers";
-
-            $params = array(
-                                "role"  => "subscriber",
-                                "email" => "sritoni2@headstart.edu.in",
-                            );
-
-            $customers = $woocommerce->get($endpoint, $params);
-            echo "<pre>" . print_r($customers[0], true) ."</pre>";
-        }
+        
+        echo "<pre>" . print_r($wpuserobj, true) ."</pre>";
+        
     }
 
     public function test_custom_code()
@@ -1221,7 +1172,7 @@ class class_headstart_admission
         {
             if ($field->slug == $slug)
             {
-                return $field->id;
+                return $field->term_id;
             }
         }
     }
