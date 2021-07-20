@@ -368,6 +368,15 @@ class class_headstart_admission
         }
     }
 
+    /**
+     * 1. checks to see if logged in user has headstart email
+     * 2.   If YES, checks for valid VA. If this exists, returns the customer object from hset-payments site.
+     *                                      If VA doesn't exist, creates a new one and updates the  user meta of hset-payments
+     *                                          and returns the updated customer object.
+     * 3.   If NO then, a null object is returned.
+     * 
+     * @return obj:woocommerce customer object
+     */
 
     private function get_wp_user_hset_payments()
     {
@@ -443,6 +452,8 @@ class class_headstart_admission
 
                     $updated_customer   = $woocommerce->put($endpoint, $user_meta_data);
 
+                    $this->verbose? error_log("Valid VA existed but was not updated - hset-payment updated for VA of Head Start email: " . $customers[0]->email) : false;
+                    $this->verbose? error_log("Updated WC customer object being returned for Head Start email: " . $customers[0]->email) : false;
                     return $updated_customer;
                 }
                 else 
@@ -489,6 +500,9 @@ class class_headstart_admission
                         $endpoint           = "customers/" . $customers[0]->id;
                         $updated_customer   = $woocommerce->put($endpoint, $user_meta_data);
 
+                        $this->verbose? error_log("Valid VA needed to be created - hset-payment updated for VA of Head Start email: " . $customers[0]->email) : false;
+                        $this->verbose? error_log("Updated WC customer object being returned for Head Start email: " . $customers[0]->email) : false;
+
                         return $updated_customer;
 
                     }
@@ -506,8 +520,8 @@ class class_headstart_admission
             else
             {
                 // the VA for this user already exists in the user meta. So all good.
-                $this->verbose? error_log("Valid VA exists for user email: " . $customers[0]->email) : false;
-                $this->verbose? error_log("Valid VAID exists for user email: " . $va_id->email) : false;
+                $this->verbose? error_log("Valid VA exists for Head Start email: " . $customers[0]->email) : false;
+                $this->verbose? error_log("Valid VAID exists for Head Start email: " . $va_id->email) : false;
 
                 return $customers[0]; 
             }
@@ -627,8 +641,6 @@ class class_headstart_admission
 
         $wpuserobj = $this->get_wp_user_hset_payments();
 
-
-        
         echo "<pre>" . print_r($wpuserobj, true) ."</pre>";
         
     }
