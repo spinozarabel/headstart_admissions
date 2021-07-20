@@ -388,7 +388,10 @@ class class_headstart_admission
                                                             'role'  =>'subscriber',
                                                             'email' => $data_object->ticket_data["customer_email"]));
 
-            return $customers[0];
+            $customer = $customers[0];
+
+            // now let us check to see if this iser has a valid va_id.
+            $array_va_id = array_column($customer->meta_data, "va_id");
         }
         else
         {
@@ -526,7 +529,9 @@ class class_headstart_admission
 
             $customers = $woocommerce->get($endpoint, $params);
 
-            echo "<pre>" . print_r($customers[0], true) ."</pre>";                           
+            $array_va_id = array_column($customers[0]->meta_data, "va_id");
+
+            echo "<pre>" . print_r($array_va_id, true) ."</pre>";                           
 
         }
     }
