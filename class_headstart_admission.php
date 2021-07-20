@@ -470,7 +470,7 @@ class class_headstart_admission
                     $name   = $customers[0]->first_name . " " . $customers[0]->last_name;
 
                     // extract the phone from the WC user's meta data using the known key
-                    $phone  = $array_meta_value[$array_search("sritoni_telephonenumber", $array_meta_key)] ?? '1234567890';
+                    $phone  = $array_meta_value[array_search("sritoni_telephonenumber", $array_meta_key)] ?? '1234567890';
 
                     // per rigid requirements of Cashfree for a phone number to be 10 numbers and non-blank
                     if (strlen($phone) !=10)
