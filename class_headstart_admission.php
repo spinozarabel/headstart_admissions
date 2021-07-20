@@ -521,9 +521,9 @@ class class_headstart_admission
                                 "email" => "sritoni2@headstart.edu.in",
                             );
 
-            $customer = $woocommerce->get($endpoint, $params);
+            $customers = $woocommerce->get($endpoint, $params);
 
-            echo "<pre>" . print_r($customer, true) ."</pre>";                           
+            echo "<pre>" . print_r($customer[0], true) ."</pre>";                           
 
         }
     }
