@@ -521,7 +521,7 @@ class class_headstart_admission
             {
                 // the VA for this user already exists in the user meta. So all good.
                 $this->verbose? error_log("Valid VA exists for Head Start email: " . $customers[0]->email) : false;
-                $this->verbose? error_log("Valid VAID exists for Head Start email: " . $va_id->email) : false;
+                $this->verbose? error_log("Valid VAID exists for Head Start email: " . $va_id) : false;
 
                 return $customers[0]; 
             }
