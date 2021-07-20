@@ -585,7 +585,7 @@ class class_headstart_admission
                                                             )
             );
             $endpoint   = "customers/" . $customers[0]->id;
-            $ret = $woocommerce->put($endpoint, $data);
+            $ret = $woocommerce->put($endpoint, $user_meta_data);
 
             $endpoint   = "customers";
 
