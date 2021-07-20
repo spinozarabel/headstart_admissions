@@ -384,14 +384,49 @@ class class_headstart_admission
 
             $endpoint   = "customers";
 
-            $customers = $woocommerce->get($endpoint, array(
-                                                            'role'  =>'subscriber',
-                                                            'email' => $data_object->ticket_data["customer_email"]));
+            $params     = array(
+                                'role'  =>'subscriber',
+                                'email' => $data_object->ticket_data["customer_email"]
+                                );
+            // get customers with given parameters as above, there should be a maximum of 1
+            $customers = $woocommerce->get($endpoint, $params);
 
-            $customer = $customers[0];
+            // form arrays from user meta to search for va_id if it exists
+            $array_va_id_key    = array_column($customers[0]->meta_data, "key");
+            $array_va_id_value  = array_column($customers[0]->meta_data, "value");
 
-            // now let us check to see if this iser has a valid va_id.
-            $array_va_id = array_column($customer->meta_data, "va_id");
+            $index = array_search("va_id", $array_va_id_key);
+
+            // if this exists, then the head start user does have a valid VA
+            $va_id = $array_va_id_value[$index] ?? null;
+
+            if (empty($va_id))
+            {
+                // the VA ID does not exist. However, let us check if the VA exists but not just updated in our records
+                // pad the moodleuserid with leading 0's if length less than 4. If not leave alone
+                $vAccountId = str_pad($customers[0]->username, 4, "0", STR_PAD_LEFT);
+
+                // instantiate the cashfree API
+                $configfilepath  = $this->plugin_name . "_config.php";
+                $cashfree_api    = new CfAutoCollect($configfilepath); // new cashfree Autocollect API object
+
+                // get the VA if it exists
+                $vAccount = $cashfree_api->getvAccountGivenId($vAccountId );
+                if ($vAccount->vAccountId == $vAccountId)
+                {
+                    // A valid account exists, so no need to create a new account
+                    // However need to update the user's meta in the hset-payments site using the WC API
+
+                }
+
+
+            }
+            else
+            {
+                echo "<pre>" . print_r($va_id, true) ."</pre>"; 
+            }
+
+            
         }
         else
         {
@@ -529,31 +564,38 @@ class class_headstart_admission
 
             $customers = $woocommerce->get($endpoint, $params);
 
-            echo "<pre>" . print_r($customers[0], true) ."</pre>";  
+            $moodleuserid = $customers[0]->username;
+
+            //echo "<pre>" . print_r($customers[0], true) ."</pre>";  
 
 
-            $array_va_id_key = array_column($customers[0]->meta_data, "key");
-            $array_va_id_value = array_column($customers[0]->meta_data, "value");
+            $array_key      = array_column($customers[0]->meta_data, "key");
+            $array_value    = array_column($customers[0]->meta_data, "value");
 
-            $index = array_search("va_id", $array_va_id_key);
-            $va_id = $array_va_id_value[$index] ?? null;
+            $index = array_search("va_id", $array_key);
+            $va_id = $array_value[$index] ?? null;
 
-            if (empty($va_id))
-            {
-                // the VA ID does not exist for this Head start user.
-                // 2 possibilities; Account exists but details not registeed in SriToni user accounts
-                // this Head Start user's VA is not created
-    
-            }
-            else
-            {
-                echo "<pre>" . print_r($va_id, true) ."</pre>"; 
-            }
+            $index = array_search("beneficiary_name", $array_key);
+            $beneficiary_name = $array_value[$index] ?? null;
 
+            $user_meta_data = array(
+                                        "meta_data" => array(
+                                                                "key"   => "beneficiary_name",
+                                                                "value" => "HEAD START EDUCATIONAL TRUST",
+                                                            )
+            );
+            $endpoint   = "customers/" . $customers[0]->id;
+            $ret = $woocommerce->put($endpoint, $data);
 
-             
-                                  
+            $endpoint   = "customers";
 
+            $params = array(
+                                "role"  => "subscriber",
+                                "email" => "sritoni2@headstart.edu.in",
+                            );
+
+            $customers = $woocommerce->get($endpoint, $params);
+            echo "<pre>" . print_r($customers[0], true) ."</pre>";
         }
     }
 

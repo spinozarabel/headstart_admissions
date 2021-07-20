@@ -26,7 +26,7 @@ class CfAutoCollect
     protected $config;
 
     //const TEST_PRODUCTION  = "TEST";
-    const VERBOSE          = false;
+    const VERBOSE          = true;
 
     public function __construct($configfilepath, $site_name = null, $stage = 1)
     {
