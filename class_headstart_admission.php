@@ -531,7 +531,7 @@ class class_headstart_admission
 
             $array_va_id = array_column($customers[0]->meta_data, "va_id");
 
-            echo "<pre>" . print_r($array_va_id, true) ."</pre>";                           
+            echo "<pre>" . print_r($customers[0], true) ."</pre>";                           
 
         }
     }
