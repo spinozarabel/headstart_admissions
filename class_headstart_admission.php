@@ -337,16 +337,19 @@ class class_headstart_admission
         switch (true)
         {
             case ($wpscfunction->get_status_name($status_id) === 'Admission Granted'):
-                // status changed to Admission Granted.
+
                 // The payment process needs to be triggered
 
-                // if the applicant email is a headstart one, then we will use the VA details for the payment
+                // if the applicant email is a headstart one, then we will use the associated VA details for the order
                 $this->data_object->wp_user_hset_payments = $this->get_wp_user_hset_payments();
 
 
                 $new_order = $this->create_wc_order_hset_payments();
 
-                // TO DO: pdate the agent field with the newly created order ID
+                // update the agent field with the newly created order ID
+                // get meta key from ticket slu
+                $meta_key    = $this->get_ticket_meta_key_by_slug("order-id");
+                $wpscfunction->update_ticket_meta($ticket_id, $meta_key, $new_order->id);
 
                 break;
 
@@ -366,9 +369,10 @@ class class_headstart_admission
 
     private function get_wp_user_hset_payments()
     {
+        // does this user have a head start email ID?
         if (stripos($data_object->ticket_data["customer_email"], 'headstart.edu.in') !== false)
         {
-            // this user has a headstart account. Get the wp userid from the hset-payments site
+            // YES. Get the wp userid from the hset-payments site
             // instantiate woocommerce API class
             $woocommerce = new Client(
                                         'https://sritoni.org/hset-payments/',
@@ -391,14 +395,14 @@ class class_headstart_admission
             // get customers with given parameters as above, there should be a maximum of 1
             $customers = $woocommerce->get($endpoint, $params);
 
-            // form arrays from user meta to search for va_id if it exists
-            $array_va_id_key    = array_column($customers[0]->meta_data, "key");
-            $array_va_id_value  = array_column($customers[0]->meta_data, "value");
+            // form arrays and array_values from user meta to search for user meta data
+            $array_meta_key    = array_column($customers[0]->meta_data, "key");
+            $array_meta_value  = array_column($customers[0]->meta_data, "value");
 
-            $index = array_search("va_id", $array_va_id_key);
+            $index = array_search("va_id", $array_meta_key);
 
             // if this exists, then the head start user does have a valid VA
-            $va_id = $array_va_id_value[$index] ?? null;
+            $va_id = $array_meta_value[$index] ?? null;
 
             if (empty($va_id))
             {
@@ -416,21 +420,94 @@ class class_headstart_admission
                 {
                     // A valid account exists, so no need to create a new account
                     // However need to update the user's meta in the hset-payments site using the WC API
+                    $user_meta_data = array(
+                                            "meta_data" => array(   array(
+                                                                        "key"   => "beneficiary_name",
+                                                                        "value" => "Head Start Educational Trust",
+                                                                        ),
+                                                                    array(
+                                                                        "key"   => "account_number",
+                                                                        "value" => $vAccount->virtualAccountNumber,
+                                                                        ),
+                                                                    array(
+                                                                        "key"   => "va_ifsc_code",
+                                                                        "value" => $vAccount->ifsc,
+                                                                        ),
+                                                                )
+                                                );
+                    $endpoint           = "customers/" . $customers[0]->id;
 
+                    $updated_customer   = $woocommerce->put($endpoint, $user_meta_data);
+
+                    return $updated_customer;
+                }
+                else 
+                {
+                    // A valid VA does not exist for this Head Start account holder. So create a new one
+                    $name   = $customers[0]->first_name . " " . $customers[0]->last_name;
+
+                    // extract the phone from the WC user's meta data using the known key
+                    $phone  = $array_meta_value[$array_search("sritoni_telephonenumber", $array_meta_key)] ?? '1234567890';
+
+                    // per rigid requirements of Cashfree for a phone number to be 10 numbers and non-blank
+                    if (strlen($phone) !=10)
+                    {
+                        $phone  = "1234567890";     // phone dummy number
+                    }
+
+                    // create a new VA
+                    $new_va_created = $cashfree_api->createVirtualAccount(  $vAccountId, 
+                                                                            $name, 
+                                                                            $phone, 
+                                                                            $customers[0]->email);
+
+                    // update the hset-payments user meta with the newly created VA info needed for email for payments
+                    if ($new_va_created)
+                    {
+                        $account_number         = $new_va_created->accountNumber;
+                        $ifsc                   = $new_va_created->ifsc;
+
+                        $user_meta_data = array(
+                                                "meta_data" => array(   array(
+                                                                            "key"   => "beneficiary_name",
+                                                                            "value" => "Head Start Educational Trust",
+                                                                            ),
+                                                                        array(
+                                                                            "key"   => "account_number",
+                                                                            "value" => $account_number,
+                                                                            ),
+                                                                        array(
+                                                                            "key"   => "va_ifsc_code",
+                                                                            "value" => $ifsc,
+                                                                            ),
+                                                                    )
+                                                    );
+                        $endpoint           = "customers/" . $customers[0]->id;
+                        $updated_customer   = $woocommerce->put($endpoint, $user_meta_data);
+
+                        return $updated_customer;
+
+                    }
+                    else
+                    {
+                        // Failure in creating a new VA for this Head Start user
+
+                        $this->verbose? error_log("Could NOT create a new VA for user email: " . $customers[0]->email) : false;
+                        return null;
+                    }
                 }
 
 
             }
             else
             {
-                echo "<pre>" . print_r($va_id, true) ."</pre>"; 
+                // the VA for this user already exists in the user meta. So all good.
+                return $customers[0]->id; 
             }
-
-            
         }
         else
         {
-            // we use the default id=5 for non-headstart admission payments
+            // Not a Head Start account holder, so return the default user ID of sritoni1
             return null;
         }
     }
@@ -475,7 +552,7 @@ class class_headstart_admission
                 <input type="submit" name="button" 	value="test_SriToni_connection"/>
                 <input type="submit" name="button" 	value="test_cashfree_connection"/>
                 <input type="submit" name="button" 	value="test_woocommerce_customer"/>
-                <input type="submit" name="button" 	value="test_available1"/>
+                <input type="submit" name="button" 	value="test_get_ticket_data"/>
                 <input type="submit" name="button" 	value="test_get_wc_order"/>
                 <input type="submit" name="button" 	value="test_update_wc_product"/>
                 <input type="submit" name="button" 	value="test_create_wc_order"/>
@@ -502,7 +579,7 @@ class class_headstart_admission
                 $this->test_woocommerce_customer();
                 break;
 
-            case 'test_available2':
+            case 'test_get_ticket_data':
                 $this->test_get_ticket_data();
                 break;
 
@@ -586,7 +663,7 @@ class class_headstart_admission
                                                             )
                                     );
             $endpoint   = "customers/" . $customers[0]->id;
-            $ret = $woocommerce->put($endpoint, $user_meta_data);
+            //$ret = $woocommerce->put($endpoint, $user_meta_data);
 
             $endpoint   = "customers";
 
@@ -1117,10 +1194,65 @@ class class_headstart_admission
 
         // update agent field error message with the passed in error message
 
+    }
 
+    /**
+     * 
+     */
+    private function get_ticket_meta_key_by_slug($slug)
+    {
+        $fields = get_terms([
+            'taxonomy'   => 'wpsc_ticket_custom_fields',
+            'hide_empty' => false,
+            'orderby'    => 'meta_value_num',
+            'meta_key'	 => 'wpsc_tf_load_order',
+            'order'    	 => 'ASC',
+            
+            'meta_query' => array(
+                                    array(
+                                        'key'       => 'agentonly',
+                                        'value'     => ["0", "1"],  // get all ticket meta fields
+                                        'compare'   => 'IN',             
+                                        ),
+                                ),
+            
+        ]);
+        foreach ($fields as $field)
+        {
+            if ($field->slug == $slug)
+            {
+                return $field->id;
+            }
+        }
+    }
 
+    public function test_get_ticket_data()
+    {
+        global $wpscfunction;
 
+        $ticket_id =8;
+
+        $fields = get_terms([
+            'taxonomy'   => 'wpsc_ticket_custom_fields',
+            'hide_empty' => false,
+            'orderby'    => 'meta_value_num',
+            'meta_key'	 => 'wpsc_tf_load_order',
+            'order'    	 => 'ASC',
+            
+            'meta_query' => array(
+                                    array(
+                                        'key'       => 'agentonly',
+                                        'value'     => ["0", "1"],  // get all ticket meta fields
+                                        'compare'   => 'IN',             
+                                        ),
+                                ),
+            
+        ]);
+
+        echo "<pre>" . print_r($fields, true) ."</pre>";
 
     }
+
+    
 
 }   // end of class bracket
