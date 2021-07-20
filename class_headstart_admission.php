@@ -638,6 +638,8 @@ class class_headstart_admission
     public function test_woocommerce_customer()
     {
         $this->get_data_for_sritoni_account_creation(8);
+        
+        $this->data_object->ticket_data['customer_email'] = "aadhya.hibare@headstart.edu.in";
 
         $wpuserobj = $this->get_wp_user_hset_payments();
 
