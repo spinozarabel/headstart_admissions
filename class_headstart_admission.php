@@ -341,10 +341,7 @@ class class_headstart_admission
                 // The payment process needs to be triggered
 
                 // if the applicant email is a headstart one, then we will use the VA details for the payment
-                $wpuserid_hsetpayments = $this->get_wp_userid_hset_payments();
-
-                
-
+                $this->data_object->wp_user_hset_payments = $this->get_wp_user_hset_payments();
 
 
                 $new_order = $this->create_wc_order_hset_payments();
@@ -367,7 +364,7 @@ class class_headstart_admission
     }
 
 
-    private function get_wp_userid_hset_payments()
+    private function get_wp_user_hset_payments()
     {
         if (stripos($data_object->ticket_data["customer_email"], 'headstart.edu.in') !== false)
         {
@@ -387,10 +384,16 @@ class class_headstart_admission
 
             $endpoint   = "customers";
 
-            $customer = $woocommerce->get($endpoint, array('email' => $data_object->ticket_data["customer_email"]));
+            $customers = $woocommerce->get($endpoint, array(
+                                                            'role'  =>'subscriber',
+                                                            'email' => $data_object->ticket_data["customer_email"]));
 
-        
-
+            return $customers[0];
+        }
+        else
+        {
+            // we use the default id=5 for non-headstart admission payments
+            return null;
         }
     }
 
@@ -498,7 +501,7 @@ class class_headstart_admission
 
     public function test_woocommerce_customer()
     {
-        if (stripos('sritoni2@headstart.edu.in', 'headstart.edu.in') !== false)
+        if (stripos('aadhya.hibare@headstart.edu.in', 'headstart.edu.in') !== false)
         {
             // this user has a headstart account. Get the wp userid from the hset-payments site
             // instantiate woocommerce API class
@@ -518,7 +521,7 @@ class class_headstart_admission
 
             $params = array(
                                 "role"  => "subscriber",
-                                "email" => "sritoni2@headstart.edu.in",
+                                "email" => "aadhya.hibare@headstart.edu.in",
                             );
 
             $customers = $woocommerce->get($endpoint, $params);
@@ -751,6 +754,8 @@ class class_headstart_admission
     {
         // before coming here the create account object is already created. We jsut use it here.
         $data_object = $this->data_object;
+        $customer_id = $this->data_object->wp_user_hset_payments->id    ?? 5;
+        $va_id       = $this->data_object->wp_user_hset_payments->va_id ?? "0073";
 
         // instantiate woocommerce API class
         $woocommerce = new Client(
@@ -778,7 +783,7 @@ class class_headstart_admission
 
         // lets now prepare the data for the new order to be created
         $order_data = [
-            'customer_id'           => 5,       // order assigned to user sritoni1 by this id. This is fixed
+            'customer_id'           => $customer_id,
             'payment_method'        => 'vabacs',
             'payment_method_title'  => 'Offline Direct bank transfer to Head Start Educational Trust',
             'set_paid'              => false,
@@ -814,7 +819,7 @@ class class_headstart_admission
             'meta_data' => [
                 [
                     'key' => 'va_id',
-                    'value' => '0073'
+                    'value' => $va_id
                 ],
                 [
                     'key' => 'sritoni_institution',
