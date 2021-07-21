@@ -345,6 +345,16 @@ class class_headstart_admission
                 // if the applicant email is a headstart one, then we will use the associated VA details for the order
                 $this->data_object->wp_user_hset_payments = $this->get_wp_user_hset_payments();
 
+                // check that price and name of product agent only fields are set
+                $product_customized_name    = get_term_by('slug', $this->data_object->ticket_field["product_customized_name"], true);
+                $regular_price              = get_term_by('slug', $this->data_object->ticket_field["admission-fee-payable"], true);
+
+                if ($regular_price == 0 || empty($product_customized_name))
+                {
+                    // change ticket status to error with an error message
+                    $error_message = "Admission fee amount and or the payment product customization needs to be done";
+
+                }
 
                 $new_order = $this->create_wc_order_hset_payments();
 
@@ -1183,6 +1193,22 @@ class class_headstart_admission
     /**
      *
      */
+    private function change_status_error_creating_payment_shop_order($ticket_id, $error_message)
+    {
+        global $wpscfunction;
+
+        $status_id = 94;    // corresponds to status error creating payment order
+
+        $wpscfunction->change_status($ticket_id, $status_id);
+
+        // update agent field error message with the passed in error message
+        $meta_key = get_ticket_meta_key_by_slug('error');
+        $wpscfunction->update_ticket_meta($ticket_id, $meta_key, $error_message);
+    }
+
+    /**
+     *
+     */
     private function change_status_error_creating_sritoni_account($ticket_id, $error_message)
     {
         global $wpscfunction;
@@ -1192,7 +1218,38 @@ class class_headstart_admission
         $wpscfunction->change_status($ticket_id, $status_id);
 
         // update agent field error message with the passed in error message
+        $meta_key = get_ticket_meta_key_by_slug('error');
+        $wpscfunction->update_ticket_meta($ticket_id, $meta_key, $error_message);
+    }
 
+    /**
+     * 
+     */
+    private function get_status_id_by_slug($slug)
+    {
+        $fields = get_terms([
+            'taxonomy'   => 'wpsc_ticket_custom_fields',
+            'hide_empty' => false,
+            'orderby'    => 'meta_value_num',
+            'meta_key'	 => 'wpsc_tf_load_order',
+            'order'    	 => 'ASC',
+            
+            'meta_query' => array(
+                                    array(
+                                        'key'       => 'agentonly',
+                                        'value'     => ["0", "1"],  // get all ticket meta fields
+                                        'compare'   => 'IN',             
+                                        ),
+                                ),
+            
+        ]);
+        foreach ($fields as $field)
+        {
+            if ($field->slug == $slug)
+            {
+                return $field->term_id;
+            }
+        }
     }
 
     /**
