@@ -454,6 +454,10 @@ class class_headstart_admission
                                                                         "key"   => "va_ifsc_code",
                                                                         "value" => $vAccount->ifsc,
                                                                         ),
+                                                                    array(
+                                                                        "key"   => "va_id",
+                                                                        "value" => $vAccountId,
+                                                                        ),
                                                                 )
                                                 );
                     $endpoint           = "customers/" . $customers[0]->id;
