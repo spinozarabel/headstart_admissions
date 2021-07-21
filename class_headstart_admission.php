@@ -491,7 +491,8 @@ class class_headstart_admission
                         $ifsc                   = $new_va_created->ifsc;
 
                         $user_meta_data = array(
-                                                "meta_data" => array(   array(
+                                                "meta_data" => array(   
+                                                                        array(
                                                                             "key"   => "beneficiary_name",
                                                                             "value" => "Head Start Educational Trust",
                                                                             ),
@@ -502,6 +503,10 @@ class class_headstart_admission
                                                                         array(
                                                                             "key"   => "va_ifsc_code",
                                                                             "value" => $ifsc,
+                                                                            ),
+                                                                        array(
+                                                                            "key"   => "va_id",
+                                                                            "value" => $vAccountId,
                                                                             ),
                                                                     )
                                                     );
@@ -879,7 +884,19 @@ class class_headstart_admission
         // before coming here the create account object is already created. We jsut use it here.
         $data_object = $this->data_object;
         $customer_id = $this->data_object->wp_user_hset_payments->id    ?? 5;
-        $va_id       = $this->data_object->wp_user_hset_payments->va_id ?? "0073";
+
+        $array_meta_key     = array_column($data_object->wp_userhset_payments->meta_data, 'key');
+        $array_meta_value   = array_column($data_object->wp_userhset_payments->meta_data, 'value');
+
+        $index = array_search('va_id', $array_meta_key);
+        if ($index !== false)
+        {
+            $va_id = $array_meta_value[$index];
+        }
+        else
+        {
+            $va_id = "0073";
+        }
 
         // instantiate woocommerce API class
         $woocommerce = new Client(
