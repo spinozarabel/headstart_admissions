@@ -705,6 +705,10 @@ class class_headstart_admission
         'meta_query' => array('order_clause' => array('key' => 'wpsc_category_load_order')),
         ]);
         echo "<pre>" . print_r($categories, true) ."</pre>";
+
+        $error_message = "Sample error message";
+        $meta_key = get_ticket_meta_key_by_slug('error');
+        $wpscfunction->update_ticket_meta($ticket_id, $meta_key, $error_message);
     }
 
     public function test_sritoni_connection()
