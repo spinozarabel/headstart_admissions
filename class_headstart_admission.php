@@ -304,7 +304,7 @@ class class_headstart_admission
         endforeach;             // finish looping through the ticket fields for mapping Ninja form data to ticket
 
         // we have all the necessary ticket fields filled from the Ninja forms, now we can create a new ticket
-        $ticket_id = $wpscfunction->create_ticket($ticket_args);
+        //$ticket_id = $wpscfunction->create_ticket($ticket_args);
     }
 
 
@@ -707,7 +707,6 @@ class class_headstart_admission
         echo "<pre>" . print_r($categories, true) ."</pre>";
 
         $error_message = "Sample error message";
-        //$meta_key = $this->get_ticket_meta_key_by_slug('error');
         $wpscfunction->change_field(8, 'error', $error_message);
     }
 
@@ -1218,12 +1217,16 @@ class class_headstart_admission
         global $wpscfunction;
 
         $status_id = 95;    // corresponds to status error creating sritoni account
+        $ticket_slug = "error";
 
         $wpscfunction->change_status($ticket_id, $status_id);
 
         // update agent field error message with the passed in error message
-        $meta_key = $this->get_ticket_meta_key_by_slug('error');
-        $wpscfunction->update_ticket_meta($ticket_id, $meta_key, $error_message);
+        if (!empty($error_message))
+        {
+            $wpscfunction->change_field($ticket_id, $ticket_slug, $error_message);
+        }
+        
     }
 
     /**
