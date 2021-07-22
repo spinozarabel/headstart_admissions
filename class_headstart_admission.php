@@ -707,7 +707,7 @@ class class_headstart_admission
         echo "<pre>" . print_r($categories, true) ."</pre>";
 
         $error_message = "Sample error message";
-        $meta_key = get_ticket_meta_key_by_slug('error');
+        $meta_key = $this->get_ticket_meta_key_by_slug('error');
         $wpscfunction->update_ticket_meta(8, $meta_key, $error_message);
     }
 
@@ -1206,7 +1206,7 @@ class class_headstart_admission
         $wpscfunction->change_status($ticket_id, $status_id);
 
         // update agent field error message with the passed in error message
-        $meta_key = get_ticket_meta_key_by_slug('error');
+        $meta_key = $this->get_ticket_meta_key_by_slug('error');
         $wpscfunction->update_ticket_meta($ticket_id, $meta_key, $error_message);
     }
 
