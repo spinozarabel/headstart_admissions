@@ -708,7 +708,7 @@ class class_headstart_admission
 
         $error_message = "Sample error message";
         //$meta_key = $this->get_ticket_meta_key_by_slug('error');
-        $wpscfunction->update_ticket_meta(8, 'error', $error_message);
+        $wpscfunction->change_field(8, 'error', $error_message);
     }
 
     public function test_sritoni_connection()
