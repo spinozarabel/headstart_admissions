@@ -100,7 +100,7 @@ class class_headstart_admission
 
         // after a NInja form submission, its data is mapped to a support ticket
         // This is the principal source of data for subsequent actions such as account creation
-        //add_action( 'ninja_forms_after_submission', [$this, 'map_ninja_form_to_ticket'] );
+        add_action( 'ninja_forms_after_submission', [$this, 'map_ninja_form_to_ticket'] );
 
     }
 
@@ -126,7 +126,6 @@ class class_headstart_admission
     public function map_ninja_form_to_ticket( $form_data )
     {
         global $wpscfunction;
-        return;
 
         // $form_data['fields']['id']['seetings']['admin_label']
         // $form_data['fields']['id'][''value']
