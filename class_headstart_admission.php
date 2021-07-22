@@ -226,78 +226,18 @@ class class_headstart_admission
                         // default for all users
                         $ticket_args[$ticket_field->slug]= 'Admission';
     
-                        break;    
-
-
-                        // Student's first name
-                    case ($ticket_field->slug == 'student-first-name'):
-
+                        break;  
+                        
+                        
+                    default:
+                        
+                        // from here on the ticket slug is same as form field slug so mapping is  easy.
                         // look for the mapping slug in the ninja forms field's admin label
-                        $key = array_search('student-first-name', $admin_label_array);
+                        $key = array_search($ticket_field->slug, $admin_label_array);
 
                         $ticket_args[$ticket_field->slug]= $value_array[$key];
 
                         break;
-
-
-
-                    // Student's last name
-                    case ($ticket_field->slug == 'student-last-name'):
-
-                        // look for the mapping slug in the ninja forms field's admin label
-                        $key = array_search('student-last-name', $admin_label_array);
-
-                        $ticket_args[$ticket_field->slug]= $value_array[$key];
-
-                        break;
-
-
-
-                    // student's middle name
-                    case ($ticket_field->slug == 'student-middle-name'):
-
-                        // look for the mapping slug in the ninja forms field's admin label
-                        $key = array_search('student-middle-name', $admin_label_array);
-
-                        $ticket_args[$ticket_field->slug]= $value_array[$key];
-
-                        break;
-
-
-                    
-                    // student's date of birth in YYYY-mm-dd format
-                    case ($ticket_field->slug == 'date-of-birth'):
-
-                        // look for the mapping slug in the ninja forms field's admin label
-                        $key = array_search('date-of-birth', $admin_label_array);
-
-                        $ticket_args[$ticket_field->slug]= $value_array[$key];
-
-                        break;
-
-                    
-                    // 
-                    case ($ticket_field->slug == 'blood-group'):
-
-                        // look for the mapping slug in the ninja forms field's admin label
-                        $key = array_search('blood-group', $admin_label_array);
-
-                        $ticket_args[$ticket_field->slug]= $value_array[$key];
-
-                        break;
-
-                    // 
-                    case ($ticket_field->slug == 'address'):
-
-                        // look for the mapping slug in the ninja forms field's admin label
-                        $key = array_search('address', $admin_label_array);
-
-                        $ticket_args[$ticket_field->slug]= $value_array[$key];
-
-                        break;
-
-                    // rest of the fields come here
-                    
             
             endswitch;          // end switching throgh the ticket fields looking for a match
 
