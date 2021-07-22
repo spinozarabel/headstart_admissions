@@ -707,8 +707,8 @@ class class_headstart_admission
         echo "<pre>" . print_r($categories, true) ."</pre>";
 
         $error_message = "Sample error message";
-        $meta_key = $this->get_ticket_meta_key_by_slug('error');
-        $wpscfunction->update_ticket_meta(8, $meta_key, $error_message);
+        //$meta_key = $this->get_ticket_meta_key_by_slug('error');
+        $wpscfunction->update_ticket_meta(8, 'error', $error_message);
     }
 
     public function test_sritoni_connection()
