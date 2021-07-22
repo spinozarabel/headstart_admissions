@@ -689,8 +689,8 @@ class class_headstart_admission
                 'relation' => 'AND',
                 array(
                     'key'       => 'agentonly',
-                    'value'     => '0',
-                    'compare'   => '='
+                    'value'     => ['0', '1'],
+                    'compare'   => 'IN'
                 ),
             )
         ]);
