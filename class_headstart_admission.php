@@ -1271,7 +1271,7 @@ class class_headstart_admission
             'meta_query' => array(
                                     array(
                                         'key'       => 'agentonly',
-                                        'value'     => ["0", "1"],  // get all ticket meta fields
+                                        'value'     => [0, 1],  // get all ticket meta fields
                                         'compare'   => 'IN',             
                                         ),
                                 ),
