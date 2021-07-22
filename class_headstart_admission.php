@@ -126,6 +126,7 @@ class class_headstart_admission
     public function map_ninja_form_to_ticket( $form_data )
     {
         global $wpscfunction;
+        return;
 
         // $form_data['fields']['id']['seetings']['admin_label']
         // $form_data['fields']['id'][''value']
@@ -304,7 +305,7 @@ class class_headstart_admission
         endforeach;             // finish looping through the ticket fields for mapping Ninja form data to ticket
 
         // we have all the necessary ticket fields filled from the Ninja forms, now we can create a new ticket
-        //$ticket_id = $wpscfunction->create_ticket($ticket_args);
+        $ticket_id = $wpscfunction->create_ticket($ticket_args);
     }
 
 
