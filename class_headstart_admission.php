@@ -292,23 +292,39 @@ class class_headstart_admission
                 if ($regular_price == 0 || empty($product_customized_name))
                 {
                     // change ticket status to error with an error message
-                    $error_message = "Admission fee amount and or the payment product customization needs to be done";
+                    $error_message = "Admission fee amount and or the payment product customization needs to be set";
+
+                    $this->change_status_error_creating_payment_shop_order($ticket_id, $error_message);
+
+                    return;
 
                 }
 
                 $new_order = $this->create_wc_order_hset_payments();
 
                 // update the agent field with the newly created order ID
-                // get meta key from ticket slu
-                $meta_key    = $this->get_ticket_meta_key_by_slug("order-id");
-                $wpscfunction->update_ticket_meta($ticket_id, $meta_key, $new_order->id);
+                $wpscfunction->change_field($ticket_id, 'order-id', $new_order->id);
 
                 break;
 
             case ($wpscfunction->get_status_name($status_id) === 'Admission Confirmed'):
-                
-                $this->create_sritoni_account();
 
+                // check if all required data for new account creation is set
+                if (!empty($this->data_object_ticket_data['username'])      &&
+                    !empty($this->data_object_ticket_data['idnumber'])      &&
+                    !empty($this->data_object_ticket_data['studentcat'])    &&
+                    !empty($this->data_object_ticket_data['department'])    &&
+                    !empty($this->data_object_ticket_data['class'])         &&
+                    !empty($this->data_object_ticket_data['environment'])   &&
+                    !empty($this->data_object_ticket_data['institution'])
+                )
+                {
+                    // go create a new SriToni user account for this child using ticket dataa. 
+                    $this->create_sritoni_account();
+
+                    // if error in user creation, change to error status and error message updation happen there
+                    return;
+                }
                 break;
 
 
@@ -764,6 +780,7 @@ class class_headstart_admission
                 // change the ticket status to error
                 $this->change_status_error_creating_sritoni_account($data_object->ticket_id, $error_message);
 
+
                 return;
             }
 
@@ -947,8 +964,15 @@ class class_headstart_admission
         $order_created = $woocommerce->post('orders', $order_data);
 
         // check if the order has been created and if so what is the order ID
-
-        return $order_created;
+        if (!empty($order->id))
+        {
+            return $order_created;
+        }
+        else
+        {
+            // there was an error in creating the prder. Update the status and the error message for the ticket
+            $this->change_status_error_creating_payment_shop_order($ticket_id, 'could NOT create payment order, check');
+        }
     }
 
     /**
@@ -1142,11 +1166,18 @@ class class_headstart_admission
 
         $status_id = 94;    // corresponds to status error creating payment order
 
+        $ticket_slug = "error";
+
         $wpscfunction->change_status($ticket_id, $status_id);
 
         // update agent field error message with the passed in error message
         $meta_key = $this->get_ticket_meta_key_by_slug('error');
-        $wpscfunction->update_ticket_meta($ticket_id, $meta_key, $error_message);
+
+        // update agent field error message with the passed in error message
+        if (!empty($error_message))
+        {   
+            $wpscfunction->change_field($ticket_id, $ticket_slug, $error_message);
+        }
     }
 
     /**
