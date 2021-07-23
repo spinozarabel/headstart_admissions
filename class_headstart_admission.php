@@ -561,7 +561,7 @@ class class_headstart_admission
         }
         else
         {
-            // Not a Head Start account holder, so return the default user ID of sritoni1
+            // Not a Head Start account holder, so return 3 to be decoded by calling function
             return 3;
         }
     }
@@ -905,22 +905,34 @@ class class_headstart_admission
      */
     private function create_wc_order_hset_payments()
     {
+        $array_meta_key     = [];
+        $array_meta_value   = [];
+
+        $index              = null;
+
         // before coming here the create account object is already created. We jsut use it here.
         $data_object = $this->data_object;
-        $customer_id = $this->data_object->wp_user_hset_payments->id ?? 5;
 
-        $array_meta_key     = array_column($data_object->wp_userhset_payments->meta_data, 'key');
-        $array_meta_value   = array_column($data_object->wp_userhset_payments->meta_data, 'value');
-
-        $index = array_search('va_id', $array_meta_key);
-        if ($index !== false)
+        if ($this->data_object->wp_user_hset_payments)
         {
+            // customer object is not null, so should contain valid customer ID and va_id
+            $customer_id = $this->data_object->wp_user_hset_payments->id;
+
+            // to get the va_id we need to search through the meta data arrays of the customer object
+            $array_meta_key     = array_column($data_object->wp_userhset_payments->meta_data, 'key');
+            $array_meta_value   = array_column($data_object->wp_userhset_payments->meta_data, 'value');
+
+            $index = array_search('va_id', $array_meta_key);
+
             $va_id = $array_meta_value[$index];
         }
         else
         {
             $va_id = "0073";
+
+            $customer_id = 5;
         }
+        
 
         // instantiate woocommerce API class
         $woocommerce = new Client(
@@ -941,8 +953,8 @@ class class_headstart_admission
 
         // customize the Admission product for this user
         $product_data = [
-                            'name'          => get_term_by('slug', $data_object->ticket_field["product_customized_name"], true),
-                            'regular_price' => get_term_by('slug', $data_object->ticket_field["admission-fee-payable"], true),
+                            'name'          => get_term_by('slug', $data_object->ticket_field["product_customized_name"],   true),
+                            'regular_price' => get_term_by('slug', $data_object->ticket_field["admission-fee-payable"],     true),
                         ];
         $product = $woocommerce->put($endpoint, $product_data);
 
@@ -954,26 +966,26 @@ class class_headstart_admission
             'set_paid'              => false,
             'status'                => 'on-hold',
             'billing' => [
-                'first_name'    => $data_object->customer_name,
+                'first_name'    => $data_object->ticket_meta['customer_name'],
                 'last_name'     => '',
-                'address_1'     => $data_object->student_address,
+                'address_1'     => $data_object->ticket_meta['residential-address'],
                 'address_2'     => '',
-                'city'          => 'Bangalore',
-                'state'         => 'Karnataka',
-                'postcode'      => $data_object->student_pin,
-                'country'       => 'India',
-                'email'         => $data_object->customer_email,
-                'phone'         => $data_object->principal_phone_number,
+                'city'          => $data_object->ticket_meta['city'],
+                'state'         => $data_object->ticket_meta['state'],
+                'postcode'      => $data_object->ticket_meta['pin-code'],
+                'country'       => $data_object->ticket_meta['country'],
+                'email'         => $data_object->ticket_meta['customer_email'],
+                'phone'         => $data_object->ticket_meta['emergency-contact-number'],
             ],
             'shipping' => [
-                'first_name'    => $data_object->customer_name,
+                'first_name'    => $data_object->ticket_meta['customer_name'],
                 'last_name'     => '',
-                'address_1'     => $data_object->student_address,
+                'address_1'     => $data_object->ticket_meta['residential-address'],
                 'address_2'     => '',
-                'city'          => 'Bangalore',
-                'state'         => 'Karnataka',
-                'postcode'      => $data_object->student_pin,
-                'country'       => 'India'
+                'city'          => $data_object->ticket_meta['city'],
+                'state'         => $data_object->ticket_meta['state'],
+                'postcode'      => $data_object->ticket_meta['pin-code'],
+                'country'       => $data_object->ticket_meta['country'],
             ],
             'line_items' => [
                 [
@@ -996,11 +1008,13 @@ class class_headstart_admission
                 ],
                 [
                     'key' => 'name_on_remote_order',
-                    'value' => $data_object->student_fullname,
+                    'value' => $data_object->ticket_meta['student-first-name']  . " "   .
+                               $data_object->ticket_meta['student-middle-name'] . " "   .
+                               $data_object->ticket_meta['student-middle-name']
                 ],
                 [
                     'key' => 'payer_bank_account_number',
-                    'value' => $data_object->payer_bank_account_number,
+                    'value' => $data_object->ticket_meta['payer-bank-account-number']
                 ],
                 [
                     'key' => 'admission_number',
@@ -1028,7 +1042,7 @@ class class_headstart_admission
     /**
      * This function grabs the ticket fields and data from a given ticket id
      * It then creates a new data_object that contains all of the ticket data, to be used anywhere needed
-     * This data_object is also set as a property of this
+     * This data_object is also set as a property of $this
      *  @param str:$ticket_id
      *  @return obj:$data_object
      */
