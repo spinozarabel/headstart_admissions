@@ -169,10 +169,17 @@ class class_headstart_admission
                 case ($ticket_field->slug == 'customer_name'):
 
                     // look for the mapping slug in the ninja forms field's admin label
-                    $key = array_search('customer-name', $admin_label_array);
+                    $key = array_search('customer_name', $admin_label_array);
 
-                    $ticket_args[$ticket_field->slug]= $value_array[$key];
-
+                    if ($key !== false)
+                    {
+                        $ticket_args[$ticket_field->slug]= $value_array[$key];
+                    }
+                    else
+                    {
+                        $this->verbose ? error_log($ticket_field->slug . " index not found in Ninja forms value array") : false;
+                        
+                    }
                     break;
 
 
@@ -201,7 +208,14 @@ class class_headstart_admission
                     // look for the mapping slug in the ninja forms field's admin label
                     $key = array_search('primary-email', $admin_label_array);
 
-                    $ticket_args[$ticket_field->slug]= $value_array[$key];
+                    if ($key !== false)
+                    {
+                        $ticket_args[$ticket_field->slug]= $value_array[$key];
+                    }
+                    else
+                    {
+                        $this->verbose ? error_log($ticket_field->slug . " index not found in Ninja forms value array") : false;
+                    }
 
                     break;
 
@@ -229,7 +243,14 @@ class class_headstart_admission
                         // look for the mapping slug in the ninja forms field's admin label
                         $key = array_search($ticket_field->slug, $admin_label_array);
 
-                        $ticket_args[$ticket_field->slug]= $value_array[$key];
+                        if ($key !== false)
+                        {
+                            $ticket_args[$ticket_field->slug]= $value_array[$key];
+                        }
+                        else
+                        {
+                            $this->verbose ? error_log($ticket_field->slug . " index not found in Ninja forms map to Ticket") : false;
+                        }
 
                         break;
 
