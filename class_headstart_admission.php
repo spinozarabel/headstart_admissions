@@ -199,7 +199,7 @@ class class_headstart_admission
                 case ($ticket_field->slug == 'customer_email'):
 
                     // look for the mapping slug in the ninja forms field's admin label
-                    $key = array_search('email', $admin_label_array);
+                    $key = array_search('primary-email', $admin_label_array);
 
                     $ticket_args[$ticket_field->slug]= $value_array[$key];
 
