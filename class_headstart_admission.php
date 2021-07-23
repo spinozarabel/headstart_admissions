@@ -316,11 +316,14 @@ class class_headstart_admission
                         default:
                             // this is the case when a correct object is returned, so proceed down!
                 endswitch;
+
+                // if you got here you must be a head start user with a valid VA and customer_id and valid customer object OR
+                // a non-headstart user with a customer object of null
                 
                 $this->data_object->wp_user_hset_payments = $wp_user_hset_payments;
 
                 // check that price and name of product agent only fields are set
-                $product_customized_name    = get_term_by('slug', $this->data_object->ticket_field["product_customized_name"], true);
+                $product_customized_name    = get_term_by('slug', $this->data_object->ticket_field["product-customized-name"], true);
                 $regular_price              = get_term_by('slug', $this->data_object->ticket_field["admission-fee-payable"], true);
 
                 if ($regular_price == 0 || empty($product_customized_name))
