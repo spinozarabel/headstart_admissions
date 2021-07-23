@@ -25,6 +25,7 @@
 require __DIR__ . '/vendor/autoload.php';
 
 use Automattic\WooCommerce\Client;
+use Automattic\WooCommerce\HttpClient\HttpClientException;
 
 class class_headstart_admission
 {
@@ -106,13 +107,7 @@ class class_headstart_admission
 
     public function action_after_login($user_login, $user)
     {
-        // check if user has a headstart mail. If not return;
-        if (stripos($user->data->user_email, "headstart.edu.in") === false)
-        {
-            return;
-        }
-        // so we have a user who has logged in usinh a headstart emailID.
-        // we have a chance to get the user's SRiToni data if needed to prefill forms with etc.
+        // currently not used
     }
 
     /**
@@ -162,10 +157,9 @@ class class_headstart_admission
 
         foreach ($ticket_fields as $ticket_field):
 
-            if ($ticket_field->slug == 'ticket_priority' ||
-                $ticket_field->slug == 'wp-user-id-hset-payments')
+            if ($ticket_field->slug == 'ticket_priority')
             {
-                continue;     // we don't modify this field in the ticket - unused.
+                continue;     // we don't modify these fields so skip
             }
 
             // capture the ones of interest to us
@@ -346,6 +340,8 @@ class class_headstart_admission
 
     private function get_wp_user_hset_payments()
     {
+        global $wpscfunction;
+
         $data_object = $this->data_object;
 
         // does this user have a head start email ID?
@@ -372,7 +368,18 @@ class class_headstart_admission
                                 'email' => $data_object->ticket_data["customer_email"]
                                 );
             // get customers with given parameters as above, there should be a maximum of 1
-            $customers = $woocommerce->get($endpoint, $params);
+            try
+            {
+                $customers = $woocommerce->get($endpoint, $params);
+            }
+            catch (HttpClientException $e)
+            {
+                $error_message = "Could NOT access hset-payments site to get customer details: " . $e->getMessage();
+                $this->change_status_error_creating_payment_shop_order($data_object->ticket_id, $error_message);
+
+                return null;
+            }
+            
 
             // form arrays and array_values from user meta to search for user meta data
             $array_meta_key    = array_column($customers[0]->meta_data, "key");
