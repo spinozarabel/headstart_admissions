@@ -919,8 +919,8 @@ class class_headstart_admission
             $customer_id = $this->data_object->wp_user_hset_payments->id;
 
             // to get the va_id we need to search through the meta data arrays of the customer object
-            $array_meta_key     = array_column($data_object->wp_userhset_payments->meta_data, 'key');
-            $array_meta_value   = array_column($data_object->wp_userhset_payments->meta_data, 'value');
+            $array_meta_key     = array_column($data_object->wp_user_hset_payments->meta_data, 'key');
+            $array_meta_value   = array_column($data_object->wp_user_hset_payments->meta_data, 'value');
 
             $index = array_search('va_id', $array_meta_key);
 
@@ -953,9 +953,10 @@ class class_headstart_admission
 
         // customize the Admission product for this user
         $product_data = [
-                            'name'          => get_term_by('slug', $data_object->ticket_meta["product_customized_name"],   true),
-                            'regular_price' => get_term_by('slug', $data_object->ticket_meta["admission-fee-payable"],     true),
+                            'name'          => $data_object->ticket_meta["product-customized-name"],
+                            'regular_price' => $data_object->ticket_meta["admission-fee-payable"],
                         ];
+        // TODO use try catch here
         $product = $woocommerce->put($endpoint, $product_data);
 
         // lets now prepare the data for the new order to be created
