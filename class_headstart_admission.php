@@ -132,7 +132,7 @@ class class_headstart_admission
         // Loop through each of the ticket fields, match its slug to the admin_label and get its corresponding value
 
         // Initialize the new ticket values array needed for a new ticket creation
-        $ticket_args = [];  
+        $ticket_args = [];
 
         // extract the fields array from the form data
         $fields_ninjaforms = $form_data['fields'];
@@ -161,22 +161,22 @@ class class_headstart_admission
         ]);
 
         foreach ($ticket_fields as $ticket_field):
-        
-            if ($ticket_field->slug == 'ticket_priority' || 
+
+            if ($ticket_field->slug == 'ticket_priority' ||
                 $ticket_field->slug == 'wp-user-id-hset-payments')
             {
                 continue;     // we don't modify this field in the ticket - unused.
-            } 
+            }
 
             // capture the ones of interest to us
             switch (true):
-                
+
                 // customer_name ticket field mapping.
                 case ($ticket_field->slug == 'customer_name'):
 
                     // look for the mapping slug in the ninja forms field's admin label
                     $key = array_search('customer-name', $admin_label_array);
-                
+
                     $ticket_args[$ticket_field->slug]= $value_array[$key];
 
                     break;
@@ -217,7 +217,7 @@ class class_headstart_admission
 
                         // default for all users
                         $ticket_args[$ticket_field->slug]= 'Admission';
-    
+
                         break;
 
                         // Description is a fixed string
@@ -225,12 +225,12 @@ class class_headstart_admission
 
                         // default for all users
                         $ticket_args[$ticket_field->slug]= 'Admission';
-    
-                        break;  
-                        
-                        
+
+                        break;
+
+
                     default:
-                        
+
                         // from here on the ticket slug is same as form field slug so mapping is  easy.
                         // look for the mapping slug in the ninja forms field's admin label
                         $key = array_search($ticket_field->slug, $admin_label_array);
@@ -238,7 +238,7 @@ class class_headstart_admission
                         $ticket_args[$ticket_field->slug]= $value_array[$key];
 
                         break;
-            
+
             endswitch;          // end switching throgh the ticket fields looking for a match
 
         endforeach;             // finish looping through the ticket fields for mapping Ninja form data to ticket
@@ -319,7 +319,7 @@ class class_headstart_admission
                     !empty($this->data_object_ticket_data['institution'])
                 )
                 {
-                    // go create a new SriToni user account for this child using ticket dataa. 
+                    // go create a new SriToni user account for this child using ticket dataa.
                     $this->create_sritoni_account();
 
                     // if error in user creation, change to error status and error message updation happen there
@@ -340,7 +340,7 @@ class class_headstart_admission
      *                                      If VA doesn't exist, creates a new one and updates the  user meta of hset-payments
      *                                          and returns the updated customer object.
      * 3.   If NO then, a null object is returned.
-     * 
+     *
      * @return obj:woocommerce customer object
      */
 
@@ -385,11 +385,11 @@ class class_headstart_admission
             {
                 $va_id = $array_meta_value[$index] ?? null;
             }
-            else 
+            else
             {
                 $va_id = null;
             }
-            
+
 
             if (empty($va_id))
             {
@@ -434,7 +434,7 @@ class class_headstart_admission
                     $this->verbose? error_log("Updated WC customer object being returned for Head Start email: " . $customers[0]->email) : false;
                     return $updated_customer;
                 }
-                else 
+                else
                 {
                     // A valid VA does not exist for this Head Start account holder. So create a new one
                     $name   = $customers[0]->first_name . " " . $customers[0]->last_name;
@@ -449,9 +449,9 @@ class class_headstart_admission
                     }
 
                     // create a new VA
-                    $new_va_created = $cashfree_api->createVirtualAccount(  $vAccountId, 
-                                                                            $name, 
-                                                                            $phone, 
+                    $new_va_created = $cashfree_api->createVirtualAccount(  $vAccountId,
+                                                                            $name,
+                                                                            $phone,
                                                                             $customers[0]->email);
 
                     // update the hset-payments user meta with the newly created VA info needed for email for payments
@@ -461,7 +461,7 @@ class class_headstart_admission
                         $ifsc                   = $new_va_created->ifsc;
 
                         $user_meta_data = array(
-                                                "meta_data" => array(   
+                                                "meta_data" => array(
                                                                         array(
                                                                             "key"   => "beneficiary_name",
                                                                             "value" => "Head Start Educational Trust",
@@ -506,7 +506,7 @@ class class_headstart_admission
                 $this->verbose? error_log("Valid VA exists for Head Start email: " . $customers[0]->email) : false;
                 $this->verbose? error_log("Valid VAID exists for Head Start email: " . $va_id) : false;
 
-                return $customers[0]; 
+                return $customers[0];
             }
         }
         else
@@ -627,7 +627,7 @@ class class_headstart_admission
         $wpuserobj = $this->get_wp_user_hset_payments();
 
         echo "<pre>" . print_r($wpuserobj, true) ."</pre>";
-        
+
     }
 
     public function test_custom_code()
@@ -883,7 +883,7 @@ class class_headstart_admission
                                         'query_string_auth' => true,
 
                                     ]);
-        
+
         // Admission fee to HSET product ID. This is the admission product whose price and description can be customized
         $product_id = 581;
 
@@ -998,15 +998,15 @@ class class_headstart_admission
             'orderby'    => 'meta_value_num',
             'meta_key'	 => 'wpsc_tf_load_order',
             'order'    	 => 'ASC',
-            
+
             'meta_query' => array(
                                     array(
                                         'key'       => 'agentonly',
                                         'value'     => ["0", "1"],  // get all ticket meta fields
-                                        'compare'   => 'IN',             
+                                        'compare'   => 'IN',
                                         ),
                                 ),
-            
+
         ]);
 
         // create a new associative array that holds the ticket field object keyed by slug. This way we can get it on demand
@@ -1029,7 +1029,7 @@ class class_headstart_admission
             else
             {
                 $ticket_meta[$field->slug] = $wpscfunction->get_ticket_meta($ticket_id, $field->slug, true);
-            }  
+            }
         }
 
         $data_object->ticket_id      = $ticket_id;
@@ -1064,7 +1064,7 @@ class class_headstart_admission
                                         'query_string_auth' => true,
 
                                     ]);
-        
+
 
         $endpoint   = "orders/" . $order_id;
         $params     = array($order_id);
@@ -1077,7 +1077,7 @@ class class_headstart_admission
 
 
     /**
-     * 
+     *
      */
     private function test_update_wc_product()
     {
@@ -1101,7 +1101,7 @@ class class_headstart_admission
                                         'query_string_auth' => true,
 
                                     ]);
-        
+
         // Admission fee to HSET product ID
         $product_id = 581;
 
@@ -1166,16 +1166,13 @@ class class_headstart_admission
 
         $status_id = 94;    // corresponds to status error creating payment order
 
-        $ticket_slug = "error";
-
         $wpscfunction->change_status($ticket_id, $status_id);
 
-        // update agent field error message with the passed in error message
-        $meta_key = $this->get_ticket_meta_key_by_slug('error');
+				$ticket_slug = "error";
 
         // update agent field error message with the passed in error message
         if (!empty($error_message))
-        {   
+        {
             $wpscfunction->change_field($ticket_id, $ticket_slug, $error_message);
         }
     }
@@ -1188,20 +1185,21 @@ class class_headstart_admission
         global $wpscfunction;
 
         $status_id = 95;    // corresponds to status error creating sritoni account
-        $ticket_slug = "error";
 
         $wpscfunction->change_status($ticket_id, $status_id);
+
+				$ticket_slug = "error";
 
         // update agent field error message with the passed in error message
         if (!empty($error_message))
         {
             $wpscfunction->change_field($ticket_id, $ticket_slug, $error_message);
         }
-        
+
     }
 
     /**
-     * 
+     *
      */
     private function get_status_id_by_slug($slug)
     {
@@ -1211,15 +1209,15 @@ class class_headstart_admission
             'orderby'    => 'meta_value_num',
             'meta_key'	 => 'wpsc_tf_load_order',
             'order'    	 => 'ASC',
-            
+
             'meta_query' => array(
                                     array(
                                         'key'       => 'agentonly',
                                         'value'     => ["0", "1"],  // get all ticket meta fields
-                                        'compare'   => 'IN',             
+                                        'compare'   => 'IN',
                                         ),
                                 ),
-            
+
         ]);
         foreach ($fields as $field)
         {
@@ -1231,7 +1229,7 @@ class class_headstart_admission
     }
 
     /**
-     * 
+     *
      */
     private function get_ticket_meta_key_by_slug($slug)
     {
@@ -1241,15 +1239,15 @@ class class_headstart_admission
             'orderby'    => 'meta_value_num',
             'meta_key'	 => 'wpsc_tf_load_order',
             'order'    	 => 'ASC',
-            
+
             'meta_query' => array(
                                     array(
                                         'key'       => 'agentonly',
                                         'value'     => [0, 1],  // get all ticket meta fields
-                                        'compare'   => 'IN',             
+                                        'compare'   => 'IN',
                                         ),
                                 ),
-            
+
         ]);
         foreach ($fields as $field)
         {
@@ -1272,21 +1270,21 @@ class class_headstart_admission
             'orderby'    => 'meta_value_num',
             'meta_key'	 => 'wpsc_tf_load_order',
             'order'    	 => 'ASC',
-            
+
             'meta_query' => array(
                                     array(
                                         'key'       => 'agentonly',
                                         'value'     => ["0", "1"],  // get all ticket meta fields
-                                        'compare'   => 'IN',             
+                                        'compare'   => 'IN',
                                         ),
                                 ),
-            
+
         ]);
 
         echo "<pre>" . print_r($fields, true) ."</pre>";
 
     }
 
-    
+
 
 }   // end of class bracket
