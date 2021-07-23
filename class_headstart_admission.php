@@ -323,8 +323,8 @@ class class_headstart_admission
                 $this->data_object->wp_user_hset_payments = $wp_user_hset_payments;
 
                 // check that price and name of product agent only fields are set
-                $product_customized_name    = $this->data_object_ticket_meta["product-customized-name"];
-                $regular_price              = $this->data_object_ticket_meta["admission-fee-payable"];
+                $product_customized_name    = $this->data_object->ticket_meta["product-customized-name"];
+                $regular_price              = $this->data_object->ticket_meta["admission-fee-payable"];
 
                 if ($regular_price == 0 || empty($product_customized_name))
                 {
