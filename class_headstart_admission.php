@@ -275,9 +275,28 @@ class class_headstart_admission
             case ($wpscfunction->get_status_name($status_id) === 'Admission Granted'):
 
                 // The payment process needs to be triggered
-
                 // if the applicant email is a headstart one, then we will use the associated VA details for the order
-                $this->data_object->wp_user_hset_payments = $this->get_wp_user_hset_payments();
+                // can also return null if server error or user dows not exist on payment site
+                $wp_user_hset_payments = $this->get_wp_user_hset_payments();
+
+                switch (true):
+                    
+                        case ($wp_user_hset_payments === 1):
+                            // could not access hset-payments site
+                            return;
+                        case ($wp_user_hset_payments === 2):
+                            // could not create VA account for head start user who has none
+                            return;
+                        case ($wp_user_hset_payments === 3):
+                            // not a head start user, detect this null and assign customer 5 in the create order process
+                            $wp_user_hset_payments = null;
+                            break;
+
+                        default:
+                            // this is the case when a correct object is returned, so proceed down!
+                endswitch;
+                
+                $this->data_object->wp_user_hset_payments = $wp_user_hset_payments;
 
                 // check that price and name of product agent only fields are set
                 $product_customized_name    = get_term_by('slug', $this->data_object->ticket_field["product_customized_name"], true);
@@ -291,7 +310,6 @@ class class_headstart_admission
                     $this->change_status_error_creating_payment_shop_order($ticket_id, $error_message);
 
                     return;
-
                 }
 
                 $new_order = $this->create_wc_order_hset_payments();
@@ -335,9 +353,8 @@ class class_headstart_admission
      *                                          and returns the updated customer object.
      * 3.   If NO then, a null object is returned.
      *
-     * @return obj:woocommerce customer object
+     * @return obj:woocommerce customer object - null returned in case of server error or if user does not exist
      */
-
     private function get_wp_user_hset_payments()
     {
         global $wpscfunction;
@@ -377,7 +394,7 @@ class class_headstart_admission
                 $error_message = "Could NOT access hset-payments site to get customer details: " . $e->getMessage();
                 $this->change_status_error_creating_payment_shop_order($data_object->ticket_id, $error_message);
 
-                return null;
+                return 1;
             }
             
 
@@ -501,7 +518,9 @@ class class_headstart_admission
                         // Failure in creating a new VA for this Head Start user
 
                         $this->verbose? error_log("Could NOT create a new VA for user email: " . $customers[0]->email) : false;
-                        return null;
+                        $error_message = "Could NOT access hset-payments site to get customer details: ";
+                        $this->change_status_error_creating_payment_shop_order($data_object->ticket_id, $error_message);
+                        return 2;
                     }
                 }
 
@@ -519,7 +538,7 @@ class class_headstart_admission
         else
         {
             // Not a Head Start account holder, so return the default user ID of sritoni1
-            return null;
+            return 3;
         }
     }
 
@@ -864,7 +883,7 @@ class class_headstart_admission
     {
         // before coming here the create account object is already created. We jsut use it here.
         $data_object = $this->data_object;
-        $customer_id = $this->data_object->wp_user_hset_payments->id    ?? 5;
+        $customer_id = $this->data_object->wp_user_hset_payments->id ?? 5;
 
         $array_meta_key     = array_column($data_object->wp_userhset_payments->meta_data, 'key');
         $array_meta_value   = array_column($data_object->wp_userhset_payments->meta_data, 'value');
