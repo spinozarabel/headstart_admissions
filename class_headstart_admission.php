@@ -323,8 +323,8 @@ class class_headstart_admission
                 $this->data_object->wp_user_hset_payments = $wp_user_hset_payments;
 
                 // check that price and name of product agent only fields are set
-                $product_customized_name    = get_term_by('slug', $this->data_object->ticket_field["product-customized-name"], true);
-                $regular_price              = get_term_by('slug', $this->data_object->ticket_field["admission-fee-payable"], true);
+                $product_customized_name    = get_term_by('slug', $this->data_object->ticket_meta["product-customized-name"], true);
+                $regular_price              = get_term_by('slug', $this->data_object->ticket_meta["admission-fee-payable"], true);
 
                 if ($regular_price == 0 || empty($product_customized_name))
                 {
@@ -953,8 +953,8 @@ class class_headstart_admission
 
         // customize the Admission product for this user
         $product_data = [
-                            'name'          => get_term_by('slug', $data_object->ticket_field["product_customized_name"],   true),
-                            'regular_price' => get_term_by('slug', $data_object->ticket_field["admission-fee-payable"],     true),
+                            'name'          => get_term_by('slug', $data_object->ticket_meta["product_customized_name"],   true),
+                            'regular_price' => get_term_by('slug', $data_object->ticket_meta["admission-fee-payable"],     true),
                         ];
         $product = $woocommerce->put($endpoint, $product_data);
 
