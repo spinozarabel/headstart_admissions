@@ -115,6 +115,8 @@ class class_headstart_admission
                     $status_id =  136; // admission-payment-process-completed
                     $wpscfunction->change_status($ticket_id, $status_id);
 
+                    $transaction_id = str_replace (['{', '}'], ['', ''], $order->transaction_id);
+ 
                     // update the agent only fields payment-bank-reference which is really thee transaction_id
                     $wpscfunction->change_field($ticket_id, 'payment-bank-reference', $order->transaction_id);
 
