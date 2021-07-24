@@ -411,7 +411,7 @@ class class_headstart_admission
 
             case ($wpscfunction->get_status_name($status_id) === 'Admission Confirmed'):
 
-                if (stripos($this->data_object->ticket_meta['customer_email'], 'headstart.edu.in') === false)
+                if (stripos($this->data_object->ticket_meta['customer_email'], 'headstart.edu.in') !== false)
                 {
                     $this->verbose ? error_log("User already has a Head Start EMAIL, so no new account created") : false;
 
