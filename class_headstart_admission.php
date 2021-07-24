@@ -1125,14 +1125,14 @@ class class_headstart_admission
         $order_created = $woocommerce->post('orders', $order_data);
 
         // check if the order has been created and if so what is the order ID
-        if (!empty($order->id))
+        if (!empty($$order_created->id))
         {
             return $order_created;
         }
         else
         {
             // there was an error in creating the prder. Update the status and the error message for the ticket
-            $this->change_status_error_creating_payment_shop_order($ticket_id, 'could NOT create payment order, check');
+            $this->change_status_error_creating_payment_shop_order($data_object->ticket_id, 'could NOT create payment order, check');
         }
     }
 
