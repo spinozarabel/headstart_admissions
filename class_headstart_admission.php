@@ -70,6 +70,82 @@ class class_headstart_admission
 	}
 
     /**
+     * @return nul
+     * This is the function that processes the webhook coming from hset-payments on any order that is completed
+     * It extracts the order ID and then gets the order from the hset-payments site.
+     * From the order the ticket_id is extracted and it's status is updated.
+     */
+    public function webhook_order_complete_process()
+    {
+        global $wpscfunction;
+
+        // add these as properties of object
+		$this->wc_webhook_secret    = $this->config['wc_webhook_secret'];
+
+        if ( $_SERVER['REMOTE_ADDR']              == '68.183.189.119' &&
+             $_SERVER['HTTP_X_WC_WEBHOOK_SOURCE'] == 'https://sritoni.org/hset-payments/'     
+           )
+        {
+
+            $this->signature = $_SERVER['HTTP_X_WC_WEBHOOK_SIGNATURE'];
+
+            $request_body = file_get_contents('php://input');
+
+            $signature_verified = $this->verify_webhook_signature($request_body);
+
+            if ($signature_verified)
+            {
+                $this->verbose ? error_log("HSET order completed webhook signature verified") : false;
+
+                $data = json_decode($request_body, false);  // decoded as object
+
+                if ($data->action = "woocommerce_order_status_completed")
+                {
+                    $order_id = $data->arg;
+
+                    $this->verbose ? error_log($data->action . " " . $order_id) : false;
+
+                    // so we now have the order id for the completed order. Fetch the order object!
+                    $order = $this->get_wc_order($order_id);
+
+                    // from the order, extract the admission number which is our ticket id
+                    $ticket_id = $order->admission_number;
+
+                    // using the ticket id, update the ticket status to payment process completed
+                    $status_id =  136; // admission-payment-process-completed
+                    $wpscfunction->change_status($ticket_id, $status_id_order_completed);
+
+                    // update the agent only fields payment-bank-reference which is really thee transaction_id
+                    $wpscfunction->change_field($ticket_id, 'payment-bank-reference', $order->transaction_id);
+
+                    // return after successful termination of webhook
+                    return;
+                }
+            }
+            else 
+            {
+                $this->verbose ? error_log("HSET order completed webhook signature NOT verified") : false;
+                die;
+            }
+        }
+        else
+        {
+            $this->verbose ? error_log("HSET order completed webhook source NOT verified") : false;
+            $this->verbose ? error_log($_SERVER['REMOTE_ADDR'] . " " . $_SERVER['HTTP_X_WC_WEBHOOK_SOURCE']) : false;
+
+            die;
+        }
+    }
+
+    private function verify_webhook_signature($request_body)
+    {
+        $signature    = $this->signature;
+        $secret       = $this->wc_webhook_secret;
+
+        return (base64_encode(hash_hmac('sha256', $request_body, $secret, true)) == $signature);
+    }
+
+    /**
      *  reads in a config php file and gets the API secrets. The file has to be in gitignore and protected
      */
     private function get_config()
