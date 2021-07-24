@@ -832,11 +832,6 @@ class class_headstart_admission
         echo "<pre>" . print_r($vAccount, true) ."</pre>";
     }
 
-    public function update_user_meta_form($ticket_id)
-    {
-        //
-    }
-
 
     /**
      *  This is called after the create_account object has been already created  so need to call it.
