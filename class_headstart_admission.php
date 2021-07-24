@@ -749,9 +749,9 @@ class class_headstart_admission
 
     public function test_woocommerce_customer()
     {
-        $this->get_data_object_for_account_creation(8);
+        $this->get_data_object_for_account_creation(23);
 
-        $this->data_object->ticket_data['customer_email'] = "aadhya.hibare@headstart.edu.in";
+        //$this->data_object->ticket_data['customer_email'] = "aadhya.hibare@headstart.edu.in";
 
         $wpuserobj = $this->get_wp_user_hset_payments();
 
@@ -1244,7 +1244,7 @@ class class_headstart_admission
         // run this since we may be changing API keys. Once in production remove this
         $this->get_config();
 
-        $ticket_id = 3;
+        $ticket_id = 23;
 
         $this->get_data_object_for_account_creation($ticket_id);
 
@@ -1293,7 +1293,7 @@ class class_headstart_admission
 
     private function test_get_data_object_for_account_creation()
     {
-        $ticket_id = 8;
+        $ticket_id = 23;
 
         $data_object = $this->get_data_object_for_account_creation($ticket_id);
 
@@ -1422,7 +1422,7 @@ class class_headstart_admission
     {
         global $wpscfunction;
 
-        $ticket_id =8;
+        $ticket_id =23;
 
         $fields = get_terms([
             'taxonomy'   => 'wpsc_ticket_custom_fields',
