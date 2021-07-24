@@ -435,7 +435,7 @@ class class_headstart_admission
                 else
                 {
                     $error_message = "Ensure username, idnumber, studentcat, department, and institution fields are Set";
-                    $this->change_status_error_creating_sritoni_account($data_object->ticket_id, $error_message);
+                    $this->change_status_error_creating_sritoni_account($this->data_object->ticket_id, $error_message);
 
                     return;
                 }
@@ -1180,8 +1180,7 @@ class class_headstart_admission
                 $field->slug == "ticket_priority"   ||
                 $field->slug == "ticket_subject"    ||
                 $field->slug == "customer_name"     ||
-                $field->slug == "customer_email"    ||
-                $field->slug == "ticket_email"
+                $field->slug == "customer_email"
             )
             {
                 // this data is avaulable directly from ticket data and is blank in ticket meta so this work around
