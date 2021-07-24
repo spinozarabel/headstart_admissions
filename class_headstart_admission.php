@@ -1140,7 +1140,7 @@ class class_headstart_admission
      * This function grabs the ticket fields and data from a given ticket id
      * It then creates a new data_object that contains all of the ticket data, to be used anywhere needed
      * This data_object is also set as a property of $this
-     *  @param str:$ticket_id
+     *  @param int:$ticket_id
      *  @return obj:$data_object
      */
 
@@ -1171,7 +1171,7 @@ class class_headstart_admission
         ]);
 
         // create a new associative array that holds the ticket field object keyed by slug. This way we can get it on demand
-        $ticket_fields = [];
+        $ticket_meta = [];
 
         foreach ($fields as $field)
         {
