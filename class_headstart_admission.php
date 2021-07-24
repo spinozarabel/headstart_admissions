@@ -113,7 +113,7 @@ class class_headstart_admission
 
                     // using the ticket id, update the ticket status to payment process completed
                     $status_id =  136; // admission-payment-process-completed
-                    $wpscfunction->change_status($ticket_id, $status_id_order_completed);
+                    $wpscfunction->change_status($ticket_id, $status_id);
 
                     // update the agent only fields payment-bank-reference which is really thee transaction_id
                     $wpscfunction->change_field($ticket_id, 'payment-bank-reference', $order->transaction_id);
@@ -340,20 +340,6 @@ class class_headstart_admission
 
 
     /**
-     *
-     */
-    public function update_ticket_status_paid($ticket_id)
-    {
-        global $wpscfunction;
-
-        // get the below value from the WP tables using Heidi. This is hard coded and needs to change accordingly
-        // TODO get the status id just from slug rather than hard coding it here like this
-        $status_id_order_completed = 136;   // this is the term_id and the slug is payment-process-completed
-
-        $wpscfunction->change_status($ticket_id, $status_id_order_completed);
-    }
-
-    /**
      *  This is the  callback that triggers the various tasks contingent upon ticket status change to desired one
      *  When the status changes to Admission Granted, the payment process is triggered immediately
      *  When the ststus is changed to Admission Confirmed the SriToni new user account creation is triggered
@@ -364,7 +350,7 @@ class class_headstart_admission
         global $wpscfunction;
 
         // buuild an object containing all relevant data from ticket useful for crating user accounts and payments
-        $this->get_data_for_sritoni_account_creation($ticket_id);
+        $this->get_data_object_for_account_creation($ticket_id);
 
         // add any logoc that you want here based on new status
         switch (true)
@@ -379,10 +365,10 @@ class class_headstart_admission
                 switch (true):
                     
                         case ($wp_user_hset_payments === 1):
-                            // could not access hset-payments site
+                            // could not access hset-payments site. Status already changed to error with message
                             return;
                         case ($wp_user_hset_payments === 2):
-                            // could not create VA account for head start user who has none
+                            // could not create VA account for head start user. Status already changed to error with message
                             return;
                         case ($wp_user_hset_payments === 3):
                             // not a head start user, detect this null and assign customer 5 in the create order process
@@ -414,6 +400,8 @@ class class_headstart_admission
 
                 $new_order = $this->create_wc_order_hset_payments();
 
+                $this->verbose ? error_log($new_order->id . " ID of newly created payment SHOP Order") : false;
+
                 // update the agent field with the newly created order ID
                 $wpscfunction->change_field($ticket_id, 'order-id', $new_order->id);
 
@@ -422,13 +410,14 @@ class class_headstart_admission
             case ($wpscfunction->get_status_name($status_id) === 'Admission Confirmed'):
 
                 // check if all required data for new account creation is set
-                if (!empty($this->data_object_ticket_data['username'])      &&
-                    !empty($this->data_object_ticket_data['idnumber'])      &&
-                    !empty($this->data_object_ticket_data['studentcat'])    &&
-                    !empty($this->data_object_ticket_data['department'])    &&
-                    !empty($this->data_object_ticket_data['class'])         &&
-                    !empty($this->data_object_ticket_data['environment'])   &&
-                    !empty($this->data_object_ticket_data['institution'])
+                if (!empty($this->data_object->ticket_meta['username'])      &&
+                    !empty($this->data_object->ticket_meta['idnumber'])      &&
+                    !empty($this->data_object->ticket_meta['studentcat'])    &&
+                    !empty($this->data_object->ticket_meta['department'])    &&
+                    //!empty($this->data_object->ticket_meta['class'])         &&
+                    //!empty($this->data_object->ticket_meta['environment'])   &&
+                    !empty($this->data_object->ticket_meta['institution'])   &&
+                   stripos($this->data_object->icket_meta['customer_email'], 'headstart.edu.in') === false
                 )
                 {
                     // go create a new SriToni user account for this child using ticket dataa.
@@ -463,8 +452,8 @@ class class_headstart_admission
 
         // does this user have a head start email ID?
         if (stripos($data_object->ticket_data["customer_email"], 'headstart.edu.in') !== false)
-        {
-            // YES. Get the wp userid from the hset-payments site
+        {   // YES. Head Start email holder, Get the wp userid from the hset-payments site
+
             // instantiate woocommerce API class
             $woocommerce = new Client(
                                         'https://sritoni.org/hset-payments/',
@@ -490,13 +479,14 @@ class class_headstart_admission
                 $customers = $woocommerce->get($endpoint, $params);
             }
             catch (HttpClientException $e)
-            {
+            {   // if cannot access hset-payments server error message and return 1
                 $error_message = "Could NOT access hset-payments site to get customer details: " . $e->getMessage();
                 $this->change_status_error_creating_payment_shop_order($data_object->ticket_id, $error_message);
 
                 return 1;
             }
             
+            // if you get here then  you got something back from hset-payments site
 
             // form arrays and array_values from user meta to search for user meta data
             $array_meta_key    = array_column($customers[0]->meta_data, "key");
@@ -516,8 +506,8 @@ class class_headstart_admission
 
 
             if (empty($va_id))
-            {
-                // the VA ID does not exist. However, let us check if the VA exists but not just updated in our records
+            {   // the VA ID does not exist. However, let us check if the VA exists but not just updated in our records
+                
                 // pad the moodleuserid with leading 0's if length less than 4. If not leave alone
                 $vAccountId = str_pad($customers[0]->username, 4, "0", STR_PAD_LEFT);
 
@@ -686,7 +676,7 @@ class class_headstart_admission
                 <input type="submit" name="button" 	value="test_get_wc_order"/>
                 <input type="submit" name="button" 	value="test_update_wc_product"/>
                 <input type="submit" name="button" 	value="test_create_wc_order"/>
-                <input type="submit" name="button" 	value="test_get_data_for_sritoni_account_creation"/>
+                <input type="submit" name="button" 	value="test_get_data_object_for_account_creation"/>
                 <input type="submit" name="button" 	value="test_sritoni_account_creation"/>
                 <input type="submit" name="button" 	value="test_custom_code"/>
             </form>
@@ -726,8 +716,8 @@ class class_headstart_admission
                 $this->test_create_wc_order();
                 break;
 
-            case 'test_get_data_for_sritoni_account_creation':
-                $this->test_get_data_for_sritoni_account_creation();
+            case 'test_get_data_object_for_account_creation':
+                $this->test_get_data_object_for_account_creation();
                 break;
 
             case 'test_sritoni_account_creation':
@@ -746,7 +736,7 @@ class class_headstart_admission
 
     public function test_woocommerce_customer()
     {
-        $this->get_data_for_sritoni_account_creation(8);
+        $this->get_data_object_for_account_creation(8);
 
         $this->data_object->ticket_data['customer_email'] = "aadhya.hibare@headstart.edu.in";
 
@@ -856,12 +846,7 @@ class class_headstart_admission
         // before coming here the create account object is already created. We jsut use it here.
         $data_object = $this->data_object;
 
-        if (!empty($data_object->existing_sritoni_username) || !empty($data_object->existing_sritoni_idnumber))
-        {
-            return;
-        }
-
-        // if you get here, you DO NOT have a username and DO NOT have an idnumber
+        // if you get here, you DO NOT have a username and DO NOT have an idnumber in the SriToni Moodle system
 
         // run this again since we may be changing API keys. Once in production remove this
         $this->get_config();
@@ -871,7 +856,7 @@ class class_headstart_admission
         $moodle_url 	= $config["moodle_url"] . '/webservice/rest/server.php';
         $moodle_token	= $config["moodle_token"];
 
-        $moodle_username = $data_object->username;
+        $moodle_username = $data_object->ticket_meta["username"];
 
         // prepare the Moodle Rest API object
         $MoodleRest = new MoodleRest();
@@ -901,7 +886,7 @@ class class_headstart_admission
 
                 $error_message = "Couldnt find username, the account exists for upto username + 4 ! check and retry change of status";
 
-                error_log($error_message);
+                $this->verbose ? error_log($error_message) : false;
 
                 // change the ticket status to error
                 $this->change_status_error_creating_sritoni_account($data_object->ticket_id, $error_message);
@@ -923,30 +908,57 @@ class class_headstart_admission
 
     	$users = array("users" => array(
                                             array(	"username" 	    => $moodle_username,
-                                                    "idnumber"      => $data_object->idnumber,
+                                                    "idnumber"      => $data_object->ticket_meta["idnumber"],
                                                     "auth"          => "oauth2",
-                                                    "firstname"     => $data_object->student_firstname,
-                                                    "lastname"      => $data_object->student_lastname,
+                                                    "firstname"     => $data_object->ticket_meta["student-first-name"],
+                                                    "lastname"      => $data_object->ticket_meta["student-last-name"],
                                                     "email"         => $moodle_username . "@headstart.edu.in",
-                                                    "middlename"    => $data_object->student_middlename,
-                                                    "institution"   => $data_object->institution,
-                                                    "department"    => $data_object->department,
-                                                    "phone1"        => $data_object->principal_phone_number,
-                                                    "address"       => $data_object->student_address,
+                                                    "middlename"    => $data_object->ticket_meta["student-middle-name"],
+                                                    "institution"   => $data_object->ticket_meta["institution"],
+                                                    "department"    => $data_object->ticket_meta["department"],
+                                                    "phone1"        => $data_object->ticket_meta["emergency-contact-number"],
+                                                    "phone2"        => $data_object->ticket_meta["emergency-alternate-contact"],
+                                                    "address"       => $data_object->ticket_meta["residential-address"],
                                                     "maildisplay"   => 0,
                                                     "createpassword"=> 0,
 
                                                     "customfields" 	=> array(
                                                                                 array(	"type"	=>	"class",
-                                                                                        "value"	=>	$data_object->class,
+                                                                                        "value"	=>	$data_object->ticket_meta["class"],
                                                                                     ),
                                                                                 array(	"type"	=>	"environment",
-                                                                                        "value"	=>	$data_object->environment,
+                                                                                        "value"	=>	$data_object->ticket_meta["environment"],
                                                                                     ),
                                                                                 array(	"type"	=>	"studentcat",
-                                                                                        "value"	=>	$data_object->studentcat,
+                                                                                        "value"	=>	$data_object->ticket_meta["studentcat"],
                                                                                     ),
-
+                                                                                array(	"type"	=>	"bloodgroup",
+                                                                                        "value"	=>	$data_object->ticket_meta["blood-group"],
+                                                                                    ),
+                                                                                array(	"type"	=>	"motheremail",
+                                                                                        "value"	=>	$data_object->ticket_meta["mothers-email"],
+                                                                                    ),
+                                                                                array(	"type"	=>	"fatheremail",
+                                                                                        "value"	=>	$data_object->ticket_meta["fathers-email"],
+                                                                                    ),
+                                                                                array(	"type"	=>	"motherfirstname",
+                                                                                        "value"	=>	$data_object->ticket_meta["mothers-first-name"],
+                                                                                    ),
+                                                                                array(	"type"	=>	"motherlastname",
+                                                                                        "value"	=>	$data_object->ticket_meta["mothers-last-name"],
+                                                                                    ),
+                                                                                array(	"type"	=>	"fatherfirstname",
+                                                                                        "value"	=>	$data_object->ticket_meta["fathers-first-name"],
+                                                                                    ),
+                                                                                array(	"type"	=>	"fatherlastname",
+                                                                                        "value"	=>	$data_object->ticket_meta["fathers-last-name"],
+                                                                                    ),
+                                                                                array(	"type"	=>	"mothermobile",
+                                                                                        "value"	=>	$data_object->ticket_meta["mothers-contact-number"],
+                                                                                    ),
+                                                                                array(	"type"	=>	"fathermobile",
+                                                                                        "value"	=>	$data_object->ticket_meta["fathers-contact-number"],
+                                                                                    ),
                                                                             )
                                                 )
                                         )
@@ -963,8 +975,8 @@ class class_headstart_admission
         }
         else
         {
-            error_log("Create new user didnt return expected username: " . $moodle_username);
-            error_log(print_r($ret, true));
+            $this->verbose ? error_log("Create new user did NOT return expected username: " . $moodle_username) : false;
+            $this->verbose ? error_log(print_r($ret, true)) : false;
 
             // change the ticket status to error
             $this->change_status_error_creating_sritoni_account($data_object->ticket_id, $ret["message"]);
@@ -976,7 +988,7 @@ class class_headstart_admission
 
     /**
      *  Creates a data object from a given ticket_id. Thhis is used for creating orders, user accounts etc.
-     *  make sure to run $this->get_data_for_sritoni_account_creation($ticket_id) before calling this  method
+     *  make sure to run $this->get_data_object_for_account_creation($ticket_id) before calling this  method
      *  @return obj:$order_created
      */
     private function create_wc_order_hset_payments()
@@ -1124,7 +1136,7 @@ class class_headstart_admission
      *  @return obj:$data_object
      */
 
-    private function get_data_for_sritoni_account_creation($ticket_id)
+    private function get_data_object_for_account_creation($ticket_id)
     {
         global $wpscfunction;
 
@@ -1227,7 +1239,7 @@ class class_headstart_admission
 
         $ticket_id = 3;
 
-        $this->get_data_for_sritoni_account_creation($ticket_id);
+        $this->get_data_object_for_account_creation($ticket_id);
 
         $data_object = $this->data_object;
 
@@ -1263,7 +1275,7 @@ class class_headstart_admission
     {
         $ticket_id = 3;
 
-        $this->get_data_for_sritoni_account_creation($ticket_id);
+        $this->get_data_object_for_account_creation($ticket_id);
 
         $order_created = $this->create_wc_order_hset_payments();
 
@@ -1272,11 +1284,11 @@ class class_headstart_admission
 
 
 
-    private function test_get_data_for_sritoni_account_creation()
+    private function test_get_data_object_for_account_creation()
     {
         $ticket_id = 8;
 
-        $data_object = $this->get_data_for_sritoni_account_creation($ticket_id);
+        $data_object = $this->get_data_object_for_account_creation($ticket_id);
 
         echo "<pre>" . print_r($data_object, true) ."</pre>";
 
@@ -1291,7 +1303,7 @@ class class_headstart_admission
     {
         $ticket_id = 3;
 
-        $this->get_data_for_sritoni_account_creation($ticket_id);
+        $this->get_data_object_for_account_creation($ticket_id);
 
         $ret = $this->create_sritoni_account();
 
