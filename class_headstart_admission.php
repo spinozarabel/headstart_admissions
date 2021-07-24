@@ -355,8 +355,7 @@ class class_headstart_admission
         $this->get_data_object_for_account_creation($ticket_id);
 
         // add any logoc that you want here based on new status
-        switch (true)
-        {
+        switch (true):
             case ($wpscfunction->get_status_name($status_id) === 'Admission Granted'):
 
                 // The payment process needs to be triggered
@@ -407,35 +406,47 @@ class class_headstart_admission
                 // update the agent field with the newly created order ID
                 $wpscfunction->change_field($ticket_id, 'order-id', $new_order->id);
 
-                break;
+             break;
+
 
             case ($wpscfunction->get_status_name($status_id) === 'Admission Confirmed'):
 
+                if (stripos($this->data_object->ticket_meta['customer_email'], 'headstart.edu.in') === false)
+                {
+                    $this->verbose ? error_log("User already has a Head Start EMAIL, so no new account created") : false;
+
+                    return;
+                }
                 // check if all required data for new account creation is set
-                if (!empty($this->data_object->ticket_meta['username'])      &&
+                elseif 
+                (   !empty($this->data_object->ticket_meta['username'])      &&
                     !empty($this->data_object->ticket_meta['idnumber'])      &&
                     !empty($this->data_object->ticket_meta['studentcat'])    &&
                     !empty($this->data_object->ticket_meta['department'])    &&
                     //!empty($this->data_object->ticket_meta['class'])         &&
                     //!empty($this->data_object->ticket_meta['environment'])   &&
-                    !empty($this->data_object->ticket_meta['institution'])   &&
-                   stripos($this->data_object->icket_meta['customer_email'], 'headstart.edu.in') === false
-                )
+                    !empty($this->data_object->ticket_meta['institution']))
                 {
                     // go create a new SriToni user account for this child using ticket dataa.
                     $this->create_sritoni_account();
 
-                    // if error in user creation, change to error status and error message updation happen there
                     return;
                 }
-                break;
+                else
+                {
+                    $error_message = "Ensure username, idnumber, studentcat, department, and institution fields are Set";
+                    $this->change_status_error_creating_sritoni_account($data_object->ticket_id, $error_message);
+
+                    return;
+                }
+            break;
 
 
             default:
                 // error_log("No, the changed status has NOT triggered any action for ticket ID: , " . $ticket_id);
-                break;
-        }
-    }
+            break;
+        endswitch;      // END of switch selecting what happens when ticket changes
+    }                   // END of function
 
     /**
      * 1. checks to see if logged in user has headstart email
