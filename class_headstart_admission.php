@@ -768,7 +768,7 @@ class class_headstart_admission
         );
         
         $select_str   = 'SQL_CALC_FOUND_ROWS DISTINCT t.*';
-        $sql          = $wpscfunction->get_sql_query( $select_str, $meta_query, $search, $orderby, $order, $post_per_page, $current_page );
+        $sql          = $wpscfunction->get_sql_query( $select_str, $meta_query);
         $tickets      = $wpdb->get_results($sql);
 
         echo "<pre>" . print_r($tickets, true) ."</pre>";
