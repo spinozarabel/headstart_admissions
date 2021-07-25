@@ -104,10 +104,11 @@ class class_headstart_admission_settings {
         // add_settings_field( 'get_csv_fees_file', 'Check box to get CSV fees file and process', array( $this, 'get_csv_fees_file_callback' ), 'headstart_admission_settings', 'admin_section' );
         // add_settings_field( 'csv_fees_file_path', 'Full path of CSV fees file, can be published Google CSV file', array( $this, 'csv_fees_file_path_callback' ), 'headstart_admission_settings', 'admin_section' );
         add_settings_field( 'category_fee', 'Comma separated pairs of category-fee', array( $this, 'category_fee_callback' ), 'headstart_admission_settings', 'admin_section' );
+        add_settings_field( 'category_paymentdescription', 'Comma separated pairs of category-paymentdescription', array( $this, 'category_paymentdescription_callback' ), 'headstart_admission_settings', 'admin_section' );
     }
 
 	/**
-     * Print the Section text
+     * Print the Section text 
      */
     public function print_section_info()
     {
@@ -143,6 +144,23 @@ class class_headstart_admission_settings {
             <input name="headstart_admission_settings[get_csv_fees_file]" id="headstart_admission_settings[get_csv_fees_file]" type="checkbox"
                 value="1" class="code"<?php checked( $checked, 1, true ); ?>/>
         <?php
+    }
+
+    /**
+    *  Comma separated list of category - fee 
+    * for example: hsea-g1-internal:60000,next-category:next-fee-
+    * This specifies a grouping ID for a given course ID from the calling activity
+    */
+    public function category_paymentdescription_callback()
+    {
+
+    $settings = (array) get_option( 'headstart_admission_settings' );
+    $field = "category_paymentdescription";
+    $value = esc_attr( $settings[$field] );
+
+    echo "<input type='text' name='headstart_admission_settings[$field]' id='headstart_admission_settings[$field]'
+            value='$value' size='80' class='code' />example:hsea-g1-internal:admission fee for ,preprimary:admission fee for ";
+
     }
 
     /**

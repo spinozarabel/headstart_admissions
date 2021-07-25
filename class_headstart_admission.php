@@ -67,7 +67,28 @@ class class_headstart_admission
 
         $this->verbose = true;
 
+        $this->admission_fee();
+
 	}
+
+    private function admission_fee()
+    {
+        $setting_category_fee = get_option('headstart_admission_settings')['category_fee'];
+
+        $chunks = array_chunk(preg_split('/(:|,)/', $setting_category_fee), 2);
+
+		$this->$category_fee_arr = array_combine(array_column($chunks, 0), array_column($chunks, 1));
+
+        $this->verbose ? error_log(print_r($this->$category_fee_arr, true)) : false;
+
+        $setting_category_paymentdescription = get_option('headstart_admission_settings')['category_paymentdescription'];
+
+        $chunks = array_chunk(preg_split('/(:|,)/', $setting_category_paymentdescription), 2);
+
+        $this->$category_paymentdescription_arr = array_combine(array_column($chunks, 0), array_column($chunks, 1));
+
+        $this->verbose ? error_log(print_r($this->$category_paymentdescription_arr, true)) : false;
+    }
 
     /**
      * @return nul
