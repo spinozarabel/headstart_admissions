@@ -379,8 +379,8 @@ class class_headstart_admission_settings {
         if( isset( $input['category_fee'] ) )
             $new_input['category_fee'] = sanitize_text_field( $input['category_fee'] );
 
-        if( isset( $input['cashfree_secret'] ) )
-            $new_input['cashfree_secret'] = sanitize_text_field( $input['cashfree_secret'] );
+        if( isset( $input['category_paymentdescription'] ) )
+            $new_input['category_paymentdescription'] = sanitize_text_field( $input['category_paymentdescription'] );
 
 		if( isset( $input['sritoni_token'] ) )
             $new_input['sritoni_token'] = sanitize_text_field( $input['sritoni_token'] );
