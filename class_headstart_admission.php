@@ -757,10 +757,15 @@ class class_headstart_admission
 
 
         // get all tickets that have payment error status
-        $status_slug = 'error-creating-payment-shop-order';
+        $status_slug = 'admission-confirmed';
         $term = get_term_by('slug',$status_slug,'wpsc_statuses');
 
         // get all tickets with this status
+        $meta_query[] = array(
+            'key'     => 'ticket_status',
+            'value'   => $term->term_id,
+            'compare' => 'IN'
+        );
         $meta_query[] = array(
             'key'     => 'active',
             'value'   => 1,
