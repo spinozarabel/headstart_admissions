@@ -760,12 +760,13 @@ class class_headstart_admission
         $status_slug = 'admission-accepted';
         $term = get_term_by('slug',$status_slug,'wpsc_statuses');
 
-        // get all tickets with this status
+        /* get all tickets with this status
         $meta_query[] = array(
-            'key'     => 'ticket_status',
+            'key'     => 'wpsc_statuses',
             'value'   => $term->term_id,
             'compare' => 'IN'
         );
+        */
         $meta_query[] = array(
             'key'     => 'active',
             'value'   => 1,
