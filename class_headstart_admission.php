@@ -757,7 +757,7 @@ class class_headstart_admission
 
 
         // get all tickets that have payment error status
-        $status_slug = 'admission-confirmed';
+        $status_slug = 'admission-accepted';
         $term = get_term_by('slug',$status_slug,'wpsc_statuses');
 
         // get all tickets with this status
