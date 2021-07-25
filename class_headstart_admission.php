@@ -753,10 +753,26 @@ class class_headstart_admission
 
     public function trigger_payment_order_for_error_tickets()
     {
-        global $wpscfunction;
+        global $wpscfunction, $wpdb;
+
 
         // get all tickets that have payment error status
-        $status_id = 94;
+        $status_slug = 'error-creating-payment-shop-order';
+        $term = get_term_by('slug',$status_slug,'wpsc_statuses');
+
+        // get all tickets with this status
+        $meta_query[] = array(
+            'key'     => 'active',
+            'value'   => $active,
+            'compare' => '='
+        );
+        
+        $select_str   = 'SQL_CALC_FOUND_ROWS DISTINCT t.*';
+        $sql          = $wpscfunction->get_sql_query( $select_str, $meta_query, $search, $orderby, $order, $post_per_page, $current_page );
+        $tickets      = $wpdb->get_results($sql);
+
+        echo "<pre>" . print_r($tickets, true) ."</pre>";
+
 
     }
 
