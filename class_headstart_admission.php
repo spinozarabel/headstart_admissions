@@ -687,11 +687,11 @@ class class_headstart_admission
                 <input type="submit" name="button" 	value="test_woocommerce_customer"/>
                 <input type="submit" name="button" 	value="test_get_ticket_data"/>
                 <input type="submit" name="button" 	value="test_get_wc_order"/>
-                <input type="submit" name="button" 	value="test_update_wc_product"/>
-                <input type="submit" name="button" 	value="test_create_wc_order"/>
                 <input type="submit" name="button" 	value="test_get_data_object_for_account_creation"/>
-                <input type="submit" name="button" 	value="test_sritoni_account_creation"/>
                 <input type="submit" name="button" 	value="test_custom_code"/>
+                <input type="submit" name="button" 	value="trigger_payment_order_for_error_tickets"/>
+                <input type="submit" name="button" 	value="trigger_sritoni_account_creation_for_error_tickets"/>
+
             </form>
 
 
@@ -721,30 +721,43 @@ class class_headstart_admission
                 $this->get_wc_order($order_id);
                 break;
 
-            case 'test_update_wc_product':
-                $this->test_update_wc_product();
+            case 'trigger_payment_order_for_error_tickets':
+                $this->trigger_payment_order_for_error_tickets();
                 break;
 
-            case 'test_create_wc_order':
-                $this->test_create_wc_order();
+            case 'trigger_sritoni_account_creation_for_error_tickets':
+                $this->trigger_sritoni_account_creation_for_error_tickets();
                 break;
 
             case 'test_get_data_object_for_account_creation':
                 $this->test_get_data_object_for_account_creation();
                 break;
 
-            case 'test_sritoni_account_creation':
-                $this->test_sritoni_account_creation();
+            case 'test_custom_code':
+                $this->test_custom_code();
                 break;
-
-                case 'test_custom_code':
-                    $this->test_custom_code();
-                    break;
 
             default:
                 // do nothing
                 break;
         }
+    }
+
+    /**
+     * @return nul
+     * Get a list of all tickets that have error's while creating payment orders
+     * The errors could be due to server down issues or data setup issues
+     * For each ticket get the user details and create a payment order in the hset-payments site
+     * After successful completion, change the status of the ticket appropriately
+     */
+
+    public function trigger_payment_order_for_error_tickets()
+    {
+        global $wpscfunction;
+
+        // get all tickets that have payment error status
+        $status_id = 94;
+
     }
 
     public function test_woocommerce_customer()
@@ -791,8 +804,8 @@ class class_headstart_admission
         ]);
         echo "<pre>" . print_r($categories, true) ."</pre>";
 
-        $error_message = "Sample error message";
-        $wpscfunction->change_field(8, 'error', $error_message);
+        $term = get_term_by('slug','error-creating-payment-shop-order','wpsc_statuses');
+        echo "<pre>" . print_r($term, true) ."</pre>";
     }
 
     public function test_sritoni_connection()
