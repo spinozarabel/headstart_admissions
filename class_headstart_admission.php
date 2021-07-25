@@ -763,7 +763,7 @@ class class_headstart_admission
         // get all tickets with this status
         $meta_query[] = array(
             'key'     => 'active',
-            'value'   => $active,
+            'value'   => 1,
             'compare' => '='
         );
         
