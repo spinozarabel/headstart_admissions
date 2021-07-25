@@ -82,27 +82,28 @@ class class_headstart_admission_settings {
 
 
 		// add_settings_field( $id, $title, $callback, $page, $section, $args );
-        add_settings_field( 'production', 'Check box if Production and Not Test', array( $this, 'production_callback' ), 'headstart_admission_settings', 'cashfree_api_section' );
-        add_settings_field( 'reconcile', 'Try Reconciling Payments?', array( $this, 'reconcile_callback' ), 'headstart_admission_settings', 'cashfree_api_section' );
-        //add_settings_field( 'cashfree_secret', 'cashfree API client Secret', array( $this, 'cashfree_secret_callback' ), 'headstart_admission_settings', 'cashfree_api_section' );
-		//add_settings_field( 'cashfree_key', 'cashfree API Client Key or ID', array( $this, 'cashfree_key_callback' ), 'headstart_admission_settings', 'cashfree_api_section' );
-        //add_settings_field( 'beneficiary_name', 'Beneficiary Name of Cashfree Account', array( $this, 'cashfree_beneficiary_callback' ), 'headstart_admission_settings', 'cashfree_api_section' );
-        //add_settings_field( 'ip_whitelist', 'comma separated IPs to be whitelisted for webhook', array( $this, 'ip_whitelist_callback' ), 'headstart_admission_settings', 'cashfree_api_section' );
-        //add_settings_field( 'domain_whitelist', 'comma separated webhook domains to be whitelisted ', array( $this, 'domain_whitelist_callback' ), 'headstart_admission_settings', 'cashfree_api_section' );
+        // add_settings_field( 'production', 'Check box if Production and Not Test', array( $this, 'production_callback' ), 'headstart_admission_settings', 'cashfree_api_section' );
+        // add_settings_field( 'reconcile', 'Try Reconciling Payments?', array( $this, 'reconcile_callback' ), 'headstart_admission_settings', 'cashfree_api_section' );
+        // add_settings_field( 'cashfree_secret', 'cashfree API client Secret', array( $this, 'cashfree_secret_callback' ), 'headstart_admission_settings', 'cashfree_api_section' );
+		// add_settings_field( 'cashfree_key', 'cashfree API Client Key or ID', array( $this, 'cashfree_key_callback' ), 'headstart_admission_settings', 'cashfree_api_section' );
+        // add_settings_field( 'beneficiary_name', 'Beneficiary Name of Cashfree Account', array( $this, 'cashfree_beneficiary_callback' ), 'headstart_admission_settings', 'cashfree_api_section' );
+        //a dd_settings_field( 'ip_whitelist', 'comma separated IPs to be whitelisted for webhook', array( $this, 'ip_whitelist_callback' ), 'headstart_admission_settings', 'cashfree_api_section' );
+        // add_settings_field( 'domain_whitelist', 'comma separated webhook domains to be whitelisted ', array( $this, 'domain_whitelist_callback' ), 'headstart_admission_settings', 'cashfree_api_section' );
 
         // added verify_webhook_ip setting in ver 1.3
-		//add_settings_field( 'verify_webhook_ip', 'Verify if Webhook IP is in whitelist?', array( $this, 'verify_webhook_ip_callback' ), 'headstart_admission_settings', 'cashfree_api_section' );
+		// add_settings_field( 'verify_webhook_ip', 'Verify if Webhook IP is in whitelist?', array( $this, 'verify_webhook_ip_callback' ), 'headstart_admission_settings', 'cashfree_api_section' );
 
-        //add_settings_field( 'sritoni_url', 'Sritoni host URL', array( $this, 'sritoni_url_callback' ), 'headstart_admission_settings', 'sritoni_api_section' );
-        //add_settings_field( 'sritoni_token', 'Sritoni API Token', array( $this, 'sritoni_token_callback' ), 'headstart_admission_settings', 'sritoni_api_section' );
+        // add_settings_field( 'sritoni_url', 'Sritoni host URL', array( $this, 'sritoni_url_callback' ), 'headstart_admission_settings', 'sritoni_api_section' );
+        // add_settings_field( 'sritoni_token', 'Sritoni API Token', array( $this, 'sritoni_token_callback' ), 'headstart_admission_settings', 'sritoni_api_section' );
 
-        //add_settings_field( 'studentcat_possible', 'Comma separated list of permissible student categories', array( $this, 'studentcat_possible_callback' ), 'headstart_admission_settings', 'admin_section' );
-        //add_settings_field( 'group_possible', 'Comma separated list of permissible student groups', array( $this, 'group_possible_callback' ), 'headstart_admission_settings', 'admin_section' );
-        //add_settings_field( 'whitelist_idnumbers', 'Comma separated list of whitelisted user ID numbers', array( $this, 'whitelist_idnumbers_callback' ), 'headstart_admission_settings', 'admin_section' );
-        //add_settings_field( 'courseid_groupingid', 'Comma separated pairs of course ID-grouping ID', array( $this, 'courseid_groupingid_callback' ), 'headstart_admission_settings', 'admin_section' );
+        // add_settings_field( 'studentcat_possible', 'Comma separated list of permissible student categories', array( $this, 'studentcat_possible_callback' ), 'headstart_admission_settings', 'admin_section' );
+        // add_settings_field( 'group_possible', 'Comma separated list of permissible student groups', array( $this, 'group_possible_callback' ), 'headstart_admission_settings', 'admin_section' );
+        // add_settings_field( 'whitelist_idnumbers', 'Comma separated list of whitelisted user ID numbers', array( $this, 'whitelist_idnumbers_callback' ), 'headstart_admission_settings', 'admin_section' );
+        // add_settings_field( 'courseid_groupingid', 'Comma separated pairs of course ID-grouping ID', array( $this, 'courseid_groupingid_callback' ), 'headstart_admission_settings', 'admin_section' );
 
-        add_settings_field( 'get_csv_fees_file', 'Check box to get CSV fees file and process', array( $this, 'get_csv_fees_file_callback' ), 'headstart_admission_settings', 'admin_section' );
-        add_settings_field( 'csv_fees_file_path', 'Full path of CSV fees file, can be published Google CSV file', array( $this, 'csv_fees_file_path_callback' ), 'headstart_admission_settings', 'admin_section' );
+        // add_settings_field( 'get_csv_fees_file', 'Check box to get CSV fees file and process', array( $this, 'get_csv_fees_file_callback' ), 'headstart_admission_settings', 'admin_section' );
+        // add_settings_field( 'csv_fees_file_path', 'Full path of CSV fees file, can be published Google CSV file', array( $this, 'csv_fees_file_path_callback' ), 'headstart_admission_settings', 'admin_section' );
+        add_settings_field( 'category_fee', 'Comma separated pairs of category-fee', array( $this, 'category_fee_callback' ), 'headstart_admission_settings', 'admin_section' );
     }
 
 	/**
@@ -145,19 +146,19 @@ class class_headstart_admission_settings {
     }
 
     /**
-    *  Comma separated list of course ID - Grouping // ID
-    * for example: 116-24,100-29
+    *  Comma separated list of category - fee 
+    * for example: hsea-g1-internal:60000,next-category:next-fee-
     * This specifies a grouping ID for a given course ID from the calling activity
     */
-    public function courseid_groupingid_callback()
+    public function category_fee_callback()
     {
 
     $settings = (array) get_option( 'headstart_admission_settings' );
-    $field = "courseid_groupingid";
+    $field = "category_fee";
     $value = esc_attr( $settings[$field] );
 
     echo "<input type='text' name='headstart_admission_settings[$field]' id='headstart_admission_settings[$field]'
-            value='$value' size='80' class='code' />example:116-24,100-29";
+            value='$value' size='80' class='code' />example:hsea-g1-internal:60000,preprimary:120000";
 
     }
 
@@ -357,8 +358,8 @@ class class_headstart_admission_settings {
     {
 
 		$new_input = array();
-        if( isset( $input['cashfree_key'] ) )
-            $new_input['cashfree_key'] = sanitize_text_field( $input['cashfree_key'] );
+        if( isset( $input['category_fee'] ) )
+            $new_input['category_fee'] = sanitize_text_field( $input['category_fee'] );
 
         if( isset( $input['cashfree_secret'] ) )
             $new_input['cashfree_secret'] = sanitize_text_field( $input['cashfree_secret'] );
