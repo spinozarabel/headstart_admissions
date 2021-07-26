@@ -900,7 +900,7 @@ class class_headstart_admission
                     'key' => 'name_on_remote_order',
                     'value' => $data_object->ticket_meta['student-first-name']  . " "   .
                                $data_object->ticket_meta['student-middle-name'] . " "   .
-                               $data_object->ticket_meta['student-middle-name']
+                               $data_object->ticket_meta['student-last-name']
                 ],
                 [
                     'key' => 'payer_bank_account_number',
