@@ -47,7 +47,7 @@ class class_headstart_admission_settings {
 
 		?>
 		<div class="wrap">
-            <h1>SriToni cashfree Settings</h1>
+            <h1>Head Start Admission Settings</h1>
             <form method="post" action="options.php">
             <?php
                 // https://codex.wordpress.org/Settings_API
