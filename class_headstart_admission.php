@@ -84,7 +84,7 @@ class class_headstart_admission
 
 		$this->category_fee_arr = array_combine(array_column($chunks, 0), array_column($chunks, 1));
 
-        $this->verbose ? error_log(print_r($this->category_fee_arr, true)) : false;
+        //$this->verbose ? error_log(print_r($this->category_fee_arr, true)) : false;
 
         $setting_category_paymentdescription = get_option('headstart_admission_settings')['category_paymentdescription'];
 
@@ -92,7 +92,7 @@ class class_headstart_admission
 
         $this->category_paymentdescription_arr = array_combine(array_column($chunks, 0), array_column($chunks, 1));
 
-        $this->verbose ? error_log(print_r($this->category_paymentdescription_arr, true)) : false;
+        //$this->verbose ? error_log(print_r($this->category_paymentdescription_arr, true)) : false;
     }
 
     /**
