@@ -1323,6 +1323,9 @@ class class_headstart_admission
     public function test_custom_code()
     {
         global $wpscfunction;
+
+        $ticket_id = 24;
+        
         echo "<h1>" . "List of ALL Ticket custom fields" . "</h1>";
 
         $custom_fields = get_terms([
