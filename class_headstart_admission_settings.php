@@ -76,9 +76,9 @@ class class_headstart_admission_settings {
 		register_setting( 'headstart_admission_settings', 'headstart_admission_settings', $args );
 
 		// add_settings_section( $id, $title, $callback, $page );
-		add_settings_section( 'cashfree_api_section', 'cashfree API Settings', array( $this, 'print_section_info' ), 'headstart_admission_settings' );
-		add_settings_section( 'sritoni_api_section', 'Sritoni API Settings', array( $this, 'print_section_info' ), 'headstart_admission_settings' );
-        add_settings_section( 'admin_section', 'Parent related Settings', array( $this, 'print_section_info' ), 'headstart_admission_settings' );
+		//add_settings_section( 'cashfree_api_section', 'cashfree API Settings', array( $this, 'print_section_info' ), 'headstart_admission_settings' );
+		//add_settings_section( 'sritoni_api_section', 'Sritoni API Settings', array( $this, 'print_section_info' ), 'headstart_admission_settings' );
+        add_settings_section( 'admin_section', 'Admission related Settings', array( $this, 'print_section_info' ), 'headstart_admission_settings' );
 
 
 		// add_settings_field( $id, $title, $callback, $page, $section, $args );
