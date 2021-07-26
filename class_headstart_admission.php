@@ -67,11 +67,16 @@ class class_headstart_admission
 
         $this->verbose = true;
 
-        $this->admission_fee();
+        $this->admission_fee_description();
 
 	}
 
-    private function admission_fee()
+    /**
+     * Get settings values for fee and description based on category
+     * This array will be used to look up fee and payment description agent fields, based on category
+     */
+
+    private function admission_fee_description()
     {
         $setting_category_fee = get_option('headstart_admission_settings')['category_fee'];
 
@@ -404,6 +409,21 @@ class class_headstart_admission
 
         // add any logoc that you want here based on new status
         switch (true):
+            case ($wpscfunction->get_status_name($status_id) === 'Interaction Completed'):
+
+                // get the category id from the ticket
+                $ticket_category_id = $wpscfunction->get_ticket($ticket_id)['ticket_category'];
+
+                // get the ticket category name from ID
+                $term_category = get_term_by('id', $ticket_category_id, 'wpsc_categories');
+
+                // update the agent fields for fee and fee description
+                $wpscfunction->change_field($ticket_id, 'admission-fee-payable', $this->category_fee_arr[$term_category->slug]);
+
+                $wpscfunction->change_field($ticket_id, 'product-customized-name', $this->category_productdescription_arr[$term_category->slug]);
+                
+                break;
+
             case ($wpscfunction->get_status_name($status_id) === 'Admission Granted'):
 
                 $this->create_payment_shop_order($ticket_id);
@@ -1334,6 +1354,22 @@ class class_headstart_admission
 
         $term = get_term_by('slug','error-creating-payment-shop-order','wpsc_statuses');
         echo "<pre>" . print_r($term, true) ."</pre>";
+
+        // get the category id from the ticket
+        $ticket_category_id = $wpscfunction->get_ticket($ticket_id)['ticket_category'];
+
+        // get the ticket category name from ID
+        $term_category = get_term_by('id', $ticket_category_id, 'wpsc_categories');
+
+        // update the agent fields for fee and fee description
+        $wpscfunction->change_field($ticket_id, 'admission-fee-payable', $this->category_fee_arr[$term_category->slug]);
+
+        $wpscfunction->change_field($ticket_id, 'product-customized-name', $this->category_productdescription_arr[$term_category->slug]);
+        echo "<pre>" . print("desired category id: " . $ticket_category_id) ."</pre>";
+        echo "<pre>" . print("desired category slug: " . $term_category->slug) ."</pre>";
+        echo "<pre>" . print("fee: " . $this->category_fee_arr[$term_category->slug]) ."</pre>";
+        echo "<pre>" . print("description: " . $this->category_productdescription_arr[$term_category->slug]) ."</pre>";
+
     }
 
     public function test_sritoni_connection()
