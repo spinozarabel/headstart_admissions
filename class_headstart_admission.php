@@ -60,13 +60,18 @@ class class_headstart_admission
 
 		$this->plugin_name = 'headstart_admission';
 
+        // load actions for admin
 		if (is_admin()) $this->define_admin_hooks();
 
+        // load public facing actions
 		$this->define_public_hooks();
+
+        // read the config file and build the secrets array
         $this->get_config();
 
         $this->verbose = true;
 
+        // read the fee and description pairs from settings and form an associative array
         $this->admission_fee_description();
 
 	}
@@ -483,15 +488,21 @@ class class_headstart_admission
                     return;
                 case ($wp_user_hset_payments === 3):
                     // not a head start user, detect this null and assign customer 5 in the create order process
-                    $wp_user_hset_payments = null;
+                    $wp_user_hset_payments  = null;
+                    // use sritoni1's customer ID in site hset-payments for order
+                    $customer_id            = 5;           
                     break;
 
                 default:
-                    // this is the case when a correct object is returned, so proceed down!
+                    // we have a customer ID that is valid
+                    $customer_id            = $wp_user_hset_payments->id;
         endswitch;
 
         // if you got here you must be a head start user with a valid VA and customer_id and valid customer object OR
         // a non-headstart user with a customer object of null
+
+        // let's write the customer id to the agent only field for easy reference
+        $wpscfunction->change_field($ticket_id, 'wp-user-id-hset-payments', $customer_id);
         
         $this->data_object->wp_user_hset_payments = $wp_user_hset_payments;
 
@@ -696,6 +707,8 @@ class class_headstart_admission
                     $endpoint           = "customers/" . $customers[0]->id;
 
                     $updated_customer   = $woocommerce->put($endpoint, $user_meta_data);
+
+                    // also update SriToni profile field virtualaccouonts with the newly created data
 
                     $this->verbose? error_log("Valid VA existed but was not updated - hset-payment updated for VA of Head Start email: " . $customers[0]->email) : false;
                     $this->verbose? error_log("Updated WC customer object being returned for Head Start email: " . $customers[0]->email) : false;
