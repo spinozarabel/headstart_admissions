@@ -1358,20 +1358,30 @@ class class_headstart_admission
         $term = get_term_by('slug','error-creating-payment-shop-order','wpsc_statuses');
         echo "<pre>" . print_r($term, true) ."</pre>";
 
-        // get the category id from the ticket
-        $ticket_category_id = $wpscfunction->get_ticket($ticket_id)['ticket_category'];
+        $this->get_data_object_for_account_creation($ticket_id);
+        $data_object = $this->data_object;
 
+        // get the category id from the ticket
+        $ticket_category_id = $data_object->ticket_meta['ticket_category'];
+        $fullname = $data_object->ticket_meta['student-first-name']  . " " . 
+                    $data_object->ticket_meta['student-middle-name'] . " " .
+                    $data_object->ticket_meta['student-last-name'];
         // get the ticket category name from ID
         $term_category = get_term_by('id', $ticket_category_id, 'wpsc_categories');
 
-        // update the agent fields for fee and fee description
-        $wpscfunction->change_field($ticket_id, 'admission-fee-payable', $this->category_fee_arr[$term_category->slug]);
+        $admission_fee_payable = $this->category_fee_arr[$term_category->slug];
 
-        $wpscfunction->change_field($ticket_id, 'product-customized-name', $this->category_productdescription_arr[$term_category->slug]);
+        $product_customized_name = $this->category_paymentdescription_arr[$term_category->slug] . $fullname;
+
+        // update the agent fields for fee and fee description
+        $wpscfunction->change_field($ticket_id, 'admission-fee-payable', $admission_fee_payable);
+
+        $wpscfunction->change_field($ticket_id, 'product-customized-name', $product_customized_name);
+        
         echo "<pre>" . print("desired category id: " . $ticket_category_id) ."</pre>";
         echo "<pre>" . print("desired category slug: " . $term_category->slug) ."</pre>";
-        echo "<pre>" . print("fee: " . $this->category_fee_arr[$term_category->slug]) ."</pre>";
-        echo "<pre>" . print("description: " . $this->category_productdescription_arr[$term_category->slug]) ."</pre>";
+        echo "<pre>" . print("fee: " . $admission_fee_payable) ."</pre>";
+        echo "<pre>" . print("description: " . $product_customized_name) ."</pre>";
 
     }
 
