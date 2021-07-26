@@ -409,23 +409,34 @@ class class_headstart_admission
 
         // add any logoc that you want here based on new status
         switch (true):
+
             case ($wpscfunction->get_status_name($status_id) === 'Interaction Completed'):
 
-                // get the category id from the ticket
-                $ticket_category_id = $wpscfunction->get_ticket($ticket_id)['ticket_category'];
+                $this->get_data_object_for_account_creation($ticket_id);
 
+                // get the category id from the ticket
+                $ticket_category_id = $this->data_object->ticket_meta['ticket_category'];
+                $fullname           = $this->data_object->ticket_meta['student-first-name']  . " " . 
+                                      $this->data_object->ticket_meta['student-middle-name'] . " " .
+                                      $this->data_object->ticket_meta['student-last-name'];
                 // get the ticket category name from ID
-                $term_category = get_term_by('id', $ticket_category_id, 'wpsc_categories');
+                $term_category              = get_term_by('id', $ticket_category_id, 'wpsc_categories');
+
+                $admission_fee_payable      = $this->category_fee_arr[$term_category->slug];
+
+                $product_customized_name    = $this->category_paymentdescription_arr[$term_category->slug] . " " . $fullname;
 
                 // update the agent fields for fee and fee description
-                $wpscfunction->change_field($ticket_id, 'admission-fee-payable', $this->category_fee_arr[$term_category->slug]);
+                $wpscfunction->change_field($ticket_id, 'admission-fee-payable', $admission_fee_payable);
 
-                $wpscfunction->change_field($ticket_id, 'product-customized-name', $this->category_productdescription_arr[$term_category->slug]);
+                $wpscfunction->change_field($ticket_id, 'product-customized-name', $product_customized_name);
                 
-                break;
+                 break;
+
 
             case ($wpscfunction->get_status_name($status_id) === 'Admission Granted'):
 
+                // A new payment shop order is remotely created on hset-payments
                 $this->create_payment_shop_order($ticket_id);
 
              break;
@@ -433,16 +444,16 @@ class class_headstart_admission
 
             case ($wpscfunction->get_status_name($status_id) === 'Admission Confirmed'):
 
-                // go create a new SriToni user account for this child using ticket dataa.
+                // A new SriToni user account is created for this child using ticket dataa.
                 $this->create_user_account($ticket_id);
             break;
 
 
             default:
-                // error_log("No, the changed status has NOT triggered any action for ticket ID: , " . $ticket_id);
+                // all other cases come here and flow down with no action.
             break;
 
-        endswitch;      // END of switch selecting what happens when ticket changes
+        endswitch;      // END of switch  status change actions
     }                  
 
 
@@ -1359,29 +1370,28 @@ class class_headstart_admission
         echo "<pre>" . print_r($term, true) ."</pre>";
 
         $this->get_data_object_for_account_creation($ticket_id);
-        $data_object = $this->data_object;
 
         // get the category id from the ticket
-        $ticket_category_id = $data_object->ticket_meta['ticket_category'];
-        $fullname = $data_object->ticket_meta['student-first-name']  . " " . 
-                    $data_object->ticket_meta['student-middle-name'] . " " .
-                    $data_object->ticket_meta['student-last-name'];
+        $ticket_category_id = $this->data_object->ticket_meta['ticket_category'];
+        $fullname           = $this->data_object->ticket_meta['student-first-name']  . " " . 
+                                $this->data_object->ticket_meta['student-middle-name'] . " " .
+                                $this->data_object->ticket_meta['student-last-name'];
         // get the ticket category name from ID
-        $term_category = get_term_by('id', $ticket_category_id, 'wpsc_categories');
+        $term_category              = get_term_by('id', $ticket_category_id, 'wpsc_categories');
 
-        $admission_fee_payable = $this->category_fee_arr[$term_category->slug];
+        $admission_fee_payable      = $this->category_fee_arr[$term_category->slug];
 
-        $product_customized_name = $this->category_paymentdescription_arr[$term_category->slug] . $fullname;
+        $product_customized_name    = $this->category_paymentdescription_arr[$term_category->slug] . " " . $fullname;
 
         // update the agent fields for fee and fee description
         $wpscfunction->change_field($ticket_id, 'admission-fee-payable', $admission_fee_payable);
 
         $wpscfunction->change_field($ticket_id, 'product-customized-name', $product_customized_name);
         
-        echo "<pre>" . print("desired category id: " . $ticket_category_id) ."</pre>";
-        echo "<pre>" . print("desired category slug: " . $term_category->slug) ."</pre>";
-        echo "<pre>" . print("fee: " . $admission_fee_payable) ."</pre>";
-        echo "<pre>" . print("description: " . $product_customized_name) ."</pre>";
+        echo "<pre>" . "desired category id: " . $ticket_category_id ."</pre>";
+        echo "<pre>" . "desired category slug: " . $term_category->slug ."</pre>";
+        echo "<pre>" . "fee: " . $admission_fee_payable ."</pre>";
+        echo "<pre>" . "description: " . $product_customized_name ."</pre>";
 
     }
 
