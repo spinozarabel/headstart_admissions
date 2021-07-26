@@ -82,17 +82,17 @@ class class_headstart_admission
 
         $chunks = array_chunk(preg_split('/(:|,)/', $setting_category_fee), 2);
 
-		$this->$category_fee_arr = array_combine(array_column($chunks, 0), array_column($chunks, 1));
+		$this->category_fee_arr = array_combine(array_column($chunks, 0), array_column($chunks, 1));
 
-        $this->verbose ? error_log(print_r($this->$category_fee_arr, true)) : false;
+        $this->verbose ? error_log(print_r($this->category_fee_arr, true)) : false;
 
         $setting_category_paymentdescription = get_option('headstart_admission_settings')['category_paymentdescription'];
 
         $chunks = array_chunk(preg_split('/(:|,)/', $setting_category_paymentdescription), 2);
 
-        $this->$category_paymentdescription_arr = array_combine(array_column($chunks, 0), array_column($chunks, 1));
+        $this->category_paymentdescription_arr = array_combine(array_column($chunks, 0), array_column($chunks, 1));
 
-        $this->verbose ? error_log(print_r($this->$category_paymentdescription_arr, true)) : false;
+        $this->verbose ? error_log(print_r($this->category_paymentdescription_arr, true)) : false;
     }
 
     /**
@@ -1325,7 +1325,7 @@ class class_headstart_admission
         global $wpscfunction;
 
         $ticket_id = 24;
-        
+
         echo "<h1>" . "List of ALL Ticket custom fields" . "</h1>";
 
         $custom_fields = get_terms([
