@@ -1316,6 +1316,10 @@ class class_headstart_admission
         $sql          = $wpscfunction->get_sql_query( $select_str, $meta_query);
         $tickets      = $wpdb->get_results($sql);
 
+        echo nl2br ("List of tickets found (showing 10 only): " . count($tickets) . "\n");
+
+        // print out an HTML of the ticket information and at the bottom put in a button for continue
+
         foreach ($tickets as $ticket):
         
             $ticket_id = $ticket->id;
