@@ -149,7 +149,7 @@ class class_headstart_admission
                     $transaction_id = str_replace (['{', '}'], ['', ''], $order->transaction_id);
  
                     // update the agent only fields payment-bank-reference which is really thee transaction_id
-                    $wpscfunction->change_field($ticket_id, 'payment-bank-reference', $order->transaction_id);
+                    $wpscfunction->change_field($ticket_id, 'payment-bank-reference', $transaction_id);
 
                     // return after successful termination of webhook
                     return;
