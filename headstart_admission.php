@@ -59,25 +59,3 @@ function init_headstart_admission()
 
   // add_action( 'wp_login', [$admission, 'action_after_login'], 10,2 );
 }
-
-/*
-function webhook_init()
-{
-  global $wpscfunction;
-
-  $hset_order_complete_webhook = new class_hset_order_complete_webhook();
-
-  // get the id of theorder that was completed  
-  $order_id = $hset_order_complete_webhook->process();
-
-  $order = $hset_order_complete_webhook->get_order($order_id);
-
-  $ticket_id = get_post_meta($order->id, 'admission_number', true);
-
-  // change the ticket status to payment process completed
-  $status_id =  136; // admission-payment-process-completed
-  $wpscfunction->change_status($ticket_id, $status_id_order_completed);
-
-}
-*/
-
