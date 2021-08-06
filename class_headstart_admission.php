@@ -245,13 +245,60 @@ class class_headstart_admission
         // This is the principal source of data for subsequent actions such as account creation
         add_action( 'ninja_forms_after_submission', [$this, 'map_ninja_form_to_ticket'] );
 
+
+        add_action('wpsc_set_change_fields', [$this, 'action_on_ticket_field_changed'], 10,4);
+
+    }
+
+    /**
+     * 
+     */
+
+    public function action_on_ticket_field_changed($ticket_id, $field_slug, $field_val, $prev_field_val)
+    {
+        // we are only interested if the field that changed is non-empty payment-bank-reference. For all others return
+        if ($field_slug !== "payment-bank-reference" || empty($field_val)) return;
+
+        // if you get here this field is payment-bank-reference ad the value is non-empty
+        // so we can go ahead and change the associated order's meta value to this new number
+        // get the order-id for this ticket. If it doesn't exist then return
+        $this->get_data_object_from_ticket($ticket_id);
+
+        $order_id = $this->data_object->ticket_meta['order-id'];
+
+        if (empty($order_id)) return;
+
+        // check status of order to make sure it is still ON-HOLD
+        $order = $this->get_wc_order($order_id);
+
+        if (empty($order)) return;
+
+        if ($order->status == "completed"  || $order->status == "processing")
+        {
+            return;
+        }
+        else
+        {
+            // lets now prepare the data for the new order to be created
+            $order_data = [
+                            'meta_data' => [
+                                                [
+                                                    'key' => 'bank_reference',
+                                                    'value' => $field_val
+                                                ]
+                                            ]
+                        ];
+            $order_updated = $this->update_wc_order_site_hsetpayments($order_id, $order_data);
+
+            $this->verbose ? error_log("Read back bank reference from Updated Order ID:" . $order_id . " is: " . $order_updated->bank_reference): false;
+        }
     }
 
 
 
     /**
      *  @return nul Nothing is returned
-     *  The function takes the Ninja form immdediately after submission.
+     *  The function takes the Ninja form immdediately after submission
      *  The form data is captured into the fields of a new ticket that is to be created as a result of this submission.
      *  Ensure that the data captured into the ticket is adequate for creating a new Payment Shop Order
      *  and for creating  a new SriToni user account
@@ -417,7 +464,7 @@ class class_headstart_admission
 
             case ($wpscfunction->get_status_name($status_id) === 'Interaction Completed'):
 
-                $this->get_data_object_for_account_creation($ticket_id);
+                $this->get_data_object_from_ticket($ticket_id);
 
                 // get the category id from the ticket
                 $ticket_category_id = $this->data_object->ticket_meta['ticket_category'];
@@ -471,12 +518,12 @@ class class_headstart_admission
         global $wpscfunction;
 
         // buuild an object containing all relevant data from ticket useful for crating user accounts and payments
-        $this->get_data_object_for_account_creation($ticket_id);
+        $this->get_data_object_from_ticket($ticket_id);
 
         // The payment process needs to be triggered
         // if the applicant email is a headstart one, then we will use the associated VA details for the order
         // can also return null if server error or user dows not exist on payment site
-        $wp_user_hset_payments = $this->get_wp_user_hset_payments();
+        $wp_user_hset_payments = $this->get_wpuser_from_site_hsetpayments();
 
         switch (true):
             
@@ -504,23 +551,24 @@ class class_headstart_admission
         // let's write the customer id to the agent only field for easy reference
         $wpscfunction->change_field($ticket_id, 'wp-user-id-hset-payments', $customer_id);
         
+        // Assign the customer as a property of the class
         $this->data_object->wp_user_hset_payments = $wp_user_hset_payments;
 
-        // check that price and name of product agent only fields are set
+        // check that admission-fee-payable and product-customized-name  fields are set
         $product_customized_name    = $this->data_object->ticket_meta["product-customized-name"];
         $regular_price              = $this->data_object->ticket_meta["admission-fee-payable"];
 
-        if ($regular_price == 0 || empty($product_customized_name))
+        if (empty($regular_price) || empty($product_customized_name))
         {
             // change ticket status to error with an error message
-            $error_message = "Admission fee amount and or the payment product customization needs to be set";
+            $error_message = "Admission-fee-payable and or the product-customized-name fields need to be set";
 
             $this->change_status_error_creating_payment_shop_order($ticket_id, $error_message);
 
             return;
         }
 
-        $new_order = $this->create_wc_order_hset_payments();
+        $new_order = $this->create_wc_order_site_hsetpayments();
 
         $this->verbose ? error_log($new_order->id . " ID of newly created payment SHOP Order") : false;
 
@@ -537,7 +585,7 @@ class class_headstart_admission
      *  @return obj:$data_object
      */
 
-    private function get_data_object_for_account_creation($ticket_id)
+    private function get_data_object_from_ticket($ticket_id)
     {
         global $wpscfunction;
 
@@ -602,13 +650,17 @@ class class_headstart_admission
     /**
      * 1. checks to see if logged in user has headstart email
      * 2.   If YES, checks for valid VA. If this exists, returns the customer object from hset-payments site.
-     *                                      If VA doesn't exist, creates a new one and updates the  user meta of hset-payments
-     *                                          and returns the updated customer object.
+     *                                   If VA doesn't exist, creates a new one and update the  user meta of hset-payments
+     *                                   and returns the updated customer object.
      * 3.   If NO then, a null object is returned.
+     * 
+     *  1 is returned for error condition of hset-payments site not aaccessible
+     *  2 is returned for error condition not able to create a new VA for Head Start account holder
+     *  3 is returned for error condition, user is not a Head Start account holder
      *
      * @return obj:woocommerce customer object - null returned in case of server error or if user does not exist
      */
-    private function get_wp_user_hset_payments()
+    private function get_wpuser_from_site_hsetpayments()
     {
         global $wpscfunction;
 
@@ -802,10 +854,10 @@ class class_headstart_admission
 
     /**
      *  Creates a data object from a given ticket_id. Thhis is used for creating orders, user accounts etc.
-     *  make sure to run $this->get_data_object_for_account_creation($ticket_id) before calling this  method
+     *  make sure to run $this->get_data_object_from_ticket($ticket_id) before calling this  method
      *  @return obj:$order_created
      */
-    private function create_wc_order_hset_payments()
+    private function create_wc_order_site_hsetpayments()
     {
         $array_meta_key     = [];
         $array_meta_value   = [];
@@ -815,6 +867,7 @@ class class_headstart_admission
         // before coming here the create account object is already created. We jsut use it here.
         $data_object = $this->data_object;
 
+        // fix the customer_id and corresponding va_id
         if ($this->data_object->wp_user_hset_payments)
         {
             // customer object is not null, so should contain valid customer ID and va_id
@@ -943,6 +996,31 @@ class class_headstart_admission
     }
 
 
+    /**
+     * 
+     */
+    public function update_wc_order_site_hsetpayments($order_id, $order_data)
+    {
+        // instantiate woocommerce API class
+        $woocommerce = new Client(
+                                    'https://sritoni.org/hset-payments/',
+                                    $this->config['wckey'],
+                                    $this->config['wcsec'],
+                                    [
+                                        'wp_api'            => true,
+                                        'version'           => 'wc/v3',
+                                        'query_string_auth' => true,
+
+                                    ]);
+                                    
+
+        $endpoint       = "orders/" . $order_id;
+
+        $order_updated  = $woocommerce->put($endpoint, $order_data);
+
+        return $order_updated;
+    }
+
 
     /**
      * 
@@ -953,7 +1031,7 @@ class class_headstart_admission
         global $wpscfunction;
 
         // buuild an object containing all relevant data from ticket useful for crating user accounts and payments
-        $this->get_data_object_for_account_creation($ticket_id);
+        $this->get_data_object_from_ticket($ticket_id);
 
         if (stripos($this->data_object->ticket_meta['customer_email'], 'headstart.edu.in') !== false)
         {
@@ -978,7 +1056,7 @@ class class_headstart_admission
         }
         else
         {
-            $error_message = "Ensure username, idnumber, studentcat, department, and institution fields are Set";
+            $error_message = "Sritoni Account NOT CREATED! Ensure username, idnumber, studentcat, department, and institution fields are Set";
             $this->change_status_error_creating_sritoni_account($this->data_object->ticket_id, $error_message);
 
             return;
@@ -1020,34 +1098,39 @@ class class_headstart_admission
 
         if ( ( $moodle_users["users"][0] ) )
         {
-            // An account with this user already exssts. So add  a number to the username and retry
-            for ($i=0; $i < 5; $i++)
-            {
+            // An account with this username already exssts. So add  a number to the username and retry
+            for ($i=1; $i < 5; $i++):
+            
                 $moodle_username = $data_object->username . $i;
                 $parameters   = array("criteria" => array(array("key" => "username", "value" => $moodle_username)));
                 $moodle_users = $MoodleRest->request('core_user_get_users', $parameters, MoodleRest::METHOD_GET);
-                if ( !( $moodle_users["users"][0] ) )
+                if ( !( $moodle_users["users"][0] )  )
                 {
-                    // we can use this username, it is not taken
+                    // we can use this username, it is not taken. Break out of the for loop
                     break;
                 }
+                elseif ($i == 4)
+                {
+                    $error_message = "Couldnt find username, the account exists for upto username + 4 ! check and retry change of status";
 
-                $error_message = "Couldnt find username, the account exists for upto username + 4 ! check and retry change of status";
+                    $this->verbose ? error_log($error_message) : false;
 
-                $this->verbose ? error_log($error_message) : false;
+                    // change the ticket status to error
+                    $this->change_status_error_creating_sritoni_account($data_object->ticket_id, $error_message);
 
-                // change the ticket status to error
-                $this->change_status_error_creating_sritoni_account($data_object->ticket_id, $error_message);
-
-
-                return;
-            }
+                    return;
+                }
+                else 
+                {
+                    continue; //loop
+                }
+            endfor;
 
         // came out the for loop with a valid user name that can be created
         }
 
         // if you are here it means you came here after breaking through the forloop above
-        // so create a new moodle user account with the successful username that has been incremented
+        // so create a new moodle user account with the successful username
 
         // write the data back to Moodle using REST API
         // create the users array in format needed for Moodle RSET API
@@ -1177,7 +1260,7 @@ class class_headstart_admission
                 <input type="submit" name="button" 	value="test_woocommerce_customer"/>
                 <input type="submit" name="button" 	value="test_get_ticket_data"/>
                 <input type="submit" name="button" 	value="test_get_wc_order"/>
-                <input type="submit" name="button" 	value="test_get_data_object_for_account_creation"/>
+                <input type="submit" name="button" 	value="test_get_data_object_from_ticket"/>
                 <input type="submit" name="button" 	value="test_custom_code"/>
                 <input type="submit" name="button" 	value="trigger_payment_order_for_error_tickets"/>
                 <input type="submit" name="button" 	value="trigger_sritoni_account_creation_for_error_tickets"/>
@@ -1219,8 +1302,8 @@ class class_headstart_admission
                 $this->trigger_sritoni_account_creation_for_error_tickets();
                 break;
 
-            case 'test_get_data_object_for_account_creation':
-                $this->test_get_data_object_for_account_creation();
+            case 'test_get_data_object_from_ticket':
+                $this->test_get_data_object_from_ticket();
                 break;
 
             case 'test_custom_code':
@@ -1338,11 +1421,11 @@ class class_headstart_admission
 
     public function test_woocommerce_customer()
     {
-        $this->get_data_object_for_account_creation(23);
+        $this->get_data_object_from_ticket(23);
 
         //$this->data_object->ticket_data['customer_email'] = "aadhya.hibare@headstart.edu.in";
 
-        $wpuserobj = $this->get_wp_user_hset_payments();
+        $wpuserobj = $this->get_wpuser_from_site_hsetpayments();
 
         echo "<pre>" . print_r($wpuserobj, true) ."</pre>";
 
@@ -1386,7 +1469,7 @@ class class_headstart_admission
         $term = get_term_by('slug','error-creating-payment-shop-order','wpsc_statuses');
         echo "<pre>" . print_r($term, true) ."</pre>";
 
-        $this->get_data_object_for_account_creation($ticket_id);
+        $this->get_data_object_from_ticket($ticket_id);
 
         // get the category id from the ticket
         $ticket_category_id = $this->data_object->ticket_meta['ticket_category'];
@@ -1477,7 +1560,7 @@ class class_headstart_admission
 
         $ticket_id = 23;
 
-        $this->get_data_object_for_account_creation($ticket_id);
+        $this->get_data_object_from_ticket($ticket_id);
 
         $data_object = $this->data_object;
 
@@ -1513,20 +1596,20 @@ class class_headstart_admission
     {
         $ticket_id = 3;
 
-        $this->get_data_object_for_account_creation($ticket_id);
+        $this->get_data_object_from_ticket($ticket_id);
 
-        $order_created = $this->create_wc_order_hset_payments();
+        $order_created = $this->create_wc_order_site_hsetpayments();
 
         echo "<pre>" . print_r($order_created, true) ."</pre>";
     }
 
 
 
-    private function test_get_data_object_for_account_creation()
+    private function test_get_data_object_from_ticket()
     {
         $ticket_id = 23;
 
-        $data_object = $this->get_data_object_for_account_creation($ticket_id);
+        $data_object = $this->get_data_object_from_ticket($ticket_id);
 
         echo "<pre>" . print_r($data_object, true) ."</pre>";
 
@@ -1541,7 +1624,7 @@ class class_headstart_admission
     {
         $ticket_id = 3;
 
-        $this->get_data_object_for_account_creation($ticket_id);
+        $this->get_data_object_from_ticket($ticket_id);
 
         $ret = $this->create_sritoni_account();
 
