@@ -1421,7 +1421,7 @@ class class_headstart_admission
 
     public function test_woocommerce_customer()
     {
-        $this->get_data_object_from_ticket(23);
+        $this->get_data_object_from_ticket(5);
 
         //$this->data_object->ticket_data['customer_email'] = "aadhya.hibare@headstart.edu.in";
 
@@ -1435,7 +1435,7 @@ class class_headstart_admission
     {
         global $wpscfunction;
 
-        $ticket_id = 24;
+        $ticket_id = 5;
 
         echo "<h1>" . "List of ALL Ticket custom fields" . "</h1>";
 
