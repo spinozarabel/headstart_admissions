@@ -489,7 +489,7 @@ class class_headstart_admission
             case ($wpscfunction->get_status_name($status_id) === 'Admission Granted'):
 
                 // A new payment shop order is remotely created on hset-payments
-                $this->create_payment_shop_order($ticket_id);
+                // $this->create_payment_shop_order($ticket_id);
 
              break;
 
