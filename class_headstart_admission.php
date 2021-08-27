@@ -1781,7 +1781,7 @@ class class_headstart_admission
 
         echo "<pre>" . print_r($fields, true) ."</pre>";
 
-        $status_id      = $this->get_status_id_by_slug("admission-payment-order-being-created");
+        $status_id      = get_term_by('slug','admission-payment-order-being-created','wpsc_statuses')->term_id;
         echo "Status id and name corresponding to Status slug - admission-payment-order-being-created: " . $status_id . ":" . $wpscfunction->get_status_name($status_id);
 
     }
