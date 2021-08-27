@@ -464,6 +464,7 @@ class class_headstart_admission
 
             case ($wpscfunction->get_status_name($status_id) === 'Interaction Completed'):
 
+                // we set the product description and its amount from information in the settings
                 $this->get_data_object_from_ticket($ticket_id);
 
                 // get the category id from the ticket
@@ -474,6 +475,7 @@ class class_headstart_admission
                 // get the ticket category name from ID
                 $term_category              = get_term_by('id', $ticket_category_id, 'wpsc_categories');
 
+                // the category slug is used as key to get the required data
                 $admission_fee_payable      = $this->category_fee_arr[$term_category->slug];
 
                 $product_customized_name    = $this->category_paymentdescription_arr[$term_category->slug] . " " . $fullname;
@@ -484,6 +486,24 @@ class class_headstart_admission
                 $wpscfunction->change_field($ticket_id, 'product-customized-name', $product_customized_name);
                 
                  break;
+
+            case ($wpscfunction->get_status_name($status_id) === 'School Accounts Being Created'):
+
+                // Create a new user account in SriToni remotely
+                $moodle_id = $this->create_user_account($ticket_id);
+
+                // if successful in sritoni account creation change status to next step in process
+                if ($moodle_id)
+                {
+                    // get id of desired status by slug
+                    $status_id      = $this->get_status_id_by_slug("admission-payment-order-being-created");
+
+                    $wpscfunction->change_status($ticket_id, $status_id);
+                }
+
+
+
+            break;
 
 
             case ($wpscfunction->get_status_name($status_id) === 'Admission Granted'):
@@ -497,7 +517,7 @@ class class_headstart_admission
             case ($wpscfunction->get_status_name($status_id) === 'Admission Confirmed'):
 
                 // A new SriToni user account is created for this child using ticket dataa.
-                $this->create_user_account($ticket_id);
+                // $this->create_user_account($ticket_id);
             break;
 
 
@@ -1023,7 +1043,12 @@ class class_headstart_admission
 
 
     /**
-     * 
+     * @param integer $ticket_id
+     * @return void
+     * 1. Get the data needed for account creation from ticket
+     * 2. If user already has a Head Start account (detected by their email domain) return
+     * 3. Check that required data is not empty
+     * 4. Processd for SriToni account creation
      */
 
     public function create_user_account($ticket_id)
@@ -1049,22 +1074,21 @@ class class_headstart_admission
             //!empty($this->data_object->ticket_meta['environment'])   &&
             !empty($this->data_object->ticket_meta['institution']))
         {
-            // go create a new SriToni user account for this child using ticket dataa.
-            $this->create_sritoni_account();
-
-            return;
+            // go create a new SriToni user account for this child using ticket dataa. Return the moodle id if successfull
+            return $this->create_sritoni_account();
         }
         else
         {
             $error_message = "Sritoni Account NOT CREATED! Ensure username, idnumber, studentcat, department, and institution fields are Set";
             $this->change_status_error_creating_sritoni_account($this->data_object->ticket_id, $error_message);
 
-            return;
+            return null;
         }
     }
 
 
     /**
+     *  @return integer moodle user id from table mdl_user
      *  This is called after the create_account object has been already created  so need to call it.
      */
     private function create_sritoni_account()
@@ -1111,7 +1135,7 @@ class class_headstart_admission
                 }
                 elseif ($i == 4)
                 {
-                    $error_message = "Couldnt find username, the account exists for upto username + 4 ! check and retry change of status";
+                    $error_message = "Couldnt find username, the account exists for upto username + 4 ! check and retry by changing status";
 
                     $this->verbose ? error_log($error_message) : false;
 
@@ -1736,7 +1760,7 @@ class class_headstart_admission
     {
         global $wpscfunction;
 
-        $ticket_id =23;
+        $ticket_id =9;
 
         $fields = get_terms([
             'taxonomy'   => 'wpsc_ticket_custom_fields',
@@ -1756,6 +1780,9 @@ class class_headstart_admission
         ]);
 
         echo "<pre>" . print_r($fields, true) ."</pre>";
+
+        $status_id      = $this->get_status_id_by_slug("admission-payment-order-being-created");
+        echo "Status id and name corresponding to Status slug - admission-payment-order-being-created: " . $status_id . ":" . $wpscfunction->get_status_name($status_id);
 
     }
 
