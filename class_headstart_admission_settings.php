@@ -381,7 +381,7 @@ class class_headstart_admission_settings {
 
 		$new_input = array();
         if( isset( $input['category_fee'] ) )
-            $new_input['category_fee'] = sanitize_textarea_field( $input['category_fee'] );
+            $new_input['category_fee'] = $input['category_fee'];
 
         if( isset( $input['category_paymentdescription'] ) )
             $new_input['category_paymentdescription'] = sanitize_textarea_field( $input['category_paymentdescription'] );
