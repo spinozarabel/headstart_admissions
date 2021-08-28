@@ -239,19 +239,22 @@ class class_headstart_admission
         // add_action( 'wpsc_ticket_created', [$this, 'update_user_meta_form'], 10, 1 );
 
         // do_action('wpsc_set_change_status', $ticket_id, $status_id, $prev_status);
-        add_action('wpsc_set_change_status', [$this, 'action_on_ticket_status_changed'], 10,3);
+        add_action('wpsc_set_change_status',        [$this, 'action_on_ticket_status_changed'], 10,3);
+
+        // check Ninja form data before it is saved
+        add_action( 'ninja_forms_submit_data',      [$this, 'action_validate_ninja_form_data'] );
 
         // after a NInja form submission, its data is mapped to a support ticket
         // This is the principal source of data for subsequent actions such as account creation
         add_action( 'ninja_forms_after_submission', [$this, 'map_ninja_form_to_ticket'] );
 
 
-        add_action('wpsc_set_change_fields', [$this, 'action_on_ticket_field_changed'], 10,4);
+        // add_action('wpsc_set_change_fields', [$this, 'action_on_ticket_field_changed'], 10,4);
 
     }
 
     /**
-     * 
+     * This function is currently unused
      */
 
     public function action_on_ticket_field_changed($ticket_id, $field_slug, $field_val, $prev_field_val)
@@ -295,13 +298,68 @@ class class_headstart_admission
     }
 
 
+    /**
+     *  @param array:$form_data from Ninja forms
+     *  1. if category contains internal then the email must contain headstart.edu.in, otherwise form should be corrected
+     */
+    public function action_validate_ninja_form_data( $form_data )
+    {
+        // extract the fields array from the form data
+        $fields_ninjaforms = $form_data['fields'];
+
+        // extract a single column from all fields containing the admin_label key
+        $admin_label_array = array_column(array_column($fields_ninjaforms, 'settings'), 'admin_label');
+
+        // extract the corresponding value array. They both will share the same  numerical index.
+        $value_array       = array_column(array_column($fields_ninjaforms, 'settings'), 'value');
+
+        $field_id_array    = array_column(array_column($fields_ninjaforms, 'settings'), 'id');
+
+        // Check if form category contains internal or not. The category is a hidden field
+        // look for the mapping slug in the ninja forms field's admin label
+        $key = array_search('ticket_category', $admin_label_array);
+
+        $category_name = $value_array[$key];
+
+        if ( stripos($category_name, "internal") !== false )
+        {
+            // the forms's hidden field for category does contain substring internal so we need to check  for headstart domain
+            // look for the mapping slug in the ninja forms field's admin label for email field
+            $key = array_search('primary-email', $admin_label_array);
+
+            $form_email = $value_array[$key];
+
+            // check if the email contains headstart.edu.in
+            if ( stripos( $form_email, "headstart.edu.in") !== false)
+            {
+                // The email does contain headstart domain correctly return without error
+                return $form_data;
+            }
+            else
+            {
+                // our form's category is internal but does not contain desired domain so flag an error in form
+                $field_id = 
+                $form_data['errors']['fields'][$field_id] = 'Email must be Head Start Issued, because continuing student';
+
+                return $form_data;
+            }
+
+        }
+        else
+        {
+            // we are not interested in checking anything so just return
+            return $form_data;
+        }
+
+
+    }
 
     /**
-     *  @return nul Nothing is returned
+     *  @return void Nothing is returned
+     *  @param array $form_data from the Ninja forms based on an action callback
      *  The function takes the Ninja form immdediately after submission
      *  The form data is captured into the fields of a new ticket that is to be created as a result of this submission.
-     *  Ensure that the data captured into the ticket is adequate for creating a new Payment Shop Order
-     *  and for creating  a new SriToni user account
+     *  
      */
 
     public function map_ninja_form_to_ticket( $form_data )
@@ -325,6 +383,7 @@ class class_headstart_admission
         $value_array       = array_column(array_column($fields_ninjaforms, 'settings'), 'value');
 
         // get the ticket field objects using term search. We are getting only the non-agent ticket fields here for mapping
+        // since the form only contains user input
         $ticket_fields = get_terms([
             'taxonomy'   => 'wpsc_ticket_custom_fields',
             'hide_empty' => false,
@@ -332,26 +391,26 @@ class class_headstart_admission
             'meta_key'	 => 'wpsc_tf_load_order',
             'order'    	 => 'ASC',
             'meta_query' => array(
-                'relation' => 'AND',
-                array(
-                    'key'       => 'agentonly',
-                    'value'     => '0',
-                    'compare'   => '='
-                ),
-            )
+                                    'relation' => 'AND',
+                                    array(
+                                        'key'       => 'agentonly',
+                                        'value'     => '0',
+                                        'compare'   => '='
+                                    ),
+                                )
         ]);
 
         foreach ($ticket_fields as $ticket_field):
 
             if ($ticket_field->slug == 'ticket_priority')
             {
-                continue;     // we don't modify these fields so skip
+                continue;     // we don't modify these fields values, so skip
             }
 
             // capture the ones of interest to us
             switch (true):
 
-                // customer_name ticket field mapping.
+                // customer_name ticket field mapping. The form must have an admin label same as this
                 case ($ticket_field->slug == 'customer_name'):
 
                     // look for the mapping slug in the ninja forms field's admin label
@@ -406,39 +465,39 @@ class class_headstart_admission
                     break;
 
 
-                        // the subject is fixed to Admission
-                    case ($ticket_field->slug == 'ticket_subject'):
+                    // the subject is fixed to Admission
+                case ($ticket_field->slug == 'ticket_subject'):
 
-                        // default for all users
-                        $ticket_args[$ticket_field->slug]= 'Admission';
+                    // default for all users
+                    $ticket_args[$ticket_field->slug]= 'Admission';
 
-                        break;
+                    break;
 
-                        // Description is a fixed string
-                    case ($ticket_field->slug == 'ticket_description'):
+                    // Description is a fixed string
+                case ($ticket_field->slug == 'ticket_description'):
 
-                        // default for all users
-                        $ticket_args[$ticket_field->slug]= 'Admission';
+                    // default for all users
+                    $ticket_args[$ticket_field->slug]= 'Admission';
 
-                        break;
+                    break;
 
 
-                    default:
+                default:
 
-                        // from here on the ticket slug is same as form field slug so mapping is  easy.
-                        // look for the mapping slug in the ninja forms field's admin label
-                        $key = array_search($ticket_field->slug, $admin_label_array);
+                    // from here on the ticket slug is same as form field slug so mapping is  easy.
+                    // look for the mapping slug in the ninja forms field's admin label
+                    $key = array_search($ticket_field->slug, $admin_label_array);
 
-                        if ($key !== false)
-                        {
-                            $ticket_args[$ticket_field->slug]= $value_array[$key];
-                        }
-                        else
-                        {
-                            $this->verbose ? error_log($ticket_field->slug . " index not found in Ninja forms map to Ticket") : false;
-                        }
+                    if ($key !== false)
+                    {
+                        $ticket_args[$ticket_field->slug]= $value_array[$key];
+                    }
+                    else
+                    {
+                        $this->verbose ? error_log($ticket_field->slug . " index not found in Ninja forms map to Ticket") : false;
+                    }
 
-                        break;
+                    break;
 
             endswitch;          // end switching throgh the ticket fields looking for a match
 
@@ -492,16 +551,20 @@ class class_headstart_admission
                 // Create a new user account in SriToni remotely
                 $moodle_id = $this->create_user_account($ticket_id);
 
-                // if successful in sritoni account creation change status to next step in process
+                // if successful in sritoni account creation change to next status - admission-payment-order-being-created
                 if ($moodle_id)
                 {
-                    // get id of desired status by slug
-                    $status_id      = $this->get_status_id_by_slug("admission-payment-order-being-created");
-
-                    $wpscfunction->change_status($ticket_id, $status_id);
+                    // TODO: update an agent only field with this information so that the sritoni idnumber can be same as this
+                    // $this->update_sritoni_idnumber($moodle_id);
                 }
+            break;
 
 
+
+            case ($wpscfunction->get_status_name($status_id) === 'Admission Payment Order Being Created'):
+
+                // This assumes that we have a valid sritoni account, a valid hset-payment account
+                $this->create_payment_shop_order($ticket_id);
 
             break;
 
@@ -528,6 +591,95 @@ class class_headstart_admission
         endswitch;      // END of switch  status change actions
     }                  
 
+/**
+ *  This routine is typically called by a scheduled task from outside the class using the instance so this is public
+ *  No pre-requisites. Statuses have to  exist in ticket system settings
+ *  1. Get a list of all tickets having certain status
+ *  2. For each ticket, poll the hset-payments site and check if ticket user's user account exists
+ *  3. If user account exists change status of that ticket to enable PO creation
+ */
+    public function check_if_accounts_created()
+    {
+        global $wpscfunction, $wpdb;
+
+        // keep status id prepared in advance to change status of selected ticket in loop
+        $status_id      = get_term_by('slug','admission-payment-order-being-created','wpsc_statuses')->term_id;
+
+        // get all tickets that have payment status as shown. 
+        $tickets = $this->get_all_active_tickets_by_status_slug('school-accounts-being-created');
+
+        foreach ($tickets as $ticket):
+        
+            $ticket_id = $ticket->id;
+
+            $data_object = $this->get_data_object_from_ticket($ticket_id);
+
+            $email = $data_object->ticket_meta['username'] . '@headstart.edu.in';
+
+            // check if wpuser with this email exists in site hset-payments
+            $wp_user_hset_payments = $this->get_wp_user_hset_payments($email);
+
+            if ($wp_user_hset_payments)
+            {
+                // we have a valid customer so go ahead and change status of this ticket to enable PO creation
+                $wpscfunction->change_status($ticket_id, $status_id);
+
+            }
+
+        endforeach;
+    }
+
+
+    /**
+     *  @param string:$email
+     *  @return object:$customers[0]
+     * Pre-requisites: Need to ensure data_object is already created and valid
+     * 1. Get wpuser object from site hset-payments with given email using Woocommerce API
+     * 2. If site is unreacheable change status of ticket to error
+     */
+    public function get_wp_user_hset_payments($email)
+    {
+        global $wpscfunction;
+
+        $data_object = $this->data_object;
+
+        // instantiate woocommerce API class
+        $woocommerce = new Client(
+                                    'https://sritoni.org/hset-payments/',
+                                    $this->config['wckey'],
+                                    $this->config['wcsec'],
+                                    [
+                                        'wp_api'            => true,
+                                        'version'           => 'wc/v3',
+                                        'query_string_auth' => true,
+
+                                    ]);
+
+
+        $endpoint   = "customers";
+
+        $params     = array(
+                            'role'  =>'subscriber',
+                            'email' => $email
+                            );
+        // get customers with given parameters as above, there should be a maximum of 1
+        try
+        {
+            $customers = $woocommerce->get($endpoint, $params);
+        }
+        catch (HttpClientException $e)
+        {   // if cannot access hset-payments server error message and return 1
+            $error_message = "Could NOT access hset-payments site to get customer details: " . $e->getMessage();
+            $this->change_status_error_creating_payment_shop_order($data_object->ticket_id, $error_message);
+
+            return null;
+        }
+            
+         // if you get here then you got something back from hset-payments site
+         return $customers[0];
+
+    }
+
 
     /**
      * 
@@ -543,30 +695,13 @@ class class_headstart_admission
         // The payment process needs to be triggered
         // if the applicant email is a headstart one, then we will use the associated VA details for the order
         // can also return null if server error or user dows not exist on payment site
-        $wp_user_hset_payments = $this->get_wpuser_from_site_hsetpayments();
+        $wp_user_hset_payments = $this->get_wpuser_hset_payments_check_create_cfva();
 
-        switch (true):
-            
-                case ($wp_user_hset_payments === 1):
-                    // could not access hset-payments site. Status already changed to error with message
-                    return;
-                case ($wp_user_hset_payments === 2):
-                    // could not create VA account for head start user. Status already changed to error with message
-                    return;
-                case ($wp_user_hset_payments === 3):
-                    // not a head start user, detect this null and assign customer 5 in the create order process
-                    $wp_user_hset_payments  = null;
-                    // use sritoni1's customer ID in site hset-payments for order
-                    $customer_id            = 5;           
-                    break;
+        if (empty($wp_user_hset_payments)) return;
 
-                default:
-                    // we have a customer ID that is valid
-                    $customer_id            = $wp_user_hset_payments->id;
-        endswitch;
+        $customer_id = $wp_user_hset_payments->id;
 
-        // if you got here you must be a head start user with a valid VA and customer_id and valid customer object OR
-        // a non-headstart user with a customer object of null
+        // if you got here you must be a head start user with a valid VA and customer_id and valid customer object
 
         // let's write the customer id to the agent only field for easy reference
         $wpscfunction->change_field($ticket_id, 'wp-user-id-hset-payments', $customer_id);
@@ -598,11 +733,11 @@ class class_headstart_admission
 
 
     /**
-     * This function grabs the ticket fields and data from a given ticket id
-     * It then creates a new data_object that contains all of the ticket data, to be used anywhere needed
-     * This data_object is also set as a property of $this
-     *  @param int:$ticket_id
-     *  @return obj:$data_object
+     * 1. This function grabs all ticket fields (agent and non-agent) data from a given ticket id
+     * 2. It then creates a new data_object that contains all of the ticket data,for ease of access
+     * 3. This data_object is also set as a property of $this class
+     *  @param integer:$ticket_id
+     *  @return object:$data_object
      */
 
     private function get_data_object_from_ticket($ticket_id)
@@ -668,107 +803,157 @@ class class_headstart_admission
 
 
     /**
-     * 1. checks to see if logged in user has headstart email
-     * 2.   If YES, checks for valid VA. If this exists, returns the customer object from hset-payments site.
-     *                                   If VA doesn't exist, creates a new one and update the  user meta of hset-payments
-     *                                   and returns the updated customer object.
-     * 3.   If NO then, a null object is returned.
-     * 
-     *  1 is returned for error condition of hset-payments site not aaccessible
-     *  2 is returned for error condition not able to create a new VA for Head Start account holder
-     *  3 is returned for error condition, user is not a Head Start account holder
+     * 1. check the site hset-payments for this user. Get user object back
+     * 2. Check if user meta from this site has valid VA data for this payment site
+     * 3. If not check with CF to see if VA exists. If it does update the hset-payments' site for user meta for VA
+     * 4. If VA does not exist, create a new VA and update site hset-payment with user meta for new VA
      *
      * @return obj:woocommerce customer object - null returned in case of server error or if user does not exist
      */
-    private function get_wpuser_from_site_hsetpayments()
+    private function get_wpuser_hset_payments_check_create_cfva()
     {
         global $wpscfunction;
 
         $data_object = $this->data_object;
 
-        // does this user have a head start email ID?
-        if (stripos($data_object->ticket_data["customer_email"], 'headstart.edu.in') !== false)
-        {   // YES. Head Start email holder, Get the wp userid from the hset-payments site
+        $email = $data_object->ticket_meta['username'] . '@headstart.edu.in'; 
 
-            // instantiate woocommerce API class
-            $woocommerce = new Client(
-                                        'https://sritoni.org/hset-payments/',
-                                        $this->config['wckey'],
-                                        $this->config['wcsec'],
-                                        [
-                                            'wp_api'            => true,
-                                            'version'           => 'wc/v3',
-                                            'query_string_auth' => true,
+        // instantiate woocommerce API class
+        $woocommerce = new Client(
+                                    'https://sritoni.org/hset-payments/',
+                                    $this->config['wckey'],
+                                    $this->config['wcsec'],
+                                    [
+                                        'wp_api'            => true,
+                                        'version'           => 'wc/v3',
+                                        'query_string_auth' => true,
 
-                                        ]);
+                                    ]);
+
+        $endpoint   = "customers";
+
+        $params     = array(
+                            'role'  =>'subscriber',
+                            'email' => $email
+                            );
+
+        // get customers with given parameters as above, there should be a maximum of 1
+        try
+        {
+            $customers = $woocommerce->get($endpoint, $params);
+        }
+        catch (HttpClientException $e)
+        {   // if cannot access hset-payments server error message and return 1
+            $error_message = "Could NOT access hset-payments site to get customer details: " . $e->getMessage();
+            $this->change_status_error_creating_payment_shop_order($data_object->ticket_id, $error_message);
+
+            return null;
+        }
+        
+        // if you get here then  you got something back from hset-payments site
+
+        // form arrays and array_values from user meta to search for user meta data
+        $array_meta_key    = array_column($customers[0]->meta_data, "key");
+        $array_meta_value  = array_column($customers[0]->meta_data, "value");
+
+        $index = array_search("va_id", $array_meta_key);
+
+        // if this exists, then the head start user does have a valid VA
+        if ($index !== false)
+        {
+            $va_id = $array_meta_value[$index] ?? null;
+        }
+        else
+        {
+            $va_id = null;
+        }
 
 
-            $endpoint   = "customers";
-
-            $params     = array(
-                                'role'  =>'subscriber',
-                                'email' => $data_object->ticket_data["customer_email"]
-                                );
-            // get customers with given parameters as above, there should be a maximum of 1
-            try
-            {
-                $customers = $woocommerce->get($endpoint, $params);
-            }
-            catch (HttpClientException $e)
-            {   // if cannot access hset-payments server error message and return 1
-                $error_message = "Could NOT access hset-payments site to get customer details: " . $e->getMessage();
-                $this->change_status_error_creating_payment_shop_order($data_object->ticket_id, $error_message);
-
-                return 1;
-            }
+        if (empty($va_id))
+        {   // the VA ID does not exist. However, let us check if the VA exists but not just updated in our records
             
-            // if you get here then  you got something back from hset-payments site
+            // pad the moodleuserid with leading 0's if length less than 4. If not leave alone
+            $vAccountId = str_pad($customers[0]->username, 4, "0", STR_PAD_LEFT);
 
-            // form arrays and array_values from user meta to search for user meta data
-            $array_meta_key    = array_column($customers[0]->meta_data, "key");
-            $array_meta_value  = array_column($customers[0]->meta_data, "value");
+            // instantiate the cashfree API
+            $configfilepath  = $this->plugin_name . "_config.php";
+            $cashfree_api    = new CfAutoCollect($configfilepath); // new cashfree Autocollect API object
 
-            $index = array_search("va_id", $array_meta_key);
-
-            // if this exists, then the head start user does have a valid VA
-            if ($index !== false)
+            // get the VA if it exists
+            $vAccount = $cashfree_api->getvAccountGivenId($vAccountId );
+            if ($vAccount->vAccountId == $vAccountId)
             {
-                $va_id = $array_meta_value[$index] ?? null;
+                // A valid account exists, so no need to create a new account
+                // However need to update the user's meta in the hset-payments site using the WC API
+                $user_meta_data = array(
+                                        "meta_data" => array(   array(
+                                                                    "key"   => "beneficiary_name",
+                                                                    "value" => "Head Start Educational Trust",
+                                                                    ),
+                                                                array(
+                                                                    "key"   => "account_number",
+                                                                    "value" => $vAccount->virtualAccountNumber,
+                                                                    ),
+                                                                array(
+                                                                    "key"   => "va_ifsc_code",
+                                                                    "value" => $vAccount->ifsc,
+                                                                    ),
+                                                                array(
+                                                                    "key"   => "va_id",
+                                                                    "value" => $vAccountId,
+                                                                    ),
+                                                            )
+                                            );
+                $endpoint           = "customers/" . $customers[0]->id;
+
+                $updated_customer   = $woocommerce->put($endpoint, $user_meta_data);
+
+                // also update SriToni profile field virtualaccouonts with the newly created data
+
+                $this->verbose? error_log("Valid VA existed but was not updated - hset-payment updated for VA of Head Start email: " . $customers[0]->email) : false;
+                $this->verbose? error_log("Updated WC customer object being returned for Head Start email: " . $customers[0]->email) : false;
+                
+                return $updated_customer; // customer object with updated VA information
             }
             else
             {
-                $va_id = null;
-            }
+                // A valid VA does not exist for this Head Start account holder. So create a new one
+                $name   = $customers[0]->first_name . " " . $customers[0]->last_name;
 
+                // extract the phone from the WC user's meta data using the known key
+                $phone  = $array_meta_value[array_search("sritoni_telephonenumber", $array_meta_key)] ?? '1234567890';
 
-            if (empty($va_id))
-            {   // the VA ID does not exist. However, let us check if the VA exists but not just updated in our records
-                
-                // pad the moodleuserid with leading 0's if length less than 4. If not leave alone
-                $vAccountId = str_pad($customers[0]->username, 4, "0", STR_PAD_LEFT);
-
-                // instantiate the cashfree API
-                $configfilepath  = $this->plugin_name . "_config.php";
-                $cashfree_api    = new CfAutoCollect($configfilepath); // new cashfree Autocollect API object
-
-                // get the VA if it exists
-                $vAccount = $cashfree_api->getvAccountGivenId($vAccountId );
-                if ($vAccount->vAccountId == $vAccountId)
+                // per rigid requirements of Cashfree for a phone number to be 10 numbers and non-blank
+                if (strlen($phone) !=10)
                 {
-                    // A valid account exists, so no need to create a new account
-                    // However need to update the user's meta in the hset-payments site using the WC API
+                    $phone  = "1234567890";     // phone dummy number
+                }
+
+                // create a new VA
+                $new_va_created = $cashfree_api->createVirtualAccount(  $vAccountId,
+                                                                        $name,
+                                                                        $phone,
+                                                                        $customers[0]->email);
+
+                // update the hset-payments user meta with the newly created VA info needed for email for payments
+                if ($new_va_created)
+                {
+                    $account_number         = $new_va_created->accountNumber;
+                    $ifsc                   = $new_va_created->ifsc;
+
                     $user_meta_data = array(
-                                            "meta_data" => array(   array(
+                                            "meta_data" => array(
+                                                                    array(
                                                                         "key"   => "beneficiary_name",
                                                                         "value" => "Head Start Educational Trust",
                                                                         ),
                                                                     array(
                                                                         "key"   => "account_number",
-                                                                        "value" => $vAccount->virtualAccountNumber,
+                                                                        "value" => $account_number,
                                                                         ),
                                                                     array(
                                                                         "key"   => "va_ifsc_code",
-                                                                        "value" => $vAccount->ifsc,
+                                                                        "value" => $ifsc,
                                                                         ),
                                                                     array(
                                                                         "key"   => "va_id",
@@ -777,97 +962,36 @@ class class_headstart_admission
                                                                 )
                                                 );
                     $endpoint           = "customers/" . $customers[0]->id;
-
                     $updated_customer   = $woocommerce->put($endpoint, $user_meta_data);
 
-                    // also update SriToni profile field virtualaccouonts with the newly created data
-
-                    $this->verbose? error_log("Valid VA existed but was not updated - hset-payment updated for VA of Head Start email: " . $customers[0]->email) : false;
+                    $this->verbose? error_log("Valid VA needed to be created - hset-payment updated for VA of Head Start email: " . $customers[0]->email) : false;
                     $this->verbose? error_log("Updated WC customer object being returned for Head Start email: " . $customers[0]->email) : false;
-                    return $updated_customer;
+
+                    return $updated_customer; // customer object with VA meta updated fron newly created VA
+
                 }
                 else
                 {
-                    // A valid VA does not exist for this Head Start account holder. So create a new one
-                    $name   = $customers[0]->first_name . " " . $customers[0]->last_name;
+                    // Failure in creating a new VA for this Head Start user
 
-                    // extract the phone from the WC user's meta data using the known key
-                    $phone  = $array_meta_value[array_search("sritoni_telephonenumber", $array_meta_key)] ?? '1234567890';
-
-                    // per rigid requirements of Cashfree for a phone number to be 10 numbers and non-blank
-                    if (strlen($phone) !=10)
-                    {
-                        $phone  = "1234567890";     // phone dummy number
-                    }
-
-                    // create a new VA
-                    $new_va_created = $cashfree_api->createVirtualAccount(  $vAccountId,
-                                                                            $name,
-                                                                            $phone,
-                                                                            $customers[0]->email);
-
-                    // update the hset-payments user meta with the newly created VA info needed for email for payments
-                    if ($new_va_created)
-                    {
-                        $account_number         = $new_va_created->accountNumber;
-                        $ifsc                   = $new_va_created->ifsc;
-
-                        $user_meta_data = array(
-                                                "meta_data" => array(
-                                                                        array(
-                                                                            "key"   => "beneficiary_name",
-                                                                            "value" => "Head Start Educational Trust",
-                                                                            ),
-                                                                        array(
-                                                                            "key"   => "account_number",
-                                                                            "value" => $account_number,
-                                                                            ),
-                                                                        array(
-                                                                            "key"   => "va_ifsc_code",
-                                                                            "value" => $ifsc,
-                                                                            ),
-                                                                        array(
-                                                                            "key"   => "va_id",
-                                                                            "value" => $vAccountId,
-                                                                            ),
-                                                                    )
-                                                    );
-                        $endpoint           = "customers/" . $customers[0]->id;
-                        $updated_customer   = $woocommerce->put($endpoint, $user_meta_data);
-
-                        $this->verbose? error_log("Valid VA needed to be created - hset-payment updated for VA of Head Start email: " . $customers[0]->email) : false;
-                        $this->verbose? error_log("Updated WC customer object being returned for Head Start email: " . $customers[0]->email) : false;
-
-                        return $updated_customer;
-
-                    }
-                    else
-                    {
-                        // Failure in creating a new VA for this Head Start user
-
-                        $this->verbose? error_log("Could NOT create a new VA for user email: " . $customers[0]->email) : false;
-                        $error_message = "Could NOT access hset-payments site to get customer details: ";
-                        $this->change_status_error_creating_payment_shop_order($data_object->ticket_id, $error_message);
-                        return 2;
-                    }
+                    $this->verbose? error_log("Could NOT create a new VA for user email: " . $customers[0]->email) : false;
+                    $error_message = "Could NOT access hset-payments site to get customer details: ";
+                    $this->change_status_error_creating_payment_shop_order($data_object->ticket_id, $error_message);
+                    return  null;
                 }
-
-
             }
-            else
-            {
-                // the VA for this user already exists in the user meta. So all good.
-                $this->verbose? error_log("Valid VA exists for Head Start email: " . $customers[0]->email) : false;
-                $this->verbose? error_log("Valid VAID exists for Head Start email: " . $va_id) : false;
 
-                return $customers[0];
-            }
+
         }
         else
         {
-            // Not a Head Start account holder, so return 3 to be decoded by calling function
-            return 3;
+            // the VA for this user already exists in the user meta. So all good.
+            $this->verbose? error_log("Valid VA exists for Head Start email: " . $customers[0]->email) : false;
+            $this->verbose? error_log("Valid VAID exists for Head Start email: " . $va_id) : false;
+
+            return $customers[0];
         }
+        
     }
 
 
@@ -903,11 +1027,9 @@ class class_headstart_admission
         }
         else
         {
-            $va_id = "0073";
-
-            $customer_id = 5;
-        }
-        
+            $this->verbose ? error_log("Null wp user object found at line 970 -  No PO created for ticket:" . $data_object->ticket_id): false;
+            return;
+        }   
 
         // instantiate woocommerce API class
         $woocommerce = new Client(
@@ -934,7 +1056,7 @@ class class_headstart_admission
         // TODO use try catch here
         $product = $woocommerce->put($endpoint, $product_data);
 
-        // lets now prepare the data for the new order to be created
+        // lets now prepare the data for the new order to be created for this user
         $order_data = [
             'customer_id'           => $customer_id,
             'payment_method'        => 'vabacs',
@@ -1045,9 +1167,9 @@ class class_headstart_admission
     /**
      * @param integer $ticket_id
      * @return void
-     * 1. Get the data needed for account creation from ticket
+     * 1. Get the data object for account creation from ticket
      * 2. If user already has a Head Start account (detected by their email domain) return
-     * 3. Check that required data is not empty
+     * 3. Check that required data is not empty. If so, change ticket status to error
      * 4. Processd for SriToni account creation
      */
 
@@ -1058,6 +1180,7 @@ class class_headstart_admission
         // buuild an object containing all relevant data from ticket useful for crating user accounts and payments
         $this->get_data_object_from_ticket($ticket_id);
 
+        // if existing customer, return. All existing SriToni users MUST use their Head Start email ID, no exceptions.
         if (stripos($this->data_object->ticket_meta['customer_email'], 'headstart.edu.in') !== false)
         {
             $this->verbose ? error_log("User already has a Head Start EMAIL, so no new account created") : false;
@@ -1066,16 +1189,17 @@ class class_headstart_admission
         }
         // check if all required data for new account creation is set
         elseif 
-        (   !empty($this->data_object->ticket_meta['username'])      &&
-            !empty($this->data_object->ticket_meta['idnumber'])      &&
-            !empty($this->data_object->ticket_meta['studentcat'])    &&
-            !empty($this->data_object->ticket_meta['department'])    &&
-            //!empty($this->data_object->ticket_meta['class'])         &&
-            //!empty($this->data_object->ticket_meta['environment'])   &&
-            !empty($this->data_object->ticket_meta['institution']))
+        (   !empty( $this->data_object->ticket_meta['username'] )      &&
+            !empty( $this->data_object->ticket_meta['idnumber'] )      &&
+            !empty( $this->data_object->ticket_meta['studentcat'] )    &&
+            !empty( $this->data_object->ticket_meta['department'] )    &&
+            !empty( $this->data_object->ticket_meta['institution'] )
+        )        
         {
             // go create a new SriToni user account for this child using ticket dataa. Return the moodle id if successfull
-            return $this->create_sritoni_account();
+            $moodle_id = $this->create_sritoni_account();
+
+            return $moodle_id;
         }
         else
         {
@@ -1088,25 +1212,27 @@ class class_headstart_admission
 
 
     /**
-     *  @return integer moodle user id from table mdl_user
-     *  This is called after the create_account object has been already created  so need to call it.
+     *  @return integer moodle user id from table mdl_user. null if error in creation
+     *  This is to be called after the data_object has been already created.
+     *      AND the data checked to ensure it is set and not empty
+     *  1. Function checks if username is not taken, only then creates new account.
+     *  2. If error in creating new accoount or username is taken ticket status changed to error.
      */
     private function create_sritoni_account()
     {
-        // before coming here the create account object is already created. We jsut use it here.
+        // before coming here the create account object should be already created. We jsut use it here.
         $data_object = $this->data_object;
 
-        // if you get here, you DO NOT have a username and DO NOT have an idnumber in the SriToni Moodle system
-
         // run this again since we may be changing API keys. Once in production remove this
-        $this->get_config();
+        // $this->get_config();
 
         // read in the Moodle API config array
         $config			= $this->config;
         $moodle_url 	= $config["moodle_url"] . '/webservice/rest/server.php';
         $moodle_token	= $config["moodle_token"];
 
-        $moodle_username = $data_object->ticket_meta["username"];
+        $moodle_username    = $data_object->ticket_meta["username"];
+        $moodle_email       = $moodle_username . "@headstart.edu.in";
 
         // prepare the Moodle Rest API object
         $MoodleRest = new MoodleRest();
@@ -1123,38 +1249,17 @@ class class_headstart_admission
         if ( ( $moodle_users["users"][0] ) )
         {
             // An account with this username already exssts. So add  a number to the username and retry
-            for ($i=1; $i < 5; $i++):
-            
-                $moodle_username = $data_object->username . $i;
-                $parameters   = array("criteria" => array(array("key" => "username", "value" => $moodle_username)));
-                $moodle_users = $MoodleRest->request('core_user_get_users', $parameters, MoodleRest::METHOD_GET);
-                if ( !( $moodle_users["users"][0] )  )
-                {
-                    // we can use this username, it is not taken. Break out of the for loop
-                    break;
-                }
-                elseif ($i == 4)
-                {
-                    $error_message = "Couldnt find username, the account exists for upto username + 4 ! check and retry by changing status";
+            $error_message = "This username already exists! Change username and retry by changing status";
 
-                    $this->verbose ? error_log($error_message) : false;
+            $this->verbose ? error_log($error_message) : false;
 
-                    // change the ticket status to error
-                    $this->change_status_error_creating_sritoni_account($data_object->ticket_id, $error_message);
+            // change the ticket status to error
+            $this->change_status_error_creating_sritoni_account($data_object->ticket_id, $error_message);
 
-                    return;
-                }
-                else 
-                {
-                    continue; //loop
-                }
-            endfor;
-
-        // came out the for loop with a valid user name that can be created
+            return;
         }
 
-        // if you are here it means you came here after breaking through the forloop above
-        // so create a new moodle user account with the successful username
+        // if you are here we have a username that does not exist yet so create a new moodle user account with this username
 
         // write the data back to Moodle using REST API
         // create the users array in format needed for Moodle RSET API
@@ -1167,7 +1272,7 @@ class class_headstart_admission
                                                     "auth"          => "oauth2",
                                                     "firstname"     => $data_object->ticket_meta["student-first-name"],
                                                     "lastname"      => $data_object->ticket_meta["student-last-name"],
-                                                    "email"         => $moodle_username . "@headstart.edu.in",
+                                                    "email"         => $moodle_email,
                                                     "middlename"    => $data_object->ticket_meta["student-middle-name"],
                                                     "institution"   => $data_object->ticket_meta["institution"],
                                                     "department"    => $data_object->ticket_meta["department"],
@@ -1449,7 +1554,7 @@ class class_headstart_admission
 
         //$this->data_object->ticket_data['customer_email'] = "aadhya.hibare@headstart.edu.in";
 
-        $wpuserobj = $this->get_wpuser_from_site_hsetpayments();
+        $wpuserobj = $this->get_wpuser_hset_payments_check_create_cfva();
 
         echo "<pre>" . print_r($wpuserobj, true) ."</pre>";
 
@@ -1644,6 +1749,9 @@ class class_headstart_admission
         echo "<pre>" . "Category slug and category name - " . $term->slug . " : " . $term->name . "</pre>";
     }
 
+
+
+
     private function test_sritoni_account_creation()
     {
         $ticket_id = 3;
@@ -1784,6 +1892,37 @@ class class_headstart_admission
         $status_id      = get_term_by('slug','admission-payment-order-being-created','wpsc_statuses')->term_id;
         echo "Status id and name corresponding to Status slug - admission-payment-order-being-created: " . $status_id . ":" . $wpscfunction->get_status_name($status_id);
 
+    }
+
+    /**
+     *  @param string $status_slug is the slug of desired status that all tickets are filtered by
+     *  @return array $tickets
+     */
+    public function get_all_active_tickets_by_status_slug($status_slug)
+    {
+        // get a list of all tickets having desired status
+        global $wpscfunction, $wpdb;
+
+        $term = get_term_by('slug', $status_slug, 'wpsc_statuses');
+
+        // get all tickets with this status_id and active
+        $meta_query[] = array(
+            'key'     => 'ticket_status',
+            'value'   => $term->term_id,
+            'compare' => '='
+        );
+        
+        $meta_query[] = array(
+            'key'     => 'active',
+            'value'   => 1,
+            'compare' => '='
+        );
+        
+        $select_str   = 'SQL_CALC_FOUND_ROWS DISTINCT t.*';
+        $sql          = $wpscfunction->get_sql_query( $select_str, $meta_query);
+        $tickets      = $wpdb->get_results($sql);
+
+        return $tickets;
     }
 
 
