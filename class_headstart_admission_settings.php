@@ -165,7 +165,6 @@ class class_headstart_admission_settings {
                     type="textarea"
                     rows="10" 
                     cols="100"  
-                    class="code"
                     form="headstart_admission_settings">
                     <?php htmlspecialchars($value); ?>
                 </textarea>
@@ -187,7 +186,7 @@ class class_headstart_admission_settings {
 
     ?>
             <textarea name="headstart_admission_settings[category_fee]" id="headstart_admission_settings[category_fee]" type="textarea"
-            rows="10" cols="100"  class="code" form="headstart_admission_settings"><?php htmlspecialchars($value); ?></textarea>
+            rows="10" cols="100"  form="headstart_admission_settings"><?php htmlspecialchars($value); ?></textarea>
     <?php
 
     }
