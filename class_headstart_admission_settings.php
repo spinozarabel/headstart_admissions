@@ -185,8 +185,8 @@ class class_headstart_admission_settings {
     $value = esc_attr( $settings[$field] );
 
     ?>
-            <textarea name="headstart_admission_settings[category_fee]" id="headstart_admission_settings[category_fee]" type="textarea"
-            rows="10" cols="100"  form="headstart_admission_settings"><?php htmlspecialchars($value); ?></textarea>
+            <textarea name="headstart_admission_settings[$field]" id="headstart_admission_settings[$field]" type="textarea"
+            rows="10" cols="100"><?php htmlspecialchars($value); ?></textarea>
     <?php
 
     }
