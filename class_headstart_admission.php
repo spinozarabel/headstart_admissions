@@ -86,11 +86,14 @@ class class_headstart_admission
     {
         $setting_category_fee = get_option('headstart_admission_settings')['category_fee'];
 
-        $chunks = array_chunk(preg_split('/(:|,)/', $setting_category_fee), 2);
+        //$chunks = array_chunk(preg_split('/(:|,)/', $setting_category_fee), 2);
+		//$this->category_fee_arr = array_combine(array_column($chunks, 0), array_column($chunks, 1));
+        $array1 = explode(PHP_EOL, $setting_category_fee);  // create an array of key:values
+        $this->category_fee_arr = array_column(array_map(function($v){
+                                                                        return explode(":", $v);
+                                                                    }, $array1), 1, 0);
 
-		$this->category_fee_arr = array_combine(array_column($chunks, 0), array_column($chunks, 1));
-
-        //$this->verbose ? error_log(print_r($this->category_fee_arr, true)) : false;
+        $this->verbose ? error_log(print_r($this->category_fee_arr, true)) : false;
 
         $setting_category_paymentdescription = get_option('headstart_admission_settings')['category_paymentdescription'];
 
