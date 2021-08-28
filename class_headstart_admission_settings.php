@@ -159,7 +159,7 @@ class class_headstart_admission_settings {
         $value = esc_attr( $settings[$field] );
 
         echo "<input type='text' name='headstart_admission_settings[$field]' id='headstart_admission_settings[$field]'
-            value='$value'  size='80' class='code' />";
+            value='$value'  size='80' class='code' />category1:feedescription1,category2:feedescription2,category3:feedescription3";
 
     }
 
@@ -176,7 +176,7 @@ class class_headstart_admission_settings {
     $value = esc_attr( $settings[$field] );
 
     echo "<input type='text' name='headstart_admission_settings[$field]' id='headstart_admission_settings[$field]'
-            value='$value'  size='80' class='code' />";
+            value='$value'  size='80' class='code' />category1:fee1,category2:fee2,category3:fee3";
 
     }
 
