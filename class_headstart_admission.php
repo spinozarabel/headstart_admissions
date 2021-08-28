@@ -77,6 +77,7 @@ class class_headstart_admission
 	}
 
     /**
+     * This function is sually called once, from the class constructor
      * Get settings values for fee and description based on category
      * This array will be used to look up fee and payment description agent fields, based on category
      */
@@ -117,6 +118,7 @@ class class_headstart_admission
              $_SERVER['HTTP_X_WC_WEBHOOK_SOURCE'] == 'https://sritoni.org/hset-payments/'     
            )
         {
+            // if here it means that origin IP and domain have been verified
 
             $this->signature = $_SERVER['HTTP_X_WC_WEBHOOK_SIGNATURE'];
 
@@ -242,7 +244,7 @@ class class_headstart_admission
         add_action('wpsc_set_change_status',        [$this, 'action_on_ticket_status_changed'], 10,3);
 
         // check Ninja form data before it is saved
-        add_action( 'ninja_forms_submit_data',      [$this, 'action_validate_ninja_form_data'] );
+        add_filter( 'ninja_forms_submit_data',      [$this, 'action_validate_ninja_form_data'] );
 
         // after a NInja form submission, its data is mapped to a support ticket
         // This is the principal source of data for subsequent actions such as account creation
@@ -338,7 +340,7 @@ class class_headstart_admission
             else
             {
                 // our form's category is internal but does not contain desired domain so flag an error in form
-                $field_id = 
+                $field_id = $field_id_array[$key];
                 $form_data['errors']['fields'][$field_id] = 'Email must be Head Start Issued, because continuing student';
 
                 return $form_data;
@@ -594,9 +596,9 @@ class class_headstart_admission
 /**
  *  This routine is typically called by a scheduled task from outside the class using the instance so this is public
  *  No pre-requisites. Statuses have to  exist in ticket system settings
- *  1. Get a list of all tickets having certain status
+ *  1. Get a list of all tickets having status: 'school-accounts-being-created'
  *  2. For each ticket, poll the hset-payments site and check if ticket user's user account exists
- *  3. If user account exists change status of that ticket to enable PO creation
+ *  3. If user account exists, change status of that ticket to enable PO creation: 'admission-payment-order-being-created'
  */
     public function check_if_accounts_created()
     {
@@ -614,6 +616,9 @@ class class_headstart_admission
 
             $data_object = $this->get_data_object_from_ticket($ticket_id);
 
+            // since we are checking for creation of new accounts we cannot use ticket email.
+            // we have to use admin given username (agent field) with our domain. So username has to be set for this.
+            // since this comes after sritoni account creation we know this would have been set.
             $email = $data_object->ticket_meta['username'] . '@headstart.edu.in';
 
             // check if wpuser with this email exists in site hset-payments
@@ -623,6 +628,8 @@ class class_headstart_admission
             {
                 // we have a valid customer so go ahead and change status of this ticket to enable PO creation
                 $wpscfunction->change_status($ticket_id, $status_id);
+                $this->verbose ? error_log("User Account with id:" . $wp_user_hset_payments->id 
+                                                    . " And name:" . $wp_user_hset_payments->data->display_name): false;
 
             }
 
@@ -1621,6 +1628,8 @@ class class_headstart_admission
         echo "<pre>" . "desired category slug: " . $term_category->slug ."</pre>";
         echo "<pre>" . "fee: " . $admission_fee_payable ."</pre>";
         echo "<pre>" . "description: " . $product_customized_name ."</pre>";
+
+        // $this->check_if_accounts_created();
 
     }
 

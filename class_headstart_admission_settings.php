@@ -158,8 +158,8 @@ class class_headstart_admission_settings {
     $field = "category_paymentdescription";
     $value = esc_attr( $settings[$field] );
 
-    echo "<input type='text' name='headstart_admission_settings[$field]' id='headstart_admission_settings[$field]'
-            value='$value' size='80' class='code' />example:hsea-g1-internal:admission fee for ,preprimary:admission fee for ";
+    echo "<textarea name='headstart_admission_settings[$field]' id='headstart_admission_settings[$field]'
+            value='$value' rows='5' cols='70' class='code' /textarea>example:hsea-g1-internal:admission fee for ,preprimary:admission fee for ";
 
     }
 
