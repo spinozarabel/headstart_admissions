@@ -159,7 +159,7 @@ class class_headstart_admission_settings {
     $value = esc_attr( $settings[$field] );
 
     echo "<textarea name='headstart_admission_settings[$field]' id='headstart_admission_settings[$field]'
-            value='$value' rows='5' cols='70' class='code' /textarea>example:hsea-g1-internal:admission fee for ,preprimary:admission fee for ";
+             rows='5' cols='70' class='code'><?php echo $y; ?></textarea>";
 
     }
 
@@ -175,8 +175,8 @@ class class_headstart_admission_settings {
     $field = "category_fee";
     $value = esc_attr( $settings[$field] );
 
-    echo "<input type='text' name='headstart_admission_settings[$field]' id='headstart_admission_settings[$field]'
-            value='$value' size='80' class='code' />example:hsea-g1-internal:60000,preprimary:120000";
+    echo "<textarea name='headstart_admission_settings[$field]' id='headstart_admission_settings[$field]'
+             rows='5' cols='70' class='code'><?php echo $y; ?></textarea>";
 
     }
 
