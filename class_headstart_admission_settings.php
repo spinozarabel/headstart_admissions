@@ -48,7 +48,7 @@ class class_headstart_admission_settings {
 		?>
 		<div class="wrap">
             <h1>Head Start Admission Settings</h1>
-            <form method="post" id="headstart_admission_settings" action="options.php">
+            <form method="post" action="options.php">
             <?php
                 // https://codex.wordpress.org/Settings_API
                 // following is for hidden fields and security of form submission per api
@@ -158,17 +158,8 @@ class class_headstart_admission_settings {
         $field = "category_paymentdescription";
         $value = esc_attr( $settings[$field] );
 
-        ?>
-                <textarea 
-                    name="headstart_admission_settings[category_paymentdescription]" 
-                    id="headstart_admission_settings[category_paymentdescription]" 
-                    type="textarea"
-                    rows="10" 
-                    cols="100"  
-                    form="headstart_admission_settings">
-                    <?php htmlspecialchars($value); ?>
-                </textarea>
-        <?php
+        echo "<input type='text' name='headstart_admission_settings[$field]' id='headstart_admission_settings[$field]'
+            value='$value'  size='80' class='code' />";
 
     }
 
@@ -184,10 +175,8 @@ class class_headstart_admission_settings {
     $field = "category_fee";
     $value = esc_attr( $settings[$field] );
 
-    ?>
-            <textarea name="headstart_admission_settings[$field]" id="headstart_admission_settings[$field]" type="textarea"
-            rows="10" cols="100"><?php htmlspecialchars($value); ?></textarea>
-    <?php
+    echo "<input type='text' name='headstart_admission_settings[$field]' id='headstart_admission_settings[$field]'
+            value='$value'  size='80' class='code' />";
 
     }
 
@@ -388,10 +377,10 @@ class class_headstart_admission_settings {
 
 		$new_input = array();
         if( isset( $input['category_fee'] ) )
-            $new_input['category_fee'] = sanitize_textarea_field( $input['category_fee'] );
+            $new_input['category_fee'] = sanitize_text_field( $input['category_fee'] );
 
         if( isset( $input['category_paymentdescription'] ) )
-            $new_input['category_paymentdescription'] = sanitize_textarea_field( $input['category_paymentdescription'] );
+            $new_input['category_paymentdescription'] = sanitize_text_field( $input['category_paymentdescription'] );
 
 		if( isset( $input['sritoni_token'] ) )
             $new_input['sritoni_token'] = sanitize_text_field( $input['sritoni_token'] );
