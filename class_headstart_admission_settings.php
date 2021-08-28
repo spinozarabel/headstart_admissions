@@ -182,9 +182,6 @@ class class_headstart_admission_settings {
             rows="10" cols="100"  class="code"><?php htmlspecialchars($value); ?></textarea>
     <?php
 
-    echo '<textarea name="headstart_admission_settings[$field]" id="headstart_admission_settings[$field]"
-             rows="10" cols="100" class="code">' . htmlspecialchars($value) . '</textarea>';
-
     }
 
     /**
