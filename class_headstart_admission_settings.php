@@ -176,7 +176,7 @@ class class_headstart_admission_settings {
     $value = esc_attr( $settings[$field] );
 
     echo "<textarea name='headstart_admission_settings[$field]' id='headstart_admission_settings[$field]'
-            rows='10' cols='100'>" . $value . "</textarea>";
+            rows='10' cols='100'>" . $value . "</textarea>Do not enter extra spaces, No need for New line after last entry";
 
     }
 
