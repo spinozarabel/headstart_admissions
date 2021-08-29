@@ -175,8 +175,8 @@ class class_headstart_admission_settings {
     $field = "category_fee";
     $value = esc_attr( $settings[$field] );
 
-    echo "<input type='text' name='headstart_admission_settings[$field]' id='headstart_admission_settings[$field]'
-            value='$value'  size='80' class='code' />category1:fee1,category2:fee2,category3:fee3";
+    echo "<textarea name='headstart_admission_settings[$field]' id='headstart_admission_settings[$field]'
+            rows='10' cols='100'>" . $value . "</textarea>";
 
     }
 
@@ -377,7 +377,7 @@ class class_headstart_admission_settings {
 
 		$new_input = array();
         if( isset( $input['category_fee'] ) )
-            $new_input['category_fee'] = sanitize_text_field( $input['category_fee'] );
+            $new_input['category_fee'] = sanitize_textarea_field( $input['category_fee'] );
 
         if( isset( $input['category_paymentdescription'] ) )
             $new_input['category_paymentdescription'] = sanitize_textarea_field( $input['category_paymentdescription'] );
