@@ -619,7 +619,7 @@ class class_headstart_admission
     {
         global $wpscfunction, $wpdb;
 
-        $this->verbose ? error_log("In function check_if_accunts_created caused by scheduled event:"): false;
+        // $this->verbose ? error_log("In function check_if_accunts_created caused by scheduled event:"): false;
 
         // keep status id prepared in advance to change status of selected ticket in loop
         $status_id      = get_term_by('slug','admission-payment-order-being-created','wpsc_statuses')->term_id;
@@ -627,7 +627,7 @@ class class_headstart_admission
         // get all tickets that have payment status as shown. 
         $tickets = $this->get_all_active_tickets_by_status_slug('school-accounts-being-created');
 
-        $this->verbose ? error_log("Number of tickets being processed with status 'school-accounts-being-created':" . count($tickets)): false;
+        // $this->verbose ? error_log("Number of tickets being processed with status 'school-accounts-being-created':" . count($tickets)): false;
 
         foreach ($tickets as $ticket):
         
@@ -646,7 +646,7 @@ class class_headstart_admission
             if ($wp_user_hset_payments)
             {
                 // we have a valid customer so go ahead and change status of this ticket to enable PO creation
-                // $wpscfunction->change_status($ticket_id, $status_id);
+                $wpscfunction->change_status($ticket_id, $status_id);
 
                 // log the user id and displayname
                 $this->verbose ? error_log("User Account with id:" . $wp_user_hset_payments->id 
@@ -1649,8 +1649,6 @@ class class_headstart_admission
         echo "<pre>" . "desired category slug: " . $term_category->slug ."</pre>";
         echo "<pre>" . "fee: " . $admission_fee_payable ."</pre>";
         echo "<pre>" . "description: " . $product_customized_name ."</pre>";
-
-        $this->check_if_accounts_created();
 
     }
 
