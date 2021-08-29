@@ -192,6 +192,11 @@ class class_headstart_admission
 
     /**
      *  reads in a config php file and gets the API secrets. The file has to be in gitignore and protected
+     *  The information is read into an associative arrray automatically by the nature of the process
+     *  1. Key and Secret of Payment Gateway involved needed to ccheck/create VA and read payments
+     *  2. Moodle token to access Moodle Webservices
+     *  3. Woocommerce Key and Secret for Woocommerce API on payment server
+     *  4. Webhook secret for order completed, from payment server
      */
     private function get_config()
     {
@@ -200,8 +205,8 @@ class class_headstart_admission
 
 
     /**
-     *  @param int:$order_id
-     *  @return obj:$order
+     *  @param integer:$order_id
+     *  @return object:$order
      * Uses the WooCommerce API to get back the order object for a given order_id
      * It prints outthe order object but this is only visible in a test page and gets overwritten by a short code elsewhere
      */
@@ -614,11 +619,15 @@ class class_headstart_admission
     {
         global $wpscfunction, $wpdb;
 
+        $this->verbose ? error_log("In function check_if_accunts_created caused by scheduled event:"): false;
+
         // keep status id prepared in advance to change status of selected ticket in loop
         $status_id      = get_term_by('slug','admission-payment-order-being-created','wpsc_statuses')->term_id;
 
         // get all tickets that have payment status as shown. 
         $tickets = $this->get_all_active_tickets_by_status_slug('school-accounts-being-created');
+
+        $this->verbose ? error_log("Number of tickets being processed with status 'school-accounts-being-created':" . count($tickets)): false;
 
         foreach ($tickets as $ticket):
         
@@ -638,6 +647,8 @@ class class_headstart_admission
             {
                 // we have a valid customer so go ahead and change status of this ticket to enable PO creation
                 $wpscfunction->change_status($ticket_id, $status_id);
+
+                // log the user id and displayname
                 $this->verbose ? error_log("User Account with id:" . $wp_user_hset_payments->id 
                                                     . " And name:" . $wp_user_hset_payments->data->display_name): false;
 
