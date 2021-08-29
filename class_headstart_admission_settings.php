@@ -158,8 +158,8 @@ class class_headstart_admission_settings {
         $field = "category_paymentdescription";
         $value = esc_attr( $settings[$field] );
 
-        echo "<input type='text' name='headstart_admission_settings[$field]' id='headstart_admission_settings[$field]'
-            value='$value'  size='80' class='code' />category1:feedescription1,category2:feedescription2,category3:feedescription3";
+        echo '<textarea name="headstart_admission_settings[$field]" id="headstart_admission_settings[$field]"
+            rows="10" cols="100" class="code">' . htmlspecialchars($value) . '</textarea>';
 
     }
 
@@ -380,7 +380,7 @@ class class_headstart_admission_settings {
             $new_input['category_fee'] = sanitize_text_field( $input['category_fee'] );
 
         if( isset( $input['category_paymentdescription'] ) )
-            $new_input['category_paymentdescription'] = sanitize_text_field( $input['category_paymentdescription'] );
+            $new_input['category_paymentdescription'] = sanitize_textarea_field( $input['category_paymentdescription'] );
 
 		if( isset( $input['sritoni_token'] ) )
             $new_input['sritoni_token'] = sanitize_text_field( $input['sritoni_token'] );
