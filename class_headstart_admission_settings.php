@@ -103,8 +103,8 @@ class class_headstart_admission_settings {
 
         // add_settings_field( 'get_csv_fees_file', 'Check box to get CSV fees file and process', array( $this, 'get_csv_fees_file_callback' ), 'headstart_admission_settings', 'admin_section' );
         // add_settings_field( 'csv_fees_file_path', 'Full path of CSV fees file, can be published Google CSV file', array( $this, 'csv_fees_file_path_callback' ), 'headstart_admission_settings', 'admin_section' );
-        add_settings_field( 'category_fee', 'Comma separated pairs of category-fee', array( $this, 'category_fee_callback' ), 'headstart_admission_settings', 'admin_section' );
-        add_settings_field( 'category_paymentdescription', 'Comma separated pairs of category-paymentdescription', array( $this, 'category_paymentdescription_callback' ), 'headstart_admission_settings', 'admin_section' );
+        add_settings_field( 'category_fee', 'Each line contains a pair of category:fee', array( $this, 'category_fee_callback' ), 'headstart_admission_settings', 'admin_section' );
+        add_settings_field( 'category_paymentdescription', 'Each line contains a pair of category:payment description', array( $this, 'category_paymentdescription_callback' ), 'headstart_admission_settings', 'admin_section' );
     }
 
 	/**
