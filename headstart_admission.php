@@ -54,11 +54,10 @@ function init_headstart_admission()
   // instantiate the class for head start admission
   $admission       = new class_headstart_admission();
 
-  add_action('admin_post_nopriv_hset_admission_order_complete_webhook', 
-                                    [$admission, 'webhook_order_complete_process'], 10);
+  add_action('admin_post_nopriv_hset_admission_order_complete_webhook', [$admission, 'webhook_order_complete_process'], 10);
 
   
-  add_action ( 'check_if_accounts_created_task_hook', [$admission, 'check_if_accounts_created'] );
+  add_action ( 'check_if_accounts_created_task_hook',                   [$admission, 'check_if_accounts_created'], 10 );
 
   if (!wp_next_scheduled('check_if_accounts_created_task_hook')) 
   {
