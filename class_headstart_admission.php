@@ -646,7 +646,7 @@ class class_headstart_admission
             if ($wp_user_hset_payments)
             {
                 // we have a valid customer so go ahead and change status of this ticket to enable PO creation
-                $wpscfunction->change_status($ticket_id, $status_id);
+                // $wpscfunction->change_status($ticket_id, $status_id);
 
                 // log the user id and displayname
                 $this->verbose ? error_log("User Account with id:" . $wp_user_hset_payments->id 
@@ -1650,7 +1650,7 @@ class class_headstart_admission
         echo "<pre>" . "fee: " . $admission_fee_payable ."</pre>";
         echo "<pre>" . "description: " . $product_customized_name ."</pre>";
 
-        // $this->check_if_accounts_created();
+        $this->check_if_accounts_created();
 
     }
 
