@@ -1644,6 +1644,14 @@ class class_headstart_admission
         echo "<pre>" . "desired category slug: " . $term_category->slug ."</pre>";
         echo "<pre>" . "fee: " . $admission_fee_payable ."</pre>";
         echo "<pre>" . "description: " . $product_customized_name ."</pre>";
+        echo nl2br("/n");
+        echo "<h1>" . "List of ALL Tickets having status: admission-payment-process-completed" . "</h1>";
+        // get all tickets that have payment status as shown. 
+        $tickets = $this->get_all_active_tickets_by_status_slug('admission-payment-process-completed');
+        foreach ($tickets as $ticket):
+            echo nl2br("Ticket id: " . $ticket->id . " /n");
+        endforeach;
+
 
     }
 
