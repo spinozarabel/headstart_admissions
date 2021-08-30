@@ -1212,15 +1212,9 @@ class class_headstart_admission
         // buuild an object containing all relevant data from ticket useful for crating user accounts and payments
         $this->get_data_object_from_ticket($ticket_id);
 
-        // if existing customer, return. All existing SriToni users MUST use their Head Start email ID, no exceptions.
-        if (stripos($this->data_object->ticket_meta['customer_email'], 'headstart.edu.in') !== false)
-        {
-            $this->verbose ? error_log("User already has a Head Start EMAIL, so no new account created") : false;
-
-            return;
-        }
+        
         // check if all required data for new account creation is set
-        elseif 
+        if 
         (   !empty( $this->data_object->ticket_meta['username'] )      &&
             !empty( $this->data_object->ticket_meta['idnumber'] )      &&
             !empty( $this->data_object->ticket_meta['studentcat'] )    &&
@@ -1281,7 +1275,7 @@ class class_headstart_admission
         if ( ( $moodle_users["users"][0] ) )
         {
             // An account with this username already exssts. So add  a number to the username and retry
-            $error_message = "This username already exists! Change username and retry by changing status";
+            $error_message = "This username already exists! Is this an existing user? If not change username and retry";
 
             $this->verbose ? error_log($error_message) : false;
 
