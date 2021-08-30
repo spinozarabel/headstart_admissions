@@ -641,7 +641,7 @@ class class_headstart_admission
             $email = $data_object->ticket_meta['username'] . '@headstart.edu.in';
 
             // check if wpuser with this email exists in site hset-payments
-            $wp_user_hset_payments = $this->get_wp_user_hset_payments($email);
+            $wp_user_hset_payments = $this->get_wp_user_hset_payments($email, $ticket_id);
 
             if ($wp_user_hset_payments)
             {
@@ -661,15 +661,15 @@ class class_headstart_admission
     /**
      *  @param string:$email
      *  @return object:$customers[0]
-     * Pre-requisites: Need to ensure data_object is already created and valid
+     * Pre-requisites: None
      * 1. Get wpuser object from site hset-payments with given email using Woocommerce API
      * 2. If site is unreacheable change status of ticket to error
      */
-    public function get_wp_user_hset_payments($email)
+    public function get_wp_user_hset_payments($email, $ticket_id)
     {
         global $wpscfunction;
 
-        $data_object = $this->data_object;
+        // $data_object = $this->data_object;
 
         // instantiate woocommerce API class
         $woocommerce = new Client(
@@ -698,14 +698,13 @@ class class_headstart_admission
         catch (HttpClientException $e)
         {   // if cannot access hset-payments server error message and return 1
             $error_message = "Could NOT access hset-payments site to get customer details: " . $e->getMessage();
-            $this->change_status_error_creating_payment_shop_order($data_object->ticket_id, $error_message);
+            $this->change_status_error_creating_payment_shop_order($ticket_id, $error_message);
 
             return null;
         }
             
          // if you get here then you got something back from hset-payments site
          return $customers[0];
-
     }
 
 
@@ -846,62 +845,41 @@ class class_headstart_admission
 
         $email = $data_object->ticket_meta['username'] . '@headstart.edu.in'; 
 
-        // instantiate woocommerce API class
-        $woocommerce = new Client(
-                                    'https://sritoni.org/hset-payments/',
-                                    $this->config['wckey'],
-                                    $this->config['wcsec'],
-                                    [
-                                        'wp_api'            => true,
-                                        'version'           => 'wc/v3',
-                                        'query_string_auth' => true,
+        // get the  WP user object from the hset-payments site using woocommerce API, set error ststus if not successfull
+        $wp_user_hset_payments = $this->get_wp_user_hset_payments($email, $data_object->ticket_id);
 
-                                    ]);
+        // get the moodle_id which is same as wpuser's login at the hset-payments site
+        $moodle_id = $wp_user_hset_payments->data->user_login;
 
-        $endpoint   = "customers";
-
-        $params     = array(
-                            'role'  =>'subscriber',
-                            'email' => $email
-                            );
-
-        // get customers with given parameters as above, there should be a maximum of 1
-        try
-        {
-            $customers = $woocommerce->get($endpoint, $params);
-        }
-        catch (HttpClientException $e)
-        {   // if cannot access hset-payments server error message and return 1
-            $error_message = "Could NOT access hset-payments site to get customer details: " . $e->getMessage();
-            $this->change_status_error_creating_payment_shop_order($data_object->ticket_id, $error_message);
-
-            return null;
-        }
+        // pad the moodleuserid with leading 0's if length less than 4. If not leave alone
+        $vAccountId = str_pad($moodle_id, 4, "0", STR_PAD_LEFT);
         
         // if you get here then  you got something back from hset-payments site
 
         // form arrays and array_values from user meta to search for user meta data
-        $array_meta_key    = array_column($customers[0]->meta_data, "key");
-        $array_meta_value  = array_column($customers[0]->meta_data, "value");
+        $array_meta_key    = array_column($wp_user_hset_payments->meta_data, "key");
+        $array_meta_value  = array_column($wp_user_hset_payments->meta_data, "value");
 
-        $index = array_search("va_id", $array_meta_key);
+        $index_va_id            = array_search("va_id", $array_meta_key);
+        $index_account_number   = array_search("account_number", $array_meta_key);
+        $index_beneficiary_name = array_search("beneficiary_name", $array_meta_key);
+        $index_va_ifsc_code     = array_search("va_ifsc_code", $array_meta_key);
 
-        // if this exists, then the head start user does have a valid VA
-        if ($index !== false)
-        {
-            $va_id = $array_meta_value[$index] ?? null;
-        }
-        else
-        {
-            $va_id = null;
-        }
+        $va_id              = $array_meta_value[$index_va_id]               ?? null;
+        $account_number     = $array_meta_value[$index_account_number]      ?? null;
+        $beneficiary_name   = $array_meta_value[$index_beneficiary_name]    ?? null;
+        $va_ifsc_code       = $array_meta_value[$index_va_ifsc_code]        ?? null;
 
+        /* possible scenarios:
+        1. va_id is empty
+        */
 
-        if (empty($va_id))
-        {   // the VA ID does not exist. However, let us check if the VA exists but not just updated in our records
+        if ( empty($va_id) || 
+             $account_number !== "808081HS" . $vAccountId  || 
+             $va_ifsc_code   !== "YESB0CMSNOC") 
+        {   // the VA details don't exist. However, let us check if the VA exists but not just updated in hset-payments sites
             
-            // pad the moodleuserid with leading 0's if length less than 4. If not leave alone
-            $vAccountId = str_pad($customers[0]->username, 4, "0", STR_PAD_LEFT);
+            
 
             // instantiate the cashfree API
             $configfilepath  = $this->plugin_name . "_config.php";
@@ -909,9 +887,11 @@ class class_headstart_admission
 
             // get the VA if it exists
             $vAccount = $cashfree_api->getvAccountGivenId($vAccountId );
+
+            // check if returned account's vaid and given vaid match
             if ($vAccount->vAccountId == $vAccountId)
             {
-                // A valid account exists, so no need to create a new account
+                // A valid account exists, so no need to create a new account, just update our records
                 // However need to update the user's meta in the hset-payments site using the WC API
                 $user_meta_data = array(
                                         "meta_data" => array(   array(
@@ -932,21 +912,21 @@ class class_headstart_admission
                                                                     ),
                                                             )
                                             );
-                $endpoint           = "customers/" . $customers[0]->id;
+                $endpoint           = "customers/" . $wp_user_hset_payments->id;
 
                 $updated_customer   = $woocommerce->put($endpoint, $user_meta_data);
 
-                // also update SriToni profile field virtualaccouonts with the newly created data
+                // TODO also update SriToni profile field virtualaccouonts with the newly created data
 
-                $this->verbose? error_log("Valid VA existed but was not updated - hset-payment updated for VA of Head Start email: " . $customers[0]->email) : false;
-                $this->verbose? error_log("Updated WC customer object being returned for Head Start email: " . $customers[0]->email) : false;
+                $this->verbose? error_log("Valid VA existed but was not updated - hset-payment updated for VA of Head Start email: " . $wp_user_hset_payments->email) : false;
+                $this->verbose? error_log("Updated WC customer object being returned for Head Start email: " . $wp_user_hset_payments->email) : false;
                 
                 return $updated_customer; // customer object with updated VA information
             }
             else
             {
-                // A valid VA does not exist for this Head Start account holder. So create a new one
-                $name   = $customers[0]->first_name . " " . $customers[0]->last_name;
+                // Chekcked, but A valid VA does not exist for this Head Start account holder. So create a new one
+                $name   = $wp_user_hset_payments->first_name . " " . $wp_user_hset_payments->last_name;
 
                 // extract the phone from the WC user's meta data using the known key
                 $phone  = $array_meta_value[array_search("sritoni_telephonenumber", $array_meta_key)] ?? '1234567890';
@@ -961,7 +941,7 @@ class class_headstart_admission
                 $new_va_created = $cashfree_api->createVirtualAccount(  $vAccountId,
                                                                         $name,
                                                                         $phone,
-                                                                        $customers[0]->email);
+                                                                        $wp_user_hset_payments->email);
 
                 // update the hset-payments user meta with the newly created VA info needed for email for payments
                 if ($new_va_created)
@@ -989,11 +969,11 @@ class class_headstart_admission
                                                                         ),
                                                                 )
                                                 );
-                    $endpoint           = "customers/" . $customers[0]->id;
+                    $endpoint           = "customers/" . $wp_user_hset_payments->id;
                     $updated_customer   = $woocommerce->put($endpoint, $user_meta_data);
 
-                    $this->verbose? error_log("Valid VA needed to be created - hset-payment updated for VA of Head Start email: " . $customers[0]->email) : false;
-                    $this->verbose? error_log("Updated WC customer object being returned for Head Start email: " . $customers[0]->email) : false;
+                    $this->verbose? error_log("Valid VA needed to be created - hset-payment updated for VA of Head Start email: " . $wp_user_hset_payments->email) : false;
+                    $this->verbose? error_log("Updated WC customer object being returned for Head Start email: " . $wp_user_hset_payments->email) : false;
 
                     return $updated_customer; // customer object with VA meta updated fron newly created VA
 
@@ -1002,7 +982,7 @@ class class_headstart_admission
                 {
                     // Failure in creating a new VA for this Head Start user
 
-                    $this->verbose? error_log("Could NOT create a new VA for user email: " . $customers[0]->email) : false;
+                    $this->verbose? error_log("Could NOT create a new VA for user email: " . $wp_user_hset_payments->email) : false;
                     $error_message = "Could NOT access hset-payments site to get customer details: ";
                     $this->change_status_error_creating_payment_shop_order($data_object->ticket_id, $error_message);
                     return  null;
@@ -1014,10 +994,10 @@ class class_headstart_admission
         else
         {
             // the VA for this user already exists in the user meta. So all good.
-            $this->verbose? error_log("Valid VA exists for Head Start email: " . $customers[0]->email) : false;
+            $this->verbose? error_log("Valid VA exists for Head Start email: " . $wp_user_hset_payments->email) : false;
             $this->verbose? error_log("Valid VAID exists for Head Start email: " . $va_id) : false;
 
-            return $customers[0];
+            return $wp_user_hset_payments;
         }
         
     }
@@ -1578,7 +1558,7 @@ class class_headstart_admission
 
     public function test_woocommerce_customer()
     {
-        $this->get_data_object_from_ticket(5);
+        $this->get_data_object_from_ticket(8);
 
         //$this->data_object->ticket_data['customer_email'] = "aadhya.hibare@headstart.edu.in";
 
@@ -1592,7 +1572,7 @@ class class_headstart_admission
     {
         global $wpscfunction;
 
-        $ticket_id = 5;
+        $ticket_id = 8;
 
         echo "<h1>" . "List of ALL Ticket custom fields" . "</h1>";
 
