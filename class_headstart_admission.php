@@ -1649,7 +1649,7 @@ class class_headstart_admission
         // get all tickets that have payment status as shown. 
         $tickets = $this->get_all_active_tickets_by_status_slug('admission-payment-process-completed');
         foreach ($tickets as $ticket):
-            echo nl2br("Ticket id: " . $ticket->id . " /n");
+            echo nl2br("Ticket id: " . $ticket->id . " \n");
         endforeach;
 
 
