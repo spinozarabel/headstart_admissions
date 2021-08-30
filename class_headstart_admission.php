@@ -843,20 +843,29 @@ class class_headstart_admission
 
         $data_object = $this->data_object;
 
-        $email = $data_object->ticket_meta['username'] . '@headstart.edu.in'; 
+        // for Internal users get email directly from form->ticket->email
+        // for new users admin needs to assign username in agent obnly field.
+        if (stripos($data_object->ticket_meta["ticket_category"], "internal") === false)
+        {
+            // External application so agent needs to assign username
+            $email = $data_object->ticket_meta['username'] . '@headstart.edu.in'; 
+        }
+        else
+        {
+            $email = $data_object->ticket_meta['customer_email'];
+        }
+        
 
         // get the  WP user object from the hset-payments site using woocommerce API, set error ststus if not successfull
         $wp_user_hset_payments = $this->get_wp_user_hset_payments($email, $data_object->ticket_id);
 
         // get the moodle_id which is same as wpuser's login at the hset-payments site
-        $moodle_id = $wp_user_hset_payments->data->user_login;
+        $moodle_id = $wp_user_hset_payments->username;
 
         // pad the moodleuserid with leading 0's if length less than 4. If not leave alone
         $vAccountId = str_pad($moodle_id, 4, "0", STR_PAD_LEFT);
-        
-        // if you get here then  you got something back from hset-payments site
 
-        // form arrays and array_values from user meta to search for user meta data
+        // form array_keys and array_values from user meta to search for user meta data
         $array_meta_key    = array_column($wp_user_hset_payments->meta_data, "key");
         $array_meta_value  = array_column($wp_user_hset_payments->meta_data, "value");
 
@@ -871,21 +880,18 @@ class class_headstart_admission
         $va_ifsc_code       = $array_meta_value[$index_va_ifsc_code]        ?? null;
 
         /* possible scenarios:
-        1. va_id is empty
+        1. va_id is empty OR the account number is not correct or the IFSC code is not correct
         */
 
-        if ( empty($va_id) || 
-             $account_number !== "808081HS" . $vAccountId  || 
-             $va_ifsc_code   !== "YESB0CMSNOC") 
-        {   // the VA details don't exist. However, let us check if the VA exists but not just updated in hset-payments sites
-            
-            
-
+        if ( empty($va_id) ||                                   // VAID is empty
+             $account_number !== "808081HS" . $vAccountId  ||   // account number does not match that derived from prefix and moodleid
+             $va_ifsc_code   !== "YESB0CMSNOC")                 // IFSC code does not match what is right for site
+        {   // VA account data is empty or not valid in customer object. However let us see if it exists at CashFree
             // instantiate the cashfree API
             $configfilepath  = $this->plugin_name . "_config.php";
             $cashfree_api    = new CfAutoCollect($configfilepath); // new cashfree Autocollect API object
 
-            // get the VA if it exists
+            // get the VA if it exists for the given moodleid
             $vAccount = $cashfree_api->getvAccountGivenId($vAccountId );
 
             // check if returned account's vaid and given vaid match
@@ -919,13 +925,12 @@ class class_headstart_admission
                 // TODO also update SriToni profile field virtualaccouonts with the newly created data
 
                 $this->verbose? error_log("Valid VA existed but was not updated - hset-payment updated for VA of Head Start email: " . $wp_user_hset_payments->email) : false;
-                $this->verbose? error_log("Updated WC customer object being returned for Head Start email: " . $wp_user_hset_payments->email) : false;
                 
                 return $updated_customer; // customer object with updated VA information
             }
             else
             {
-                // Chekcked, but A valid VA does not exist for this Head Start account holder. So create a new one
+                // Chekcked CF, but A valid VA does not exist for this Head Start account holder. So create a new one
                 $name   = $wp_user_hset_payments->first_name . " " . $wp_user_hset_payments->last_name;
 
                 // extract the phone from the WC user's meta data using the known key
@@ -973,10 +978,8 @@ class class_headstart_admission
                     $updated_customer   = $woocommerce->put($endpoint, $user_meta_data);
 
                     $this->verbose? error_log("Valid VA needed to be created - hset-payment updated for VA of Head Start email: " . $wp_user_hset_payments->email) : false;
-                    $this->verbose? error_log("Updated WC customer object being returned for Head Start email: " . $wp_user_hset_payments->email) : false;
 
                     return $updated_customer; // customer object with VA meta updated fron newly created VA
-
                 }
                 else
                 {
@@ -988,8 +991,6 @@ class class_headstart_admission
                     return  null;
                 }
             }
-
-
         }
         else
         {
@@ -1563,7 +1564,7 @@ class class_headstart_admission
         echo "<pre>" . print_r($wpuserobj, true) ."</pre>";
     }
 
-    
+
 
     public function test_custom_code()
     {
@@ -1741,7 +1742,7 @@ class class_headstart_admission
 
     private function test_get_data_object_from_ticket()
     {
-        $ticket_id = 23;
+        $ticket_id = 8;
 
         $data_object = $this->get_data_object_from_ticket($ticket_id);
 
@@ -1873,7 +1874,7 @@ class class_headstart_admission
     {
         global $wpscfunction;
 
-        $ticket_id =9;
+        $ticket_id =8;
 
         $fields = get_terms([
             'taxonomy'   => 'wpsc_ticket_custom_fields',
