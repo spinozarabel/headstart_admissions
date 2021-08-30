@@ -719,12 +719,14 @@ class class_headstart_admission
         // buuild an object containing all relevant data from ticket useful for crating user accounts and payments
         $this->get_data_object_from_ticket($ticket_id);
 
-        // The payment process needs to be triggered
-        // if the applicant email is a headstart one, then we will use the associated VA details for the order
-        // can also return null if server error or user dows not exist on payment site
+        /*
+        1. Get customer object from site hset-payments using the email
+        2. Check if VA data in the user meta is valid. If not update if VA exists. If VA does not exist, create new VA
+        3. If VA updated or created, update the site hset-payments with updated user meta for VA data.
+        */
         $wp_user_hset_payments = $this->get_wpuser_hset_payments_check_create_cfva();
 
-        if (empty($wp_user_hset_payments)) return;
+        if (empty($wp_user_hset_payments)) return;  // safety catch
 
         $customer_id = $wp_user_hset_payments->id;
 
@@ -733,7 +735,7 @@ class class_headstart_admission
         // let's write the customer id to the agent only field for easy reference
         $wpscfunction->change_field($ticket_id, 'wp-user-id-hset-payments', $customer_id);
         
-        // Assign the customer as a property of the class
+        // Assign the customer as a property of the class in case we need it later on
         $this->data_object->wp_user_hset_payments = $wp_user_hset_payments;
 
         // check that admission-fee-payable and product-customized-name  fields are set
@@ -830,12 +832,13 @@ class class_headstart_admission
 
 
     /**
+     * 
      * 1. check the site hset-payments for this user. Get user object back
      * 2. Check if user meta from this site has valid VA data for this payment site
      * 3. If not check with CF to see if VA exists. If it does update the hset-payments' site for user meta for VA
      * 4. If VA does not exist, create a new VA and update site hset-payment with user meta for new VA
      *
-     * @return obj:woocommerce customer object - null returned in case of server error or if user does not exist
+     * @return obj:woocommerce customer object - null returned in case of server error or if user does not exist or bad email
      */
     private function get_wpuser_hset_payments_check_create_cfva()
     {
@@ -843,16 +846,32 @@ class class_headstart_admission
 
         $data_object = $this->data_object;
 
+        $category_id = $data_object->ticket_meta['ticket_category'];
+
+        // from category ID get the category name
+        $category_slug = get_term_by('id', $category_id, 'wpsc_categories')->slug;
+
         // for Internal users get email directly from form->ticket->email
         // for new users admin needs to assign username in agent obnly field.
-        if (stripos($data_object->ticket_meta["ticket_category"], "internal") === false)
+        if (stripos($category_slug, "internal") === false)
         {
-            // External application so agent needs to assign username
+            // Category slug does NOT contain 'internal' so external user application so agent needs to assign username
             $email = $data_object->ticket_meta['username'] . '@headstart.edu.in'; 
         }
         else
         {
+            // headstart user so ue form/ticket email directly
             $email = $data_object->ticket_meta['customer_email'];
+
+            if (stripos($email, "headstart.edu.in") !== false)
+            {
+                // email is NOT headstart domain, cannot process further
+                $this->verbose? error_log("Email is NOT of Head Start Domain: " . $email) : false;
+                $error_message = "Email is NOT Head Start Domain: " . $email;
+                $this->change_status_error_creating_payment_shop_order($data_object->ticket_id, $error_message);
+
+                return null;
+            }
         }
         
 
@@ -865,6 +884,7 @@ class class_headstart_admission
         // pad the moodleuserid with leading 0's if length less than 4. If not leave alone
         $vAccountId = str_pad($moodle_id, 4, "0", STR_PAD_LEFT);
 
+        // extract VA data from the WP customer object meta, obtained from site hset-payments
         // form array_keys and array_values from user meta to search for user meta data
         $array_meta_key    = array_column($wp_user_hset_payments->meta_data, "key");
         $array_meta_value  = array_column($wp_user_hset_payments->meta_data, "value");
@@ -883,10 +903,11 @@ class class_headstart_admission
         1. va_id is empty OR the account number is not correct or the IFSC code is not correct
         */
 
-        if ( empty($va_id) ||                                   // VAID is empty
+        if ( empty($va_id)                                 ||   // VAID is empty
              $account_number !== "808081HS" . $vAccountId  ||   // account number does not match that derived from prefix and moodleid
              $va_ifsc_code   !== "YESB0CMSNOC")                 // IFSC code does not match what is right for site
-        {   // VA account data is empty or not valid in customer object. However let us see if it exists at CashFree
+        {   
+            // VA account data is empty or not valid in customer object. However let us see if it exists at CashFree
             // instantiate the cashfree API
             $configfilepath  = $this->plugin_name . "_config.php";
             $cashfree_api    = new CfAutoCollect($configfilepath); // new cashfree Autocollect API object
@@ -1024,6 +1045,7 @@ class class_headstart_admission
         if ($this->data_object->wp_user_hset_payments)
         {
             // customer object is not null, so should contain valid customer ID and va_id
+            // customer ID is the WP id of this user in site hset-payments
             $customer_id = $this->data_object->wp_user_hset_payments->id;
 
             // to get the va_id we need to search through the meta data arrays of the customer object
@@ -1036,7 +1058,8 @@ class class_headstart_admission
         }
         else
         {
-            $this->verbose ? error_log("Null wp user object found at line 970 -  No PO created for ticket:" . $data_object->ticket_id): false;
+            $this->change_status_error_creating_payment_shop_order($data_object->ticket_id, 'Null customer object found at line 1045 -  No PO created');
+            $this->verbose ? error_log("Null wp user object found at line 1045 -  No PO created for ticket:" . $data_object->ticket_id): false;
             return;
         }   
 
@@ -1067,7 +1090,7 @@ class class_headstart_admission
 
         // lets now prepare the data for the new order to be created for this user
         $order_data = [
-            'customer_id'           => $customer_id,
+            'customer_id'           => $customer_id,        // this is important, needs to pre-exist on site
             'payment_method'        => 'vabacs',
             'payment_method_title'  => 'Offline Direct bank transfer to Head Start Educational Trust',
             'set_paid'              => false,
@@ -1081,7 +1104,7 @@ class class_headstart_admission
                 'state'         => $data_object->ticket_meta['state'],
                 'postcode'      => $data_object->ticket_meta['pin-code'],
                 'country'       => $data_object->ticket_meta['country'],
-                'email'         => $data_object->ticket_meta['customer_email'],
+                'email'         => $data_object->ticket_meta['customer_email'], // used for payment communications
                 'phone'         => $data_object->ticket_meta['emergency-contact-number'],
             ],
             'shipping' => [
