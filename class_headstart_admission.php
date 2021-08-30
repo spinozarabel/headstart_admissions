@@ -1558,15 +1558,12 @@ class class_headstart_admission
 
     public function test_woocommerce_customer()
     {
-        $this->get_data_object_from_ticket(8);
-
-        //$this->data_object->ticket_data['customer_email'] = "aadhya.hibare@headstart.edu.in";
-
-        $wpuserobj = $this->get_wpuser_hset_payments_check_create_cfva();
+        $wpuserobj = $this->get_wp_user_hset_payments("sritoni2@headstart.edu.in", 8);
 
         echo "<pre>" . print_r($wpuserobj, true) ."</pre>";
-
     }
+
+    
 
     public function test_custom_code()
     {
