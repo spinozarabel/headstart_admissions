@@ -844,6 +844,18 @@ class class_headstart_admission
     {
         global $wpscfunction;
 
+        // instantiate woocommerce API class
+        $woocommerce = new Client(
+                                    'https://sritoni.org/hset-payments/',
+                                    $this->config['wckey'],
+                                    $this->config['wcsec'],
+                                    [
+                                        'wp_api'            => true,
+                                        'version'           => 'wc/v3',
+                                        'query_string_auth' => true,
+
+                                    ]);
+
         $data_object = $this->data_object;
 
         $category_id = $data_object->ticket_meta['ticket_category'];
