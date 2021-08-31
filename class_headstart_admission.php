@@ -1447,7 +1447,7 @@ class class_headstart_admission
         
         switch ($_POST['button'])
         {
-            case 'test_SriToni_connection':
+            case 'test_sritoni_connection':
                 $moodle_id = sanitize_text_field( $_POST['moodle_id'] );
                 $this->test_sritoni_connection($moodle_id);
                 break;
