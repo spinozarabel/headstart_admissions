@@ -1498,28 +1498,8 @@ class class_headstart_admission
     {
         global $wpscfunction, $wpdb;
 
-
-        // get all tickets that have payment error status
-        $status_slug = 'error-creating-sritoni-account';
-
-        $term = get_term_by('slug', $status_slug, 'wpsc_statuses');
-
-        // get all tickets with this status
-        $meta_query[] = array(
-            'key'     => 'ticket_status',
-            'value'   => $term->term_id,
-            'compare' => '='
-        );
-        
-        $meta_query[] = array(
-            'key'     => 'active',
-            'value'   => 1,
-            'compare' => '='
-        );
-        
-        $select_str   = 'SQL_CALC_FOUND_ROWS DISTINCT t.*';
-        $sql          = $wpscfunction->get_sql_query( $select_str, $meta_query);
-        $tickets      = $wpdb->get_results($sql);
+        // get all tickets that have payment status as shown. 
+        $tickets = $this->get_all_active_tickets_by_status_slug('error-creating-sritoni-account');
 
         foreach ($tickets as $ticket):
         
@@ -1543,32 +1523,8 @@ class class_headstart_admission
     {
         global $wpscfunction, $wpdb;
 
-
-        // get all tickets that have payment error status
-        $status_slug = 'error-creating-payment-shop-order';
-
-        $term = get_term_by('slug', $status_slug, 'wpsc_statuses');
-
-        // get all tickets with this status
-        $meta_query[] = array(
-            'key'     => 'ticket_status',
-            'value'   => $term->term_id,
-            'compare' => '='
-        );
-        
-        $meta_query[] = array(
-            'key'     => 'active',
-            'value'   => 1,
-            'compare' => '='
-        );
-        
-        $select_str   = 'SQL_CALC_FOUND_ROWS DISTINCT t.*';
-        $sql          = $wpscfunction->get_sql_query( $select_str, $meta_query);
-        $tickets      = $wpdb->get_results($sql);
-
-        echo nl2br ("List of tickets found (showing 10 only): " . count($tickets) . "\n");
-
-        // print out an HTML of the ticket information and at the bottom put in a button for continue
+        // get all tickets that have payment status as shown. 
+        $tickets = $this->get_all_active_tickets_by_status_slug('error-creating-payment-shop-order');
 
         foreach ($tickets as $ticket):
         
