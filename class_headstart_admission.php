@@ -86,29 +86,24 @@ class class_headstart_admission
     {
         $setting_category_fee = get_option('headstart_admission_settings')['category_fee'];
 
-        //$chunks = array_chunk(preg_split('/(:|,)/', $setting_category_fee), 2);
-		//$this->category_fee_arr = array_combine(array_column($chunks, 0), array_column($chunks, 1));
-        // 1st create a numerically indexed array with key:value pairs exploded by EOL called array1
         $array1 = explode(PHP_EOL, $setting_category_fee); 
 
         // create a numerically indexed array of arrays, each subarray formed by exploding keys and values
         // finally use the array column to index the column 1 of each subarray indexed by column 0
         $this->category_fee_arr = array_column(array_map(function($row){
-                                                                        return explode(":", $row);
+                                                                        return explode("=>", $row);
                                                                        }, $array1), 1, 0);
 
         // $this->verbose ? error_log(print_r($this->category_fee_arr, true)) : false;
 
         $setting_category_paymentdescription = get_option('headstart_admission_settings')['category_paymentdescription'];
+
         $array2 = explode(PHP_EOL, $setting_category_paymentdescription); 
+
         $this->category_paymentdescription_arr = array_column(array_map(function($row){
-                                                                                        return explode(":", $row);
+                                                                                        return explode("=>", $row);
                                                                                       }, $array2), 1, 0);
 
-        //$chunks = array_chunk(preg_split('/(:|,)/', $setting_category_paymentdescription), 2);
-        //$this->category_paymentdescription_arr = array_combine(array_column($chunks, 0), array_column($chunks, 1));
-
-        // $this->verbose ? error_log(print_r($this->category_paymentdescription_arr, true)) : false;
     }
 
     /**
