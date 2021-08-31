@@ -1424,8 +1424,12 @@ class class_headstart_admission
             <form action="" method="post" id="mytoolsform">
                 <input type="text"   id ="moodle_id" name="moodle_id"/>
                 <label for="moodle_id">Give moodle user id to test SriToni Connection</label>
+                <input type="submit" name="button" 	value="test_sritoni_connection"/>
 
+                <input type="text"   id ="va_id" name="va_id"/>
+                <label for="va_id">Give CashFree VA ID to test Cashfree Connection</label>
                 <input type="submit" name="button" 	value="test_cashfree_connection"/>
+
                 <input type="submit" name="button" 	value="test_woocommerce_customer"/>
                 <input type="submit" name="button" 	value="test_get_ticket_data"/>
                 <input type="submit" name="button" 	value="test_get_wc_order"/>
@@ -1439,17 +1443,18 @@ class class_headstart_admission
 
         <?php
 
-        $moodle_id = sanitize_text_field( $_POST['moodle_id'] );
-            $this->test_sritoni_connection($moodle_id);
-        /*
+        
+        
         switch ($button)
         {
             case 'test_SriToni_connection':
-                $this->test_sritoni_connection();
+                $moodle_id = sanitize_text_field( $_POST['moodle_id'] );
+                $this->test_sritoni_connection($moodle_id);
                 break;
 
             case 'test_cashfree_connection':
-                $this->test_cashfree_connection();
+                $va_id = sanitize_text_field( $_POST['va_id'] );
+                $this->test_cashfree_connection($va_id);
                 break;
 
             case 'test_woocommerce_customer':
@@ -1485,7 +1490,7 @@ class class_headstart_admission
                 // do nothing
                 break;
         }
-        */
+        
     }
 
     
@@ -1653,12 +1658,12 @@ class class_headstart_admission
             echo nl2br("couldn't communicate to moodle server. \n");
             return;
         }
-        echo "<h3>Connection to moodle server was successfull: Here are the details of Moodle user object for id:73</h3>";
+        echo "<h3>Connection to moodle server was successfull: Here are the details of Moodle user object for id:" . $moodle_id ."</h3>";
         $moodle_user   = $moodle_users["users"][0];
 	    echo "<pre>" . print_r($moodle_user, true) ."</pre>";
     }
 
-    private function test_cashfree_connection()
+    private function test_cashfree_connection($va_id)
     {
         // since wee need to interact with Cashfree , create a new API instamve.
         // this will also take care of getting  your API creedentials automatically.
@@ -1666,7 +1671,7 @@ class class_headstart_admission
         $configfilepath  = $this->plugin_name . "_config.php";
         $cashfree_api    = new CfAutoCollect($configfilepath); // new cashfree Autocollect API object
 
-        $va_id = "0073";	// VAID of sritoni1 moodle1 user
+        // $va_id = "0073";	// VAID of sritoni1 moodle1 user
 
         // So first we get a list of last 3 payments made to the VAID contained in this HOLD order
         $payments        = $cashfree_api->getPaymentsForVirtualAccount($va_id, 1);
