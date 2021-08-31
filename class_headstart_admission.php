@@ -1319,6 +1319,7 @@ class class_headstart_admission
                                                     "address"       => $data_object->ticket_meta["residential-address"],
                                                     "maildisplay"   => 0,
                                                     "createpassword"=> 0,
+                                                    "city"          => $data_object->ticket_meta["city"],
 
                                                     "customfields" 	=> array(
                                                                                 array(	"type"	=>	"class",
@@ -1357,6 +1358,24 @@ class class_headstart_admission
                                                                                 array(	"type"	=>	"fathermobile",
                                                                                         "value"	=>	$data_object->ticket_meta["fathers-contact-number"],
                                                                                     ),
+                                                                                array(	"type"	=>	"allergiesillnesses",
+                                                                                        "value"	=>	$data_object->ticket_meta["allergies-illnesses"],
+                                                                                    ),
+                                                                                array(	"type"	=>	"birthplace",
+                                                                                        "value"	=>	$data_object->ticket_meta["birthplace"],
+                                                                                    ),
+                                                                                array(	"type"	=>	"nationality",
+                                                                                        "value"	=>	$data_object->ticket_meta["nationality"],
+                                                                                    ),
+                                                                                array(	"type"	=>	"languages",
+                                                                                        "value"	=>	$data_object->ticket_meta["languages-spoken"],
+                                                                                    ),
+                                                                                array(	"type"	=>	"dob",
+                                                                                        "value"	=>	$data_object->ticket_meta["date-of-birth"],
+                                                                                    ),
+                                                                                array(	"type"	=>	"pin",
+                                                                                        "value"	=>	$data_object->ticket_meta["pin-code"],
+                                                                                    ),           
                                                                             )
                                                 )
                                         )
