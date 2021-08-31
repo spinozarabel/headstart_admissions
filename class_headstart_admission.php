@@ -1422,8 +1422,8 @@ class class_headstart_admission
         ?>
             <h1> Click on button to test corresponding Server connection and API</h1>
             <form action="" method="post" id="mytoolsform">
-                <input type="text"   id ="moodle_id" name="moodle_id"/>
-                <label for="moodle_id">Give moodle user id</label>
+                <input type="text"   id ="id" name="id"/>
+                <label for="id">Give user/customer/ticket id</label>
                 <input type="submit" name="button" 	value="test_sritoni_connection"/>
                 <input type="submit" name="button" 	value="test_cashfree_connection"/>
 
@@ -1448,17 +1448,18 @@ class class_headstart_admission
         switch ($_POST['button'])
         {
             case 'test_sritoni_connection':
-                $moodle_id = sanitize_text_field( $_POST['moodle_id'] );
-                $this->test_sritoni_connection($moodle_id);
+                $id = sanitize_text_field( $_POST['id'] );
+                $this->test_sritoni_connection($id);
                 break;
 
             case 'test_cashfree_connection':
-                $moodle_id = sanitize_text_field( $_POST['moodle_id'] );
-                $this->test_cashfree_connection($moodle_id);
+                $id = sanitize_text_field( $_POST['id'] );
+                $this->test_cashfree_connection($id);
                 break;
 
             case 'test_woocommerce_customer':
-                $this->test_woocommerce_customer();
+                $id = sanitize_text_field( $_POST['id'] );
+                $this->test_woocommerce_customer($id);
                 break;
 
             case 'test_get_ticket_data':
@@ -1483,7 +1484,8 @@ class class_headstart_admission
                 break;
 
             case 'test_custom_code':
-                $this->test_custom_code();
+                $id = sanitize_text_field( $_POST['id'] );
+                $this->test_custom_code($id);
                 break;
 
             default:
@@ -1552,20 +1554,20 @@ class class_headstart_admission
      * 
      */
 
-    public function test_woocommerce_customer()
+    public function test_woocommerce_customer($customer_id)
     {
-        $wpuserobj = $this->get_wp_user_hset_payments("sritoni2@headstart.edu.in", 8);
+        $wpuserobj = $this->get_wp_user_hset_payments("sritoni2@headstart.edu.in", $customer_id);
 
         echo "<pre>" . print_r($wpuserobj, true) ."</pre>";
     }
 
 
 
-    public function test_custom_code()
+    public function test_custom_code($ticket_id)
     {
         global $wpscfunction;
 
-        $ticket_id = 8;
+        // $ticket_id = 8;
 
         echo "<h1>" . "List of ALL Ticket custom fields" . "</h1>";
 
