@@ -1421,8 +1421,10 @@ class class_headstart_admission
         // this is for rendering the API test onto the sritoni_tools page
         ?>
             <h1> Click on button to test corresponding Server connection and API</h1>
-            <form action="" method="post" id="form1">
-                <input type="submit" name="button" 	value="test_SriToni_connection"/>
+            <form action="" method="post" id="mytoolsform">
+                <input type="text"   id ="moodle_id" name="moodle_id"/>
+                <label for="moodle_id">Give moodle user id to test SriToni Connection</label>
+
                 <input type="submit" name="button" 	value="test_cashfree_connection"/>
                 <input type="submit" name="button" 	value="test_woocommerce_customer"/>
                 <input type="submit" name="button" 	value="test_get_ticket_data"/>
@@ -1437,7 +1439,7 @@ class class_headstart_admission
 
         <?php
 
-        $button = sanitize_text_field( $_POST['button'] );
+        $button = sanitize_text_field( $_POST['test_SriToni_connection'] );
         switch ($button)
         {
             case 'test_SriToni_connection':
