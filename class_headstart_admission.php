@@ -1420,21 +1420,20 @@ class class_headstart_admission
     {
         // this is for rendering the API test onto the sritoni_tools page
         ?>
-            <h1> Click on button to test corresponding Server connection and API</h1>
+            <h1> Input appropriate ID (moodle/customer/Ticket/Order) and Click on desired button to test</h1>
             <form action="" method="post" id="mytoolsform">
                 <input type="text"   id ="id" name="id"/>
-                <label for="id">Give user/customer/ticket id</label>
                 <input type="submit" name="button" 	value="test_sritoni_connection"/>
                 <input type="submit" name="button" 	value="test_cashfree_connection"/>
-
-                
-                
-
                 <input type="submit" name="button" 	value="test_woocommerce_customer"/>
+                <input type="submit" name="button" 	value="test_custom_code"/>
+                
+
+                
                 <input type="submit" name="button" 	value="test_get_ticket_data"/>
                 <input type="submit" name="button" 	value="test_get_wc_order"/>
                 <input type="submit" name="button" 	value="test_get_data_object_from_ticket"/>
-                <input type="submit" name="button" 	value="test_custom_code"/>
+                
                 <input type="submit" name="button" 	value="trigger_payment_order_for_error_tickets"/>
                 <input type="submit" name="button" 	value="trigger_sritoni_account_creation_for_error_tickets"/>
 
@@ -1463,11 +1462,12 @@ class class_headstart_admission
                 break;
 
             case 'test_get_ticket_data':
-                $this->test_get_ticket_data();
+                $id = sanitize_text_field( $_POST['id'] );
+                $this->test_get_ticket_data($id);
                 break;
 
             case 'test_get_wc_order':
-                $order_id = "590";
+                $order_id = sanitize_text_field( $_POST['id'] );
                 $this->get_wc_order($order_id);
                 break;
 
@@ -1879,11 +1879,11 @@ class class_headstart_admission
         }
     }
 
-    public function test_get_ticket_data()
+    public function test_get_ticket_data($ticket_id)
     {
         global $wpscfunction;
 
-        $ticket_id =8;
+        // $ticket_id =8;
 
         $fields = get_terms([
             'taxonomy'   => 'wpsc_ticket_custom_fields',
@@ -1902,7 +1902,7 @@ class class_headstart_admission
 
         ]);
 
-        echo "<pre>" . print_r($fields, true) ."</pre>";
+        echo "<pre>" . print_r($fields, true) . "for Ticket:" . $ticket_id. "</pre>";
 
         $status_id      = get_term_by('slug','admission-payment-order-being-created','wpsc_statuses')->term_id;
         echo "Status id and name corresponding to Status slug - admission-payment-order-being-created: " . $status_id . ":" . $wpscfunction->get_status_name($status_id);
