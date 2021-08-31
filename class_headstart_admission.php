@@ -1423,12 +1423,12 @@ class class_headstart_admission
             <h1> Click on button to test corresponding Server connection and API</h1>
             <form action="" method="post" id="mytoolsform">
                 <input type="text"   id ="moodle_id" name="moodle_id"/>
-                <label for="moodle_id">Give moodle user id to test SriToni Connection</label>
+                <label for="moodle_id">Give moodle user id</label>
                 <input type="submit" name="button" 	value="test_sritoni_connection"/>
-
-                <input type="text"   id ="va_id" name="va_id"/>
-                <label for="va_id">Give CashFree VA ID to test Cashfree Connection</label>
                 <input type="submit" name="button" 	value="test_cashfree_connection"/>
+
+                
+                
 
                 <input type="submit" name="button" 	value="test_woocommerce_customer"/>
                 <input type="submit" name="button" 	value="test_get_ticket_data"/>
@@ -1453,8 +1453,8 @@ class class_headstart_admission
                 break;
 
             case 'test_cashfree_connection':
-                $va_id = sanitize_text_field( $_POST['va_id'] );
-                $this->test_cashfree_connection($va_id);
+                $moodle_id = sanitize_text_field( $_POST['moodle_id'] );
+                $this->test_cashfree_connection($moodle_id);
                 break;
 
             case 'test_woocommerce_customer':
@@ -1663,7 +1663,7 @@ class class_headstart_admission
 	    echo "<pre>" . print_r($moodle_user, true) ."</pre>";
     }
 
-    private function test_cashfree_connection($va_id)
+    private function test_cashfree_connection($moodle_id)
     {
         // since wee need to interact with Cashfree , create a new API instamve.
         // this will also take care of getting  your API creedentials automatically.
@@ -1671,15 +1671,19 @@ class class_headstart_admission
         $configfilepath  = $this->plugin_name . "_config.php";
         $cashfree_api    = new CfAutoCollect($configfilepath); // new cashfree Autocollect API object
 
+        $vAccountId = str_pad($moodle_id, 4, "0", STR_PAD_LEFT);
+
         // $va_id = "0073";	// VAID of sritoni1 moodle1 user
 
         // So first we get a list of last 3 payments made to the VAID contained in this HOLD order
-        $payments        = $cashfree_api->getPaymentsForVirtualAccount($va_id, 1);
-        echo "<h3> Payments made by userid 0073:</h3>";
+        $payments        = $cashfree_api->getPaymentsForVirtualAccount($vAccountId, 1);
+
+        
+        echo "<h3> Payments made by userid: " . $vAccountId . "</h3>";
         echo "<pre>" . print_r($payments, true) ."</pre>";
 
-        echo "<h3> PaymentAccount details of userid 0073:</h3>";
-        $vAccount = $cashfree_api->getvAccountGivenId($va_id);
+        echo "<h3> PaymentAccount details of userid: " . $vAccountId . "</h3>";
+        $vAccount = $cashfree_api->getvAccountGivenId($vAccountId);
         echo "<pre>" . print_r($vAccount, true) ."</pre>";
     }
 
