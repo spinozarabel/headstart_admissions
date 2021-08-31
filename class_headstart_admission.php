@@ -1427,12 +1427,12 @@ class class_headstart_admission
                 <input type="submit" name="button" 	value="test_cashfree_connection"/>
                 <input type="submit" name="button" 	value="test_woocommerce_customer"/>
                 <input type="submit" name="button" 	value="test_custom_code"/>
-                
+                <input type="submit" name="button" 	value="test_get_data_object_from_ticket"/>
 
                 
                 <input type="submit" name="button" 	value="test_get_ticket_data"/>
                 <input type="submit" name="button" 	value="test_get_wc_order"/>
-                <input type="submit" name="button" 	value="test_get_data_object_from_ticket"/>
+                
                 
                 <input type="submit" name="button" 	value="trigger_payment_order_for_error_tickets"/>
                 <input type="submit" name="button" 	value="trigger_sritoni_account_creation_for_error_tickets"/>
@@ -1480,7 +1480,8 @@ class class_headstart_admission
                 break;
 
             case 'test_get_data_object_from_ticket':
-                $this->test_get_data_object_from_ticket();
+                $ticket_id = sanitize_text_field( $_POST['id'] );
+                $this->test_get_data_object_from_ticket($ticket_id);
                 break;
 
             case 'test_custom_code':
@@ -1749,9 +1750,9 @@ class class_headstart_admission
 
 
 
-    private function test_get_data_object_from_ticket()
+    private function test_get_data_object_from_ticket($ticket_id)
     {
-        $ticket_id = 8;
+        // $ticket_id = 8;
 
         $data_object = $this->get_data_object_from_ticket($ticket_id);
 
