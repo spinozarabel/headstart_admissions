@@ -1439,7 +1439,9 @@ class class_headstart_admission
 
         <?php
 
-        $button = sanitize_text_field( $_POST['test_SriToni_connection'] );
+        $moodle_id = sanitize_text_field( $_POST['moodle_id'] );
+            $this->test_sritoni_connection($moodle_id);
+        /*
         switch ($button)
         {
             case 'test_SriToni_connection':
@@ -1483,6 +1485,7 @@ class class_headstart_admission
                 // do nothing
                 break;
         }
+        */
     }
 
     
@@ -1625,7 +1628,7 @@ class class_headstart_admission
 
     }
 
-    public function test_sritoni_connection()
+    public function test_sritoni_connection($moodle_id)
     {
         $this->get_config();
         // read in the Moodle API config array
@@ -1640,7 +1643,7 @@ class class_headstart_admission
         $MoodleRest->setReturnFormat(MoodleRest::RETURN_ARRAY); // Array is default. You can use RETURN_JSON or RETURN_XML too.
         // $MoodleRest->setDebug();
         // get moodle user details associated with this completed order from SriToni
-        $parameters   = array("criteria" => array(array("key" => "id", "value" => 73)));
+        $parameters   = array("criteria" => array(array("key" => "id", "value" => $moodle_id)));
 
         // get moodle user satisfying above criteria
         $moodle_users = $MoodleRest->request('core_user_get_users', $parameters, MoodleRest::METHOD_GET);
