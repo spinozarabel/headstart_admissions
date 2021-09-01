@@ -310,6 +310,16 @@ class class_headstart_admission
         }
     }
 
+    public function array_search_partial($arr, $keyword) 
+    {
+        foreach($arr as $index => $string) 
+        {
+            if (stripos($string, $keyword) !== FALSE)
+                return $index;
+        }
+        return false;
+    }
+
 
     /**
      *  @param array:$form_data from Ninja forms
@@ -317,51 +327,50 @@ class class_headstart_admission
      */
     public function action_validate_ninja_form_data( $form_data )
     {
-        error_log(print_r($form_data, true));
         // extract the fields array from the form data
         $fields_ninjaforms = $form_data['fields'];
 
         // extract a single column from all fields containing the admin_label key
-        $admin_label_array = array_column(array_column($fields_ninjaforms, 'settings'), 'admin_label');
+        $key_array         = array_column($fields_ninjaforms, 'key');
 
         // extract the corresponding value array. They both will share the same  numerical index.
-        $value_array       = array_column(array_column($fields_ninjaforms, 'settings'), 'value');
+        $value_array       = array_column($fields_ninjaforms, 'value');
 
-        $field_id_array    = array_column(array_column($fields_ninjaforms, 'settings'), 'id');
+        $field_id_array    = array_column($fields_ninjaforms, 'id');
 
         // Check if form category contains internal or not. The category is a hidden field
         // look for the mapping slug in the ninja forms field's admin label
-        $key_ticket_category = array_search('ticket_category', $admin_label_array);
-        $category_name = $value_array[$key_ticket_category];
+        $index_ticket_category = $this->array_search_partial( $key_array, 'ticket_category' );
+        $category_name = $value_array[$index_ticket_category];
 
-        $key_address = array_search('residential-address', $admin_label_array);
-        $form_address = $value_array[$key_address];
+        $index_address  = $this->array_search_partial( $key_array, 'residential-address' );
+        $address        = $value_array[$index_address];
+
+        $index_email    = $this->array_search_partial( $key_array, 'primary-email' );
+        $email          = $value_array[$index_email];
 
 
         if ( stripos($category_name, "internal") !== false )
         {
             // the forms's hidden field for category does contain substring internal so we need to check  for headstart domain
             // look for the mapping slug in the ninja forms field's admin label for email field
-            $key_form_email = array_search('primary-email', $admin_label_array);
-            $form_email = $value_array[$key_form_email];
 
             // check if the email contains headstart.edu.in
-            if ( stripos( $form_email, "headstart.edu.in") === false)
+            if ( stripos( $email, "headstart.edu.in") === false)
             {
                 $this->verbose ? error_log("validating email - Internal user, expecting @headstart.edu.in, didnt find it"): false;
                 // our form's category is internal but does not contain desired domain so flag an error in form
-                $field_id = $field_id_array[$key_form_email];
 
                 //
-                $form_data['errors']['fields'][$field_id] = 'Email must be Head Start Issued, because continuing student';
+                $form_data['errors']['fields'][$index_email] = 'Email must be of Head Start domain, because continuing student';
             }
 
         }
-        if ( stripos($form_address, "/") !== false )
+        if ( stripos($address, "/") !== false )
         {
             $this->verbose ? error_log("validating address - does contain forbidden character '/'."): false;
-            $field_id = $field_id_array[$key_address];
-            $form_data['errors']['fields'][$field_id] = 'Addtress must not contain "/" please correct';
+
+            $form_data['errors']['fields'][$index_address] = 'Addtress must not contain "/" please correct';
         }
         
         return $form_data;
