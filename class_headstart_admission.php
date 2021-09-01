@@ -327,8 +327,6 @@ class class_headstart_admission
      */
     public function action_validate_ninja_form_data( $form_data )
     {
-        $form_data['errors'] = null;
-        
         // extract the fields array from the form data
         $fields_ninjaforms = $form_data['fields'];
 
@@ -373,6 +371,10 @@ class class_headstart_admission
             $this->verbose ? error_log("validating address - does contain forbidden character '/'."): false;
 
             $form_data['errors']['fields'][$field_id_array[$index_address]] = 'Addtress must not contain "/" please correct';
+        }
+        else
+        {
+            $form_data['errors']['fields'][$field_id_array[$index_address]] = null;
         }
         
         return $form_data;
