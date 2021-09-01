@@ -255,7 +255,7 @@ class class_headstart_admission
         add_action('wpsc_set_change_status',        [$this, 'action_on_ticket_status_changed'], 10,3);
 
         // check Ninja form data before it is saved
-        add_filter( 'ninja_forms_submit_data',      [$this, 'action_validate_ninja_form_data'] );
+        // add_filter( 'ninja_forms_submit_data',      [$this, 'action_validate_ninja_form_data'] );
 
         // after a NInja form submission, its data is mapped to a support ticket
         // This is the principal source of data for subsequent actions such as account creation
