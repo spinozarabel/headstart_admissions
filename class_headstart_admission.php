@@ -340,8 +340,8 @@ class class_headstart_admission
 
         // Check if form category contains internal or not. The category is a hidden field
         // look for the mapping slug in the ninja forms field's admin label
-        $index_ticket_category = $this->array_search_partial( $key_array, 'ticket_category' );
-        $category_name = $value_array[$index_ticket_category];
+        $index_ticket_category  = $this->array_search_partial( $key_array, 'ticket_category' );
+        $category_name          = $value_array[$index_ticket_category];
 
         $index_address  = $this->array_search_partial( $key_array, 'residential_address' );
         $address        = $value_array[$index_address];
@@ -362,7 +362,7 @@ class class_headstart_admission
                 // our form's category is internal but does not contain desired domain so flag an error in form
 
                 //
-                $form_data['errors']['fields'][$index_email] = 'Email must be of Head Start domain, because continuing student';
+                $form_data['errors']['fields'][$field_id_array[$index_email]] = 'Email must be of Head Start domain, because continuing student';
             }
 
         }
@@ -370,7 +370,7 @@ class class_headstart_admission
         {
             $this->verbose ? error_log("validating address - does contain forbidden character '/'."): false;
 
-            $form_data['errors']['fields'][$index_address] = 'Addtress must not contain "/" please correct';
+            $form_data['errors']['fields'][$field_id_array[$index_address]] = 'Addtress must not contain "/" please correct';
         }
         
         return $form_data;
