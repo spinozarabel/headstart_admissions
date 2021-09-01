@@ -347,6 +347,7 @@ class class_headstart_admission
             // check if the email contains headstart.edu.in
             if ( stripos( $form_email, "headstart.edu.in") === false)
             {
+                $this->verbose ? error_log("validating email - Internal user, expecting @headstart.edu.in, didnt find it"): false;
                 // our form's category is internal but does not contain desired domain so flag an error in form
                 $field_id = $field_id_array[$key_form_email];
 
@@ -357,6 +358,7 @@ class class_headstart_admission
         }
         if ( stripos($form_address, "/") !== false )
         {
+            $this->verbose ? error_log("validating address - does contain forbidden character '/'."): false;
             $field_id = $field_id_array[$key_address];
             $form_data['errors']['fields'][$field_id] = 'Addtress must not contain "/" please correct';
         }
