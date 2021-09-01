@@ -343,10 +343,10 @@ class class_headstart_admission
         $index_ticket_category = $this->array_search_partial( $key_array, 'ticket_category' );
         $category_name = $value_array[$index_ticket_category];
 
-        $index_address  = $this->array_search_partial( $key_array, 'residential-address' );
+        $index_address  = $this->array_search_partial( $key_array, 'residential_address' );
         $address        = $value_array[$index_address];
 
-        $index_email    = $this->array_search_partial( $key_array, 'primary-email' );
+        $index_email    = $this->array_search_partial( $key_array, 'primary_email' );
         $email          = $value_array[$index_email];
 
 
