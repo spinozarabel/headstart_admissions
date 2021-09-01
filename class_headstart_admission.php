@@ -370,11 +370,18 @@ class class_headstart_admission
         {
             $this->verbose ? error_log("validating address - does contain forbidden character '/'."): false;
 
-            $form_data['errors']['fields'][$field_id_array[$index_address]] = 'Addtress must not contain "/" please correct';
-        }
-        else
-        {
-            $form_data['errors']['fields'][$field_id_array[$index_address]] = null;
+            $errors = [
+                'fields' => [
+                $field_id_array[$index_address]   => 'Addtress must not contain "/" please correct'
+                ],
+              ];
+
+            $response = [
+            'errors' => $errors,
+            ];
+            
+            echo wp_json_encode( $response );
+            wp_die(); // this is required to terminate immediately and return a proper response
         }
         
         return $form_data;
