@@ -317,6 +317,7 @@ class class_headstart_admission
      */
     public function action_validate_ninja_form_data( $form_data )
     {
+        error_log(print_r($form_data, true));
         // extract the fields array from the form data
         $fields_ninjaforms = $form_data['fields'];
 
