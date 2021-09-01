@@ -380,7 +380,7 @@ class class_headstart_admission
             'errors' => $errors,
             ];
             
-            echo wp_json_encode( $response );
+            wp_send_json( $response );
             wp_die(); // this is required to terminate immediately and return a proper response
         }
         
