@@ -86,10 +86,11 @@ class class_headstart_admission
     {
         $setting_category_fee = get_option('headstart_admission_settings')['category_fee'];
 
+        // each key=>value pair is on a separate line. So by exploding on EOL we get a numerical array with key=>value pairs
         $array1 = explode(PHP_EOL, $setting_category_fee); 
 
-        // create a numerically indexed array of arrays, each subarray formed by exploding keys and values
-        // finally use the array column to index the column 1 of each subarray indexed by column 0
+        // array_map takes array1 and makes it into an array of arrays by exploding => separator.
+        // finally use the array_column to index the column 1 of each subarray indexed by column 0
         $this->category_fee_arr = array_column(array_map(function($row){
                                                                         return explode("=>", $row);
                                                                        }, $array1), 1, 0);
@@ -329,39 +330,38 @@ class class_headstart_admission
 
         // Check if form category contains internal or not. The category is a hidden field
         // look for the mapping slug in the ninja forms field's admin label
-        $key = array_search('ticket_category', $admin_label_array);
+        $key_ticket_category = array_search('ticket_category', $admin_label_array);
+        $category_name = $value_array[$key_ticket_category];
 
-        $category_name = $value_array[$key];
+        $key_address = array_search('residential-address', $admin_label_array);
+        $form_address = $value_array[$key_address];
+
 
         if ( stripos($category_name, "internal") !== false )
         {
             // the forms's hidden field for category does contain substring internal so we need to check  for headstart domain
             // look for the mapping slug in the ninja forms field's admin label for email field
-            $key = array_search('primary-email', $admin_label_array);
-
-            $form_email = $value_array[$key];
+            $key_form_email = array_search('primary-email', $admin_label_array);
+            $form_email = $value_array[$key_form_email];
 
             // check if the email contains headstart.edu.in
-            if ( stripos( $form_email, "headstart.edu.in") !== false)
-            {
-                // The email does contain headstart domain correctly return without error
-                return $form_data;
-            }
-            else
+            if ( stripos( $form_email, "headstart.edu.in") === false)
             {
                 // our form's category is internal but does not contain desired domain so flag an error in form
-                $field_id = $field_id_array[$key];
-                $form_data['errors']['fields'][$field_id] = 'Email must be Head Start Issued, because continuing student';
+                $field_id = $field_id_array[$key_form_email];
 
-                return $form_data;
+                //
+                $form_data['errors']['fields'][$field_id] = 'Email must be Head Start Issued, because continuing student';
             }
 
         }
-        else
+        if ( stripos($form_address, "/") !== false )
         {
-            // we are not interested in checking anything so just return
-            return $form_data;
+            $field_id = $field_id_array[$key_address];
+            $form_data['errors']['fields'][$field_id] = 'Addtress must not contain "/" please correct';
         }
+        
+        return $form_data;
 
 
     }
