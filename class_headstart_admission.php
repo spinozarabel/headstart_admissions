@@ -72,7 +72,7 @@ class class_headstart_admission
         $this->verbose = true;
 
         // read the fee and description pairs from settings and form an associative array
-        $this->admission_fee_description();
+        $this->admission_settings();
 
 	}
 
@@ -82,7 +82,7 @@ class class_headstart_admission
      * This array will be used to look up fee and payment description agent fields, based on category
      */
 
-    private function admission_fee_description()
+    private function admission_settings()
     {
         $setting_category_fee = get_option('headstart_admission_settings')['category_fee'];
 
@@ -105,6 +105,16 @@ class class_headstart_admission
                                                                                         return explode("=>", $row);
                                                                                       }, $array2), 1, 0);
 
+        $setting_category_cohortid = get_option('headstart_admission_settings')['category_cohortid'];
+
+        // array is an array each entry corresponding to a line of text: category=>cohortid
+        $array3 = explode(PHP_EOL, $setting_category_cohortid); 
+
+        // array_map takes array3 and makes it into an array of arrays by exploding => separator.
+        // finally use the array_column to index the column 1 of each subarray indexed by column 0
+        $this->category_cohortid_arr = array_column(array_map(function($row){
+                                                                                return explode("=>", $row);
+                                                                            }, $array3), 1, 0);
     }
 
     /**
@@ -252,6 +262,7 @@ class class_headstart_admission
         // add_action( 'wpsc_ticket_created', [$this, 'update_user_meta_form'], 10, 1 );
 
         // do_action('wpsc_set_change_status', $ticket_id, $status_id, $prev_status);
+        // This is the main state control for this App
         add_action('wpsc_set_change_status',        [$this, 'action_on_ticket_status_changed'], 10,3);
 
         // check Ninja form data before it is saved
@@ -266,10 +277,13 @@ class class_headstart_admission
 
     }
 
-    /**
-     * This function is currently unused
-     */
 
+
+    /**
+     *  NOT USED
+     * 
+     *  Was meant to be used when a given ticket field was updated and some action needed to be taken on that
+     */
     public function action_on_ticket_field_changed($ticket_id, $field_slug, $field_val, $prev_field_val)
     {
         // we are only interested if the field that changed is non-empty payment-bank-reference. For all others return
@@ -310,6 +324,13 @@ class class_headstart_admission
         }
     }
 
+
+    /**
+     *  Given a keyword, looks through the array and returns the index for a partial match. Returns false if no match found
+     *  @param array:$arr is the array to be serached
+     *  @param string:$keyword is the key to be serached for even a partial match
+     *  @return integer:$index the index of the array whose value matches at least partially with the given keyword
+     */
     public function array_search_partial($arr, $keyword) 
     {
         foreach($arr as $index => $string) 
@@ -322,7 +343,9 @@ class class_headstart_admission
 
 
     /**
-     *  @param array:$form_data from Ninja forms
+     *  NOT USED
+     *  The AJAX in the form was not working correctly, so abandoned
+     *  @param array:$form_data is the form data Ninja forms
      *  1. if category contains internal then the email must contain headstart.edu.in, otherwise form should be corrected
      */
     public function action_validate_ninja_form_data( $form_data )
@@ -396,7 +419,6 @@ class class_headstart_admission
      *  The form data is captured into the fields of a new ticket that is to be created as a result of this submission.
      *  
      */
-
     public function map_ninja_form_to_ticket( $form_data )
     {
         global $wpscfunction;
@@ -464,7 +486,7 @@ class class_headstart_admission
 
 
 
-                    // ticket_category field mapping. The slug has to pre-eexist with an id.
+                    // ticket_category custom field gets mapped to ticket_category in Ninja forms but need id not slug
                 case ($ticket_field->slug == 'ticket_category'):
 
                     // look for the mapping slug in the ninja forms field's admin label
@@ -482,7 +504,7 @@ class class_headstart_admission
 
 
 
-                    // customer email ticket field mapping.
+                    // customer email in ticket maps to primary-email in Ninja Forms
                 case ($ticket_field->slug == 'customer_email'):
 
                     // look for the mapping slug in the ninja forms field's admin label
@@ -514,6 +536,31 @@ class class_headstart_admission
                     // default for all users
                     $ticket_args[$ticket_field->slug]= 'Admission';
 
+                    break;
+
+                    // ensure that the address does not contain forbidden characters.
+                    // replace a / with a - otherwise the ticket creation will not happen
+                case ($ticket_field->slug == 'residential-address'):
+                    // set the search and replace strings
+                    $find       = "/";
+                    $replace    = "-";
+
+                    // look for the mapping slug in the ninja forms field's admin label
+                    $key = array_search('residential-address', $admin_label_array);
+
+                    if ($key !== false)
+                    {
+                        // get the custmeer entered residential address using the key
+                        $value    = $value_array[$key];
+
+                        // set the value for the ticket custom field by search and replace of potential bad character "/"
+                        $ticket_args[$ticket_field->slug] = str_ireplace($find, $replace, $value);
+                    }
+                    else
+                    {
+                        $this->verbose ? error_log($ticket_field->slug . " index not found in Ninja forms map to Ticket") : false;
+                    }
+                    
                     break;
 
 
@@ -1249,11 +1296,15 @@ class class_headstart_admission
             !empty( $this->data_object->ticket_meta['idnumber'] )      &&
             !empty( $this->data_object->ticket_meta['studentcat'] )    &&
             !empty( $this->data_object->ticket_meta['department'] )    &&
-            !empty( $this->data_object->ticket_meta['institution'] )
+            !empty( $this->data_object->ticket_meta['institution'] )   &&
+            !empty( $this->data_object->ticket_meta['class'] )
         )        
         {
             // go create a new SriToni user account for this child using ticket dataa. Return the moodle id if successfull
             $moodle_id = $this->create_sritoni_account();
+
+            // after creation of SriToni user account add the user to appropriate cohort for easy management later on
+            $this->add_user_to_cohort();
 
             return $moodle_id;
         }
@@ -1304,7 +1355,7 @@ class class_headstart_admission
 
         if ( ( $moodle_users["users"][0] ) )
         {
-            // An account with this username already exssts. So add  a number to the username and retry
+            // An account with this username already exssts. So set error status so Admin can set a different username and try again
             $error_message = "This username already exists! Is this an existing user? If not change username and retry";
 
             $this->verbose ? error_log($error_message) : false;
@@ -1405,7 +1456,7 @@ class class_headstart_admission
         // let us check to make sure that the user is created
         if ($ret[0]['username'] == $moodle_username && empty($ret["exception"]))
         {
-            // the returned user has same name as one given to create new user so OK
+            // the returned user has same name as one given to create new user so new user creation was successful
             return $ret[0]['id'];
         }
         else
@@ -1421,6 +1472,53 @@ class class_headstart_admission
 
     }
 
+
+    /**
+     *  You must have the data pbject ready before coming here
+     */
+    private function add_user_to_cohort()
+    {
+        // before coming here the create account object should be already created. We jsut use it here.
+        $data_object = $this->data_object;
+
+        // run this again since we may be changing API keys. Once in production remove this
+        // $this->get_config();
+
+        // read in the Moodle API config array
+        $config			= $this->config;
+        $moodle_url 	= $config["moodle_url"] . '/webservice/rest/server.php';
+        $moodle_token	= $config["moodle_token"];
+
+        $moodle_username    = $data_object->ticket_meta["username"];
+        $moodle_email       = $moodle_username . "@headstart.edu.in";
+
+        $category_id = $data_object->ticket_meta['ticket_category'];
+
+        // from category ID get the category name
+        $category_slug = get_term_by('id', $category_id, 'wpsc_categories')->slug;
+
+        // get the cohortid for this ticket based on category-cohortid mapping from settings
+        $cohortidnumber = $this->category_cohortid_arr[$category_slug];
+
+        // prepare the Moodle Rest API object
+        $MoodleRest = new MoodleRest();
+        $MoodleRest->setServerAddress($moodle_url);
+        $MoodleRest->setToken( $moodle_token ); // get token from ignore_key file
+        $MoodleRest->setReturnFormat(MoodleRest::RETURN_ARRAY); // Array is default. You can use RETURN_JSON or RETURN_XML too.
+
+        $parameters   = array("members"  => array(array("cohorttype"    => array(  'type' => 'idnumber',
+                                                                                   'value'=> $cohortidnumber
+                                                                                ),
+                                                        "usertype"      => array(   'type' => 'username',
+                                                                                    'value'=> $moodle_username
+                                                                                )
+                                                        )
+                                                )
+                            );  
+
+        $cohort_ret = $MoodleRest->request('core_cohort_add_cohort_members', $parameters, MoodleRest::METHOD_GET);
+        error_log(print_r($cohort_ret,true));
+    }
 
     /**
      *

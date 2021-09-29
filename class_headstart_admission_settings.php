@@ -105,6 +105,7 @@ class class_headstart_admission_settings {
         // add_settings_field( 'csv_fees_file_path', 'Full path of CSV fees file, can be published Google CSV file', array( $this, 'csv_fees_file_path_callback' ), 'headstart_admission_settings', 'admin_section' );
         add_settings_field( 'category_fee', 'Each line contains a pair of category=>fee', array( $this, 'category_fee_callback' ), 'headstart_admission_settings', 'admin_section' );
         add_settings_field( 'category_paymentdescription', 'Each line contains a pair of category=>payment description', array( $this, 'category_paymentdescription_callback' ), 'headstart_admission_settings', 'admin_section' );
+        add_settings_field( 'category_cohortid', 'Each line contains a pair of category=>Cohort ID', array( $this, 'category_cohortid_callback' ), 'headstart_admission_settings', 'admin_section' );
     }
 
 	/**
@@ -159,7 +160,7 @@ class class_headstart_admission_settings {
         $value = esc_attr( $settings[$field] );
 
         echo "<textarea name='headstart_admission_settings[$field]' id='headstart_admission_settings[$field]'
-            rows='10' cols='100'>" . $value . "</textarea>";
+            rows='15' cols='125'>" . $value . "</textarea>";
 
     }
 
@@ -176,9 +177,28 @@ class class_headstart_admission_settings {
     $value = esc_attr( $settings[$field] );
 
     echo "<textarea name='headstart_admission_settings[$field]' id='headstart_admission_settings[$field]'
-            rows='10' cols='100'>" . $value . "</textarea>Do not enter extra spaces, No need for New line after last entry";
+            rows='15' cols='125'>" . $value . "</textarea>Do not enter extra spaces, new lines";
 
     }
+
+
+
+    /**
+    *  Comma separated list of category - cohortid
+    * 
+    */
+    public function category_cohortid_callback()
+    {
+
+    $settings = (array) get_option( 'headstart_admission_settings' );
+    $field = "category_cohortid";
+    $value = esc_attr( $settings[$field] );
+
+    echo "<textarea name='headstart_admission_settings[$field]' id='headstart_admission_settings[$field]'
+            rows='15' cols='125'>" . $value . "</textarea>Do not enter extra spaces, new lines";
+
+    }
+
 
     /**
     *  Comma separated list of ID numbers of users who need to be whitelsited
@@ -381,6 +401,9 @@ class class_headstart_admission_settings {
 
         if( isset( $input['category_paymentdescription'] ) )
             $new_input['category_paymentdescription'] = sanitize_textarea_field( $input['category_paymentdescription'] );
+
+        if( isset( $input['category_cohortid'] ) )
+        $new_input['category_cohortid'] = sanitize_textarea_field( $input['category_cohortid'] );
 
 		if( isset( $input['sritoni_token'] ) )
             $new_input['sritoni_token'] = sanitize_text_field( $input['sritoni_token'] );
