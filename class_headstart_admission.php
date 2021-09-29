@@ -1289,6 +1289,22 @@ class class_headstart_admission
         // buuild an object containing all relevant data from ticket useful for crating user accounts and payments
         $this->get_data_object_from_ticket($ticket_id);
 
+        if (stripos($this->data_object->ticket_meta['customer_email'], 'headstart.edu.in') !==false)
+        {
+            // User already has an exising SriToni email ID and so account
+            // log the error message
+            $error_message = "Existing account - New account not created - user added to cohort";
+            $this->verbose ? error_log($error_message) : false;
+
+            // update the error_message agent only field for good measuremand debugging
+            $ticket_slug = "error";
+            $wpscfunction->change_field($ticket_id, $ticket_slug, $error_message);
+
+            $this->add_user_to_cohort();
+
+            return;
+        }
+
         
         // check if all required data for new account creation is set
         if 
@@ -1489,8 +1505,22 @@ class class_headstart_admission
         $moodle_url 	= $config["moodle_url"] . '/webservice/rest/server.php';
         $moodle_token	= $config["moodle_token"];
 
-        $moodle_username    = $data_object->ticket_meta["username"];
-        $moodle_email       = $moodle_username . "@headstart.edu.in";
+        
+        if (stripos($this->data_object->ticket_meta['customer_email'], '@headstart.edu.in') !==false)
+        {
+            // if existing user, the username needs to be extracted from the customer_email
+            $moodle_email       = $this->data_object->ticket_meta['customer_email'];
+
+            // get 1st part of the email as the username
+            $moodle_username    = explode( "@headstart.edu.in", $moodle_email, 2 )[0];
+        }
+        else
+        {
+            // New account just created so get info from ticket fields
+            $moodle_username    = $data_object->ticket_meta["username"];
+            $moodle_email       = $moodle_username . "@headstart.edu.in";
+        }
+        
 
         $category_id = $data_object->ticket_meta['ticket_category'];
 
