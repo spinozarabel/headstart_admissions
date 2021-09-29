@@ -631,7 +631,7 @@ class class_headstart_admission
             case ($wpscfunction->get_status_name($status_id) === 'School Accounts Being Created'):
 
                 // Create a new user account in SriToni remotely
-                $moodle_id = $this->create_user_account($ticket_id);
+                $moodle_id = $this->create_update_user_account($ticket_id);
 
                 // if successful in sritoni account creation change to next status - admission-payment-order-being-created
                 if ($moodle_id)
@@ -653,16 +653,19 @@ class class_headstart_admission
 
             case ($wpscfunction->get_status_name($status_id) === 'Admission Granted'):
 
-                // A new payment shop order is remotely created on hset-payments
-                // $this->create_payment_shop_order($ticket_id);
+                // Emails are sent to user for making payments.
+                // Once payment is made the Order is set to Processing
+                // Once Admin sets Order as completed, the webhook fires on the payment site and is captured on this site
+                // The captured webhook sets the status as Payment completed
+                // There is no other explicit code to be executed here
 
              break;
 
 
             case ($wpscfunction->get_status_name($status_id) === 'Admission Confirmed'):
 
-                // A new SriToni user account is created for this child using ticket dataa.
-                // $this->create_user_account($ticket_id);
+                // No explicit action in code here
+                // The admin needs to trigger the next step by changing the status
             break;
 
 
@@ -1282,7 +1285,7 @@ class class_headstart_admission
      * 4. Processd for SriToni account creation
      */
 
-    public function create_user_account($ticket_id)
+    public function create_update_user_account($ticket_id)
     {
         global $wpscfunction;
 
@@ -1291,15 +1294,11 @@ class class_headstart_admission
 
         if (stripos($this->data_object->ticket_meta['customer_email'], 'headstart.edu.in') !==false)
         {
-            // User already has an exising SriToni email ID and so account
-            // log the error message
-            $error_message = "Existing account - New account not created - user added to cohort";
-            $this->verbose ? error_log($error_message) : false;
-
-            // update the error_message agent only field for good measuremand debugging
-            $ticket_slug = "error";
-            $wpscfunction->change_field($ticket_id, $ticket_slug, $error_message);
-
+            // User already has an exising SriToni email ID and Head Start Account, just update with form info
+            // does not need any agent only fields to be set as they are not involved in the update
+            $this->update_sritoni_account();
+            
+            // add user to relevant incoming cohort for easy cohort management
             $this->add_user_to_cohort();
 
             return;
@@ -1488,6 +1487,123 @@ class class_headstart_admission
 
     }
 
+
+    /**
+     * The existing user's SriToni account details are updated.
+     */
+    private function update_sritoni_account()
+    {
+        // before coming here the create account object should be already created. We jsut use it here.
+        $data_object = $this->data_object;
+
+        // run this again since we may be changing API keys. Once in production remove this
+        // $this->get_config();
+
+            // read in the Moodle API config array
+        $config			= $this->config;
+        $moodle_url 	= $config["moodle_url"] . '/webservice/rest/server.php';
+        $moodle_token	= $config["moodle_token"];
+
+        // Existing user, the username needs to be extracted from the customer_email
+        $moodle_email       = $this->data_object->ticket_meta['customer_email'];
+
+        // get 1st part of the email as the username
+        $moodle_username    = explode( "@headstart.edu.in", $moodle_email, 2 )[0];
+
+            // prepare the Moodle Rest API object
+        $MoodleRest = new MoodleRest();
+        $MoodleRest->setServerAddress($moodle_url);
+        $MoodleRest->setToken( $moodle_token ); // get token from ignore_key file
+        $MoodleRest->setReturnFormat(MoodleRest::RETURN_ARRAY); // Array is default. You can use RETURN_JSON or RETURN_XML too.
+
+        // get moodle user details associated with this username, we need the id to updatethe user's data
+        $parameters   = array("criteria" => array(array("key" => "username", "value" => $moodle_username)));
+
+        // get moodle user satisfying above criteria if any
+        $moodle_users = $MoodleRest->request('core_user_get_users', $parameters, MoodleRest::METHOD_GET);
+
+        if ( empty( $moodle_users[0]['id'] ) )
+        {
+            // For whatever reason this user does not exist in the system, so cannot update user account
+            // so just send error message saying could not update.
+            return;
+        }
+        // We have a valid Moodle user id, form the array to updatethis user
+        $users = array("users" => array(
+                                        array(	"id" 	        => $moodle_users[0]['id'],
+                                        //      "idnumber"      => $data_object->ticket_meta["idnumber"],
+                                        //      "auth"          => "oauth2",
+                                                "firstname"     => $data_object->ticket_meta["student-first-name"],
+                                                "lastname"      => $data_object->ticket_meta["student-last-name"],
+                                        //      "email"         => $moodle_email,
+                                                "middlename"    => $data_object->ticket_meta["student-middle-name"],
+                                        //      "institution"   => $data_object->ticket_meta["institution"],
+                                        //      "department"    => $data_object->ticket_meta["department"],
+                                                "phone1"        => $data_object->ticket_meta["emergency-contact-number"],
+                                                "phone2"        => $data_object->ticket_meta["emergency-alternate-contact"],
+                                                "address"       => $data_object->ticket_meta["residential-address"],
+                                         //     "maildisplay"   => 0,
+                                         //     "createpassword"=> 0,
+                                                "city"          => $data_object->ticket_meta["city"],
+
+                                                "customfields" 	=> array(
+                                                                            
+                                                                            array(	"type"	=>	"bloodgroup",
+                                                                                    "value"	=>	$data_object->ticket_meta["blood-group"],
+                                                                                ),
+                                                                            array(	"type"	=>	"motheremail",
+                                                                                    "value"	=>	$data_object->ticket_meta["mothers-email"],
+                                                                                ),
+                                                                            array(	"type"	=>	"fatheremail",
+                                                                                    "value"	=>	$data_object->ticket_meta["fathers-email"],
+                                                                                ),
+                                                                            array(	"type"	=>	"motherfirstname",
+                                                                                    "value"	=>	$data_object->ticket_meta["mothers-first-name"],
+                                                                                ),
+                                                                            array(	"type"	=>	"motherlastname",
+                                                                                    "value"	=>	$data_object->ticket_meta["mothers-last-name"],
+                                                                                ),
+                                                                            array(	"type"	=>	"fatherfirstname",
+                                                                                    "value"	=>	$data_object->ticket_meta["fathers-first-name"],
+                                                                                ),
+                                                                            array(	"type"	=>	"fatherlastname",
+                                                                                    "value"	=>	$data_object->ticket_meta["fathers-last-name"],
+                                                                                ),
+                                                                            array(	"type"	=>	"mothermobile",
+                                                                                    "value"	=>	$data_object->ticket_meta["mothers-contact-number"],
+                                                                                ),
+                                                                            array(	"type"	=>	"fathermobile",
+                                                                                    "value"	=>	$data_object->ticket_meta["fathers-contact-number"],
+                                                                                ),
+                                                                            array(	"type"	=>	"allergiesillnesses",
+                                                                                    "value"	=>	$data_object->ticket_meta["allergies-illnesses"],
+                                                                                ),
+                                                                            array(	"type"	=>	"birthplace",
+                                                                                    "value"	=>	$data_object->ticket_meta["birthplace"],
+                                                                                ),
+                                                                            array(	"type"	=>	"nationality",
+                                                                                    "value"	=>	$data_object->ticket_meta["nationality"],
+                                                                                ),
+                                                                            array(	"type"	=>	"languages",
+                                                                                    "value"	=>	$data_object->ticket_meta["languages-spoken"],
+                                                                                ),
+                                                                            array(	"type"	=>	"dob",
+                                                                                    "value"	=>	$data_object->ticket_meta["date-of-birth"],
+                                                                                ),
+                                                                            array(	"type"	=>	"pin",
+                                                                                    "value"	=>	$data_object->ticket_meta["pin-code"],
+                                                                                ),           
+                                                                        )
+                                            )
+                                    )
+                            );
+        $ret = $MoodleRest->request('core_user_update_users', $users, MoodleRest::METHOD_POST);
+
+        if ($ret["exception"])
+        {
+            $this->verbose ? error_log("Error updating SriToni Accouont of username: " . $moodle_username) : false;
+        }
+    }
 
     /**
      *  You must have the data pbject ready before coming here
@@ -1683,7 +1799,7 @@ class class_headstart_admission
         
             $ticket_id = $ticket->id;
 
-            $this->create_user_account($ticket_id);
+            $this->create_update_user_account($ticket_id);
             
         endforeach;
     }
