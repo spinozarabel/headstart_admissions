@@ -417,7 +417,9 @@ class class_headstart_admission
      *  @param array $form_data from the Ninja forms based on an action callback
      *  The function takes the Ninja form immdediately after submission
      *  The form data is captured into the fields of a new ticket that is to be created as a result of this submission.
-     *  
+     *  The agent only fields are not updated by the form and will be null.
+     *  The Admin needs to set these fields which are mostly for new users.
+     *  The data is not modified in anyway except for  residential-address where / is replaced by -
      */
     public function map_ninja_form_to_ticket( $form_data )
     {
