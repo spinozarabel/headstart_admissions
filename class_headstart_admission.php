@@ -1551,17 +1551,17 @@ class class_headstart_admission
         // get moodle user satisfying above criteria if any
         $moodle_users = $MoodleRest->request('core_user_get_users', $parameters, MoodleRest::METHOD_GET);
 
-        if ( empty( $moodle_users[0]['id'] ) )
+        if ( empty( $moodle_users["users"][0]['id'] ) )
         {
             // For whatever reason this user does not exist in the system, so cannot update user account
             // so just send error message saying could not update.
-            $this->verbose ? error_log("Error updating SriToni Accouont,could not get uder id from username: " . $moodle_username) : false;
+            $this->verbose ? error_log("Error updating SriToni Accouont,could not get user id from username: " . $moodle_username) : false;
             $this->verbose ? error_log(print_r($moodle_users, true)) : false;
             return;
         }
         // We have a valid Moodle user id, form the array to updatethis user
         $users = array("users" => array(
-                                        array(	"id" 	        => $moodle_users[0]['id'],
+                                        array(	"id" 	        => $moodle_users["users"][0]['id'],
                                         //      "idnumber"      => $data_object->ticket_meta["idnumber"],
                                         //      "auth"          => "oauth2",
                                                 "firstname"     => $data_object->ticket_meta["student-first-name"],
