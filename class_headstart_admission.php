@@ -970,7 +970,7 @@ class class_headstart_admission
             // headstart user so ue form/ticket email directly
             $email = $data_object->ticket_meta['headstart-email'];
 
-            if (stripos($email, "headstart.edu.in") !== false)
+            if (stripos($email, "headstart.edu.in") === false)
             {
                 // email is NOT headstart domain, cannot process further
                 $this->verbose? error_log("Email is NOT of Head Start Domain: " . $email) : false;
