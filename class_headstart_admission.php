@@ -1546,7 +1546,7 @@ class class_headstart_admission
         $MoodleRest->setReturnFormat(MoodleRest::RETURN_ARRAY); // Array is default. You can use RETURN_JSON or RETURN_XML too.
 
         // get moodle user details associated with this username, we need the id to updatethe user's data
-        $parameters   = array("criteria" => array(array("key" => "username", "value" => $moodle_username)));
+        $parameters   = array("criteria" => array(array("key" => "email", "value" => $moodle_email)));
 
         // get moodle user satisfying above criteria if any
         $moodle_users = $MoodleRest->request('core_user_get_users', $parameters, MoodleRest::METHOD_GET);
