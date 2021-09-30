@@ -1553,7 +1553,7 @@ class class_headstart_admission
                             );
 
         // get moodle user satisfying above criteria if any
-        $moodle_users = $MoodleRest->request('core_user_get_users', $parameters, MoodleRest::METHOD_GET);
+        $moodle_users = $MoodleRest->request('core_user_get_users', $criteria, MoodleRest::METHOD_GET);
 
         if ( empty( $moodle_users["users"][0]['id'] ) )
         {
