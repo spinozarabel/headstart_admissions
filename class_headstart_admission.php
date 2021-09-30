@@ -74,6 +74,8 @@ class class_headstart_admission
         // read the fee and description pairs from settings and form an associative array
         $this->admission_settings();
 
+
+
 	}
 
     /**
@@ -428,6 +430,8 @@ class class_headstart_admission
         // $form_data['fields']['id']['seetings']['admin_label']
         // $form_data['fields']['id'][''value']
         // Loop through each of the ticket fields, match its slug to the admin_label and get its corresponding value
+        $current_user       = wp_get_current_user();
+        $registered_email   = $current_user->user_email;
 
         // Initialize the new ticket values array needed for a new ticket creation
         $ticket_args = [];
@@ -506,8 +510,17 @@ class class_headstart_admission
 
 
 
-                    // customer email in ticket maps to primary-email in Ninja Forms
+                    // customer email in ticket maps to the user registered email.
+                    // This is done so that all communication is on the registered email.
                 case ($ticket_field->slug == 'customer_email'):
+
+                    $ticket_args[$ticket_field->slug]= $registered_email;
+
+                    break;
+
+
+                    // map the ticket field 'headstart-email' to Ninja forms 'primary-email' field
+                case ($ticket_field->slug == 'headstart-email'):
 
                     // look for the mapping slug in the ninja forms field's admin label
                     $key = array_search('primary-email', $admin_label_array);
@@ -518,7 +531,7 @@ class class_headstart_admission
                     }
                     else
                     {
-                        $this->verbose ? error_log($ticket_field->slug . " index not found in Ninja forms value array") : false;
+                        $this->verbose ? error_log( "index for: primary-email, not found in Ninja forms value array" ) : false;
                     }
 
                     break;
@@ -708,7 +721,19 @@ class class_headstart_admission
             // since we are checking for creation of new accounts we cannot use ticket email.
             // we have to use admin given username (agent field) with our domain. So username has to be set for this.
             // since this comes after sritoni account creation we know this would have been set.
-            $email = $data_object->ticket_meta['username'] . '@headstart.edu.in';
+            $headstart_email = $data_object->ticket_meta['headstart-email'];
+
+            if ( !empty($headstart_email) && stripos( $headstart_email, "@headstart.edu.in" ) !==false )
+            {
+                // This is a continuing head start user so use existing headstart email
+                $email = $headstart_email;
+            }
+            else
+            {
+                // this is a new headstart user so compose the email
+                $email = $data_object->ticket_meta['username'] . '@headstart.edu.in';
+            }
+            
 
             // check if wpuser with this email exists in site hset-payments
             $wp_user_hset_payments = $this->get_wp_user_hset_payments($email, $ticket_id);
@@ -943,7 +968,7 @@ class class_headstart_admission
         else
         {
             // headstart user so ue form/ticket email directly
-            $email = $data_object->ticket_meta['customer_email'];
+            $email = $data_object->ticket_meta['headstart-email'];
 
             if (stripos($email, "headstart.edu.in") !== false)
             {
@@ -1171,6 +1196,7 @@ class class_headstart_admission
         $product = $woocommerce->put($endpoint, $product_data);
 
         // lets now prepare the data for the new order to be created for this user
+        // we use customer_email as billing email to not acommunicate to headstart-mail.
         $order_data = [
             'customer_id'           => $customer_id,        // this is important, needs to pre-exist on site
             'payment_method'        => 'vabacs',
@@ -1294,7 +1320,7 @@ class class_headstart_admission
         // buuild an object containing all relevant data from ticket useful for crating user accounts and payments
         $this->get_data_object_from_ticket($ticket_id);
 
-        if (stripos($this->data_object->ticket_meta['customer_email'], 'headstart.edu.in') !==false)
+        if (stripos($this->data_object->ticket_meta['headstart-email'], 'headstart.edu.in') !==false)
         {
             // User already has an exising SriToni email ID and Head Start Account, just update with form info
             // does not need any agent only fields to be set as they are not involved in the update
@@ -1306,7 +1332,7 @@ class class_headstart_admission
             return;
         }
 
-        
+        // if you are here you don't have an existing Head Start email. So Create a new SriToni account using username
         // check if all required data for new account creation is set
         if 
         (   !empty( $this->data_object->ticket_meta['username'] )      &&
@@ -1492,6 +1518,7 @@ class class_headstart_admission
 
     /**
      * The existing user's SriToni account details are updated.
+     *  Check that the  headstart-email is already validated to contain headstart.edu.in before coming here
      */
     private function update_sritoni_account()
     {
@@ -1506,8 +1533,8 @@ class class_headstart_admission
         $moodle_url 	= $config["moodle_url"] . '/webservice/rest/server.php';
         $moodle_token	= $config["moodle_token"];
 
-        // Existing user, the username needs to be extracted from the customer_email
-        $moodle_email       = $this->data_object->ticket_meta['customer_email'];
+        // Existing user, the username needs to be extracted from the headstart-email
+        $moodle_email       = $this->data_object->ticket_meta['headstart-email'];
 
         // get 1st part of the email as the username
         $moodle_username    = explode( "@headstart.edu.in", $moodle_email, 2 )[0];
@@ -1609,6 +1636,7 @@ class class_headstart_admission
 
     /**
      *  You must have the data pbject ready before coming here
+     *  The user could be a new user or a continuing user
      */
     private function add_user_to_cohort()
     {
@@ -1624,10 +1652,10 @@ class class_headstart_admission
         $moodle_token	= $config["moodle_token"];
 
         
-        if (stripos($this->data_object->ticket_meta['customer_email'], '@headstart.edu.in') !==false)
+        if (stripos($this->data_object->ticket_meta['headstart-email'], '@headstart.edu.in') !==false)
         {
-            // if existing user, the username needs to be extracted from the customer_email
-            $moodle_email       = $this->data_object->ticket_meta['customer_email'];
+            // Continuing user, the username needs to be extracted from the headstart-email
+            $moodle_email       = $this->data_object->ticket_meta['headstart-email'];
 
             // get 1st part of the email as the username
             $moodle_username    = explode( "@headstart.edu.in", $moodle_email, 2 )[0];
@@ -1665,7 +1693,7 @@ class class_headstart_admission
                             );  
 
         $cohort_ret = $MoodleRest->request('core_cohort_add_cohort_members', $parameters, MoodleRest::METHOD_GET);
-        error_log(print_r($cohort_ret,true));
+        error_log(print_r($cohort_ret, true));
     }
 
     /**
@@ -1899,6 +1927,8 @@ class class_headstart_admission
 
         $product_customized_name    = $this->category_paymentdescription_arr[$term_category->slug] . " " . $fullname;
 
+        $cohort = $this->category_cohortid_arr[$term_category->slug];
+
         // update the agent fields for fee and fee description
         $wpscfunction->change_field($ticket_id, 'admission-fee-payable', $admission_fee_payable);
 
@@ -1908,6 +1938,7 @@ class class_headstart_admission
         echo "<pre>" . "desired category slug: " . $term_category->slug ."</pre>";
         echo "<pre>" . "fee: " . $admission_fee_payable ."</pre>";
         echo "<pre>" . "description: " . $product_customized_name ."</pre>";
+        echo "<pre>" . "Cohort: " . $cohort ."</pre>";
         echo nl2br("/n");
         echo "<h1>" . "List of ALL Tickets having status: admission-payment-process-completed" . "</h1>";
         // get all tickets that have payment status as shown. 
