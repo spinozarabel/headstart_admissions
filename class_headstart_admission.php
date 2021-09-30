@@ -710,7 +710,7 @@ class class_headstart_admission
         // get all tickets that have payment status as shown. 
         $tickets = $this->get_all_active_tickets_by_status_slug('school-accounts-being-created');
 
-        // $this->verbose ? error_log("Number of tickets being processed with status 'school-accounts-being-created':" . count($tickets)): false;
+        $this->verbose ? error_log("Number of tickets being processed with status 'school-accounts-being-created':" . count($tickets)): false;
 
         foreach ($tickets as $ticket):
         
@@ -723,7 +723,7 @@ class class_headstart_admission
             // since this comes after sritoni account creation we know this would have been set.
             $headstart_email = $data_object->ticket_meta['headstart-email'];
 
-            if ( !empty($headstart_email) && stripos( $headstart_email, "@headstart.edu.in" ) !==false )
+            if ( !empty($headstart_email) && stripos( $headstart_email, "@headstart.edu.in" ) !== false )
             {
                 // This is a continuing head start user so use existing headstart email
                 $email = $headstart_email;
@@ -827,7 +827,7 @@ class class_headstart_admission
 
         // if you got here you must be a head start user with a valid VA and customer_id and valid customer object
 
-        // let's write the customer id to the agent only field for easy reference
+        // let's write this customer id to the ticket's agent only field for easy reference
         $wpscfunction->change_field($ticket_id, 'wp-user-id-hset-payments', $customer_id);
         
         // Assign the customer as a property of the class in case we need it later on
@@ -967,7 +967,7 @@ class class_headstart_admission
         }
         else
         {
-            // headstart user so ue form/ticket email directly
+            // headstart user so use form/ticket email directly
             $email = $data_object->ticket_meta['headstart-email'];
 
             if (stripos($email, "headstart.edu.in") === false)
@@ -1308,7 +1308,7 @@ class class_headstart_admission
      * @param integer $ticket_id
      * @return void
      * 1. Get the data object for account creation from ticket
-     * 2. If user already has a Head Start account (detected by their email domain) return
+     * 2. If user already has a Head Start account (detected by their email domain) update user
      * 3. Check that required data is not empty. If so, change ticket status to error
      * 4. Processd for SriToni account creation
      */
@@ -1320,7 +1320,7 @@ class class_headstart_admission
         // buuild an object containing all relevant data from ticket useful for crating user accounts and payments
         $this->get_data_object_from_ticket($ticket_id);
 
-        if (stripos($this->data_object->ticket_meta['headstart-email'], 'headstart.edu.in') !==false)
+        if (stripos($this->data_object->ticket_meta['headstart-email'], 'headstart.edu.in') !== false)
         {
             // User already has an exising SriToni email ID and Head Start Account, just update with form info
             // does not need any agent only fields to be set as they are not involved in the update
@@ -1555,6 +1555,8 @@ class class_headstart_admission
         {
             // For whatever reason this user does not exist in the system, so cannot update user account
             // so just send error message saying could not update.
+            $this->verbose ? error_log("Error updating SriToni Accouont,could not get uder id from username: " . $moodle_username) : false;
+            $this->verbose ? error_log(print_r($moodle_users, true)) : false;
             return;
         }
         // We have a valid Moodle user id, form the array to updatethis user
@@ -1630,8 +1632,9 @@ class class_headstart_admission
 
         if ($ret["exception"])
         {
-            $this->verbose ? error_log("Error updating SriToni Accouont of username: " . $moodle_username) : false;
+            $this->verbose ? error_log(print_r($ret, true)) : false;
         }
+        $this->verbose ? error_log(print_r($ret, true)) : false;
     }
 
     /**
@@ -1934,19 +1937,21 @@ class class_headstart_admission
 
         $wpscfunction->change_field($ticket_id, 'product-customized-name', $product_customized_name);
         
-        echo "<pre>" . "desired category id: " . $ticket_category_id ."</pre>";
-        echo "<pre>" . "desired category slug: " . $term_category->slug ."</pre>";
+        echo "<pre>" . "Ticket category id: " . $ticket_category_id ."</pre>";
+        echo "<pre>" . "Ticket category slug: " . $term_category->slug ."</pre>";
         echo "<pre>" . "fee: " . $admission_fee_payable ."</pre>";
         echo "<pre>" . "description: " . $product_customized_name ."</pre>";
         echo "<pre>" . "Cohort: " . $cohort ."</pre>";
         echo nl2br("/n");
         echo "<h1>" . "List of ALL Tickets having status: admission-payment-process-completed" . "</h1>";
+        /*
         // get all tickets that have payment status as shown. 
         $tickets = $this->get_all_active_tickets_by_status_slug('admission-payment-process-completed');
         foreach ($tickets as $ticket):
             echo nl2br("Ticket id: " . $ticket->id . " \n");
         endforeach;
-
+        */
+        $this->create_update_user_account($ticket_id);
 
     }
 
