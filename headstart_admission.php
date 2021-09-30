@@ -51,6 +51,8 @@ function  action_after_login($user_login, $user)
 
 function init_headstart_admission()
 {
+  add_action('init','custom_login');
+
   // instantiate the class for head start admission
   $admission       = new class_headstart_admission();
 
@@ -67,3 +69,13 @@ function init_headstart_admission()
 
   // add_action( 'wp_login', [$admission, 'action_after_login'], 10,2 );
 }
+
+function custom_login()
+{
+  global $pagenow;
+  if( 'wp-login.php' == $pagenow && !is_user_logged_in()) 
+  {
+   wp_redirect('https://headstartschools.in/');
+   exit();
+  }
+ }
