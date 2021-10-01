@@ -1667,7 +1667,7 @@ class class_headstart_admission
         $category_slug = get_term_by('id', $category_id, 'wpsc_categories')->slug;
 
         // get the cohortid for this ticket based on category-cohortid mapping from settings
-        $cohortidnumber = $this->category_cohortid_arr[$category_slug];
+        $cohortidnumber = strtolower($this->category_cohortid_arr[$category_slug]);
 
         // prepare the Moodle Rest API object
         $MoodleRest = new MoodleRest();
@@ -1675,7 +1675,7 @@ class class_headstart_admission
         $MoodleRest->setToken( $moodle_token ); // get token from ignore_key file
         $MoodleRest->setReturnFormat(MoodleRest::RETURN_ARRAY); // Array is default. You can use RETURN_JSON or RETURN_XML too.
 
-        $parameters   = array("members"  => array(array("cohorttype"    => array(  'type' => 'id',
+        $parameters   = array("members"  => array(array("cohorttype"    => array(  'type' => 'idnumber',
                                                                                    'value'=> $cohortidnumber
                                                                                 ),
                                                         "usertype"      => array(   'type' => 'username',
