@@ -814,6 +814,12 @@ class class_headstart_admission
         // buuild an object containing all relevant data from ticket useful for crating user accounts and payments
         $this->get_data_object_from_ticket($ticket_id);
 
+        // get the category id from the ticket
+        $ticket_category_id = $this->data_object->ticket_meta['ticket_category'];
+        
+        // get the ticket category name from ID
+        $term_category      = get_term_by('id', $ticket_category_id, 'wpsc_categories');
+
         /*
         1. Get customer object from site hset-payments using the email
         2. Check if VA data in the user meta is valid. If not update if VA exists. If VA does not exist, create new VA
@@ -835,7 +841,22 @@ class class_headstart_admission
 
         // check that admission-fee-payable and product-customized-name  fields are set
         $product_customized_name    = $this->data_object->ticket_meta["product-customized-name"];
-        $regular_price              = $this->data_object->ticket_meta["admission-fee-payable"];
+        if ( empty( $product_customized_name ) )
+        {
+            // means agent has not set it so get the value from the settings
+            $fullname       = $this->data_object->ticket_meta['student-first-name']  . " " . 
+                              $this->data_object->ticket_meta['student-middle-name'] . " " .
+                              $this->data_object->ticket_meta['student-last-name'];
+            $product_customized_name = $this->category_paymentdescription_arr[$term_category->slug] . " " . $fullname;
+        }
+        
+        $regular_price = $this->data_object->ticket_meta["admission-fee-payable"];
+        if ( empty( $regular_price ) )
+        {
+            // agent has not set this so use the value from settings based on ticket category
+            $regular_price = $this->category_fee_arr[$term_category->slug];
+        }
+
 
         if (empty($regular_price) || empty($product_customized_name))
         {
@@ -1168,7 +1189,32 @@ class class_headstart_admission
             $this->change_status_error_creating_payment_shop_order($data_object->ticket_id, 'Null customer object found at line 1045 -  No PO created');
             $this->verbose ? error_log("Null wp user object found at line 1045 -  No PO created for ticket:" . $data_object->ticket_id): false;
             return;
-        }   
+        }
+        
+        // derive the fee and description from ticket field/settings based on agent override
+        // get the category id from the data object ticket meta
+        $ticket_category_id = $this->data_object->ticket_meta['ticket_category'];
+        
+        // get the ticket category name from ID
+        $term_category      = get_term_by('id', $ticket_category_id, 'wpsc_categories');
+		
+		// check if admission-fee-payable and product-customized-name  fields are set by agent
+        $product_customized_name    = $this->data_object->ticket_meta["product-customized-name"];
+        if ( empty( $product_customized_name ) )
+        {
+            // means agent has not set it so get the value from the settings
+            $fullname       = $this->data_object->ticket_meta['student-first-name']  . " " . 
+                              $this->data_object->ticket_meta['student-middle-name'] . " " .
+                              $this->data_object->ticket_meta['student-last-name'];
+            $product_customized_name = $this->category_paymentdescription_arr[$term_category->slug] . " " . $fullname;
+        }
+        
+        $regular_price = $this->data_object->ticket_meta["admission-fee-payable"];
+        if ( empty( $regular_price ) )
+        {
+            // agent has not set this so use the value from settings based on ticket category
+            $regular_price = $this->category_fee_arr[$term_category->slug];
+        }
 
         // instantiate woocommerce API class
         $woocommerce = new Client(
@@ -1189,8 +1235,8 @@ class class_headstart_admission
 
         // customize the Admission product for this user
         $product_data = [
-                            'name'          => $data_object->ticket_meta["product-customized-name"],
-                            'regular_price' => $data_object->ticket_meta["admission-fee-payable"],
+                            'name'          => $product_customized_name,
+                            'regular_price' => $regular_price,
                         ];
         // TODO use try catch here
         $product = $woocommerce->put($endpoint, $product_data);
@@ -1675,6 +1721,7 @@ class class_headstart_admission
         $MoodleRest->setToken( $moodle_token ); // get token from ignore_key file
         $MoodleRest->setReturnFormat(MoodleRest::RETURN_ARRAY); // Array is default. You can use RETURN_JSON or RETURN_XML too.
 
+        // the cohort id is the id in the cohort table. Nothing else seems to work. This is what needs to be in the settings
         $parameters   = array("members"  => array(array("cohorttype"    => array(  'type' => 'id',
                                                                                    'value'=> $cohortidnumber
                                                                                 ),
