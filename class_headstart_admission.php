@@ -1667,7 +1667,7 @@ class class_headstart_admission
         $category_slug = get_term_by('id', $category_id, 'wpsc_categories')->slug;
 
         // get the cohortid for this ticket based on category-cohortid mapping from settings
-        $cohortidnumber = 103; // $this->category_cohortid_arr[$category_slug];
+        $cohortidnumber = $this->category_cohortid_arr[$category_slug];
 
         // prepare the Moodle Rest API object
         $MoodleRest = new MoodleRest();
