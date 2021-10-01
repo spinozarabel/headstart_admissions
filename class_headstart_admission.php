@@ -1536,8 +1536,11 @@ class class_headstart_admission
         // Existing user, the username needs to be extracted from the headstart-email
         $moodle_email       = $this->data_object->ticket_meta['headstart-email'];
 
-        // get 1st part of the email as the username
-        $moodle_username    = explode( "@headstart.edu.in", $moodle_email, 2 )[0];
+        // get the  WP user object from the hset-payments site using woocommerce API, set error ststus if not successfull
+        $wp_user_hset_payments = $this->get_wp_user_hset_payments($moodle_email, $data_object->ticket_id);
+
+        // get the moodle_id which is same as wpuser's login at the hset-payments site
+        $moodle_id = $wp_user_hset_payments->username;
 
             // prepare the Moodle Rest API object
         $MoodleRest = new MoodleRest();
@@ -1545,29 +1548,10 @@ class class_headstart_admission
         $MoodleRest->setToken( $moodle_token ); // get token from ignore_key file
         $MoodleRest->setReturnFormat(MoodleRest::RETURN_ARRAY); // Array is default. You can use RETURN_JSON or RETURN_XML too.
 
-        // get moodle user details associated with this username, we need the id to updatethe user's data
-        $parameters 	= array("criteria" => array(array(  "key"   => "username", 
-                                                            "value" => $moodle_username ),
-                                                    array(  "key"   => 'email',
-                                                            'value' => $moodle_email),
-                                                    )
-                                );
-
-    		// get moodle user satisfying above criteria. This only works with id not with anything else
-    		$moodle_users 	= $MoodleRest->request('core_user_get_users', $parameters, MoodleRest::METHOD_GET);
-
-
-        if ( empty( $moodle_users["users"][0]['id'] ) )
-        {
-            // For whatever reason this user does not exist in the system, so cannot update user account
-            // so just send error message saying could not update.
-            $this->verbose ? error_log("Error updating SriToni Accouont,could not get user id from username: " . $moodle_username) : false;
-            $this->verbose ? error_log(print_r($moodle_users, true)) : false;
-            return;
-        }
+        
         // We have a valid Moodle user id, form the array to updatethis user
         $users = array("users" => array(
-                                        array(	"id" 	        => $moodle_users["users"][0]['id'],
+                                        array(	"id" 	        => $moodle_id,
                                         //      "idnumber"      => $data_object->ticket_meta["idnumber"],
                                         //      "auth"          => "oauth2",
                                                 "firstname"     => $data_object->ticket_meta["student-first-name"],
@@ -1691,7 +1675,7 @@ class class_headstart_admission
         $MoodleRest->setToken( $moodle_token ); // get token from ignore_key file
         $MoodleRest->setReturnFormat(MoodleRest::RETURN_ARRAY); // Array is default. You can use RETURN_JSON or RETURN_XML too.
 
-        $parameters   = array("members"  => array(array("cohorttype"    => array(  'type' => 'idnumber',
+        $parameters   = array("members"  => array(array("cohorttype"    => array(  'type' => 'id',
                                                                                    'value'=> $cohortidnumber
                                                                                 ),
                                                         "usertype"      => array(   'type' => 'username',
