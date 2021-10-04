@@ -73,9 +73,6 @@ class class_headstart_admission
 
         // read the fee and description pairs from settings and form an associative array
         $this->admission_settings();
-
-
-
 	}
 
     /**
@@ -83,7 +80,6 @@ class class_headstart_admission
      * Get settings values for fee and description based on category
      * This array will be used to look up fee and payment description agent fields, based on category
      */
-
     private function admission_settings()
     {
         $setting_category_fee = get_option('headstart_admission_settings')['category_fee'];
@@ -118,6 +114,7 @@ class class_headstart_admission
                                                                                 return explode("=>", $row);
                                                                             }, $array3), 1, 0);
     }
+
 
     /**
      * @return nul
@@ -218,7 +215,6 @@ class class_headstart_admission
      * Uses the WooCommerce API to get back the order object for a given order_id
      * It prints outthe order object but this is only visible in a test page and gets overwritten by a short code elsewhere
      */
-
     private function get_wc_order($order_id)
     {
         // instantiate woocommerce API class
@@ -691,13 +687,13 @@ class class_headstart_admission
         endswitch;      // END of switch  status change actions
     }                  
 
-/**
- *  This routine is typically called by a scheduled task from outside the class using the instance so this is public
- *  No pre-requisites. Statuses have to  exist in ticket system settings
- *  1. Get a list of all tickets having status: 'school-accounts-being-created'
- *  2. For each ticket, poll the hset-payments site and check if ticket user's user account exists
- *  3. If user account exists, change status of that ticket to enable PO creation: 'admission-payment-order-being-created'
- */
+    /**
+     *  This routine is typically called by a scheduled task from outside the class using the instance so this is public
+     *  No pre-requisites. Statuses have to  exist in ticket system settings
+     *  1. Get a list of all tickets having status: 'school-accounts-being-created'
+     *  2. For each ticket, poll the hset-payments site and check if ticket user's user account exists
+     *  3. If user account exists, change status of that ticket to enable PO creation: 'admission-payment-order-being-created'
+     */
     public function check_if_accounts_created()
     {
         global $wpscfunction, $wpdb;
@@ -781,10 +777,7 @@ class class_headstart_admission
 
         $endpoint   = "customers";
 
-        $params     = array(
-                            'role'  =>'subscriber',
-                            'email' => $email
-                            );
+        $params     = array( 'role'  =>'subscriber', 'email' => $email );
         // get customers with given parameters as above, there should be a maximum of 1
         try
         {
@@ -948,11 +941,10 @@ class class_headstart_admission
 
 
     /**
+     *  pre-reqiosites before coming here:
+     * 1. $this->get_data_object_from_ticket($ticket_id) to get the data from ticket
      * 
-     * 1. check the site hset-payments for this user. Get user object back
-     * 2. Check if user meta from this site has valid VA data for this payment site
-     * 3. If not check with CF to see if VA exists. If it does update the hset-payments' site for user meta for VA
-     * 4. If VA does not exist, create a new VA and update site hset-payment with user meta for new VA
+     * Check payments site for valid VA, create a new one if necessary and update user meta at payments site
      *
      * @return obj:woocommerce customer object - null returned in case of server error or if user does not exist or bad email
      */
@@ -979,21 +971,17 @@ class class_headstart_admission
         // from category ID get the category name
         $category_slug = get_term_by('id', $category_id, 'wpsc_categories')->slug;
 
-        // for Internal users get email directly from form->ticket->email
-        // for new users admin needs to assign username in agent obnly field.
+        // for Internal users get email directly from ticket->headstart-email - for new users, use agent assigned username
         if (stripos($category_slug, "internal") === false)
-        {
-            // Category slug does NOT contain 'internal' so external user application so agent needs to assign username
+        {       // Category slug does NOT contain 'internal' so external user application so use agent assigned username
             $email = $data_object->ticket_meta['username'] . '@headstart.edu.in'; 
         }
         else
-        {
-            // headstart user so use form/ticket email directly
+        {       // headstart user so use form/ticket email directly
             $email = $data_object->ticket_meta['headstart-email'];
 
             if (stripos($email, "headstart.edu.in") === false)
-            {
-                // email is NOT headstart domain, cannot process further
+            {   // email is NOT headstart domain, cannot process further
                 $this->verbose? error_log("Email is NOT of Head Start Domain: " . $email) : false;
                 $error_message = "Email is NOT Head Start Domain: " . $email;
                 $this->change_status_error_creating_payment_shop_order($data_object->ticket_id, $error_message);
@@ -1034,8 +1022,8 @@ class class_headstart_admission
         if ( empty($va_id)                                 ||   // VAID is empty
              $account_number !== "808081HS" . $vAccountId  ||   // account number does not match that derived from prefix and moodleid
              $va_ifsc_code   !== "YESB0CMSNOC")                 // IFSC code does not match what is right for site
-        {   
-            // VA account data is empty or not valid in customer object. However let us see if it exists at CashFree
+        {       // VA account data is empty or not valid in customer object. However let us see if it exists at CashFree
+            
             // instantiate the cashfree API
             $configfilepath  = $this->plugin_name . "_config.php";
             $cashfree_api    = new CfAutoCollect($configfilepath); // new cashfree Autocollect API object
@@ -1045,8 +1033,7 @@ class class_headstart_admission
 
             // check if returned account's vaid and given vaid match
             if ($vAccount->vAccountId == $vAccountId)
-            {
-                // A valid account exists, so no need to create a new account, just update our records
+            {   // A valid account exists, so no need to create a new VA, just update our records
                 // However need to update the user's meta in the hset-payments site using the WC API
                 $user_meta_data = array(
                                         "meta_data" => array(   array(
@@ -1078,8 +1065,7 @@ class class_headstart_admission
                 return $updated_customer; // customer object with updated VA information
             }
             else
-            {
-                // Chekcked CF, but A valid VA does not exist for this Head Start account holder. So create a new one
+            {   // Chekcked CashFree, valid VA DOES NOT exist for this Head Start account holder - create a new VA
                 $name   = $wp_user_hset_payments->first_name . " " . $wp_user_hset_payments->last_name;
 
                 // extract the phone from the WC user's meta data using the known key
@@ -1142,21 +1128,23 @@ class class_headstart_admission
             }
         }
         else
-        {
-            // the VA for this user already exists in the user meta. So all good.
+        {       // the VA for this user already exists in the user meta. So all good.
             $this->verbose? error_log("Valid VA exists for Head Start email: " . $wp_user_hset_payments->email) : false;
             $this->verbose? error_log("Valid VAID exists for Head Start email: " . $va_id) : false;
 
             return $wp_user_hset_payments;
-        }
-        
+        }  
     }
 
 
 
     /**
-     *  Creates a data object from a given ticket_id. Thhis is used for creating orders, user accounts etc.
-     *  make sure to run $this->get_data_object_from_ticket($ticket_id) before calling this  method
+     *  Creates a new Order on the payments site
+     *  Prerequisites:
+     *  1. Valid data_object for this ticket: $this->get_data_object_from_ticket($ticket_id)
+     *  2. $this->get_wpuser_hset_payments_check_create_cfva() to get valid customet object and also valid VA
+     *  
+     *  This function creates a new Order at the payments site using information derived from ticket and customer object
      *  @return obj:$order_created
      */
     private function create_wc_order_site_hsetpayments()
