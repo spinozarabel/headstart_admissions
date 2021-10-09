@@ -1960,9 +1960,9 @@ class class_headstart_admission
 
 
 
-    private function test_create_wc_order()
+    private function test_create_wc_order($ticket_id)
     {
-        $ticket_id = 3;
+        // $ticket_id = 3;
 
         $this->get_data_object_from_ticket($ticket_id);
 
