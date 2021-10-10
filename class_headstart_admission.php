@@ -1835,9 +1835,9 @@ class class_headstart_admission
         $cohort = $this->category_cohortid_arr[$term_category->slug];
 
         // update the agent fields for fee and fee description
-        $wpscfunction->change_field($ticket_id, 'admission-fee-payable', $admission_fee_payable);
+        //$wpscfunction->change_field($ticket_id, 'admission-fee-payable', $admission_fee_payable);
 
-        $wpscfunction->change_field($ticket_id, 'product-customized-name', $product_customized_name);
+        //$wpscfunction->change_field($ticket_id, 'product-customized-name', $product_customized_name);
         
         echo "<pre>" . "Ticket category id: " . $ticket_category_id ."</pre>";
         echo "<pre>" . "Ticket category slug: " . $term_category->slug ."</pre>";
@@ -1854,8 +1854,8 @@ class class_headstart_admission
         endforeach;
         */
         // get the the  ticket history of a given ticket
-        $ticket_history = $wpscfunction->get_ticket_history($ticket_id);
-        echo "<pre>" . "Ticket History of ticket ID: " . $ticket_id ."</pre>";
+        $ticket_history = $wpscfunction->get_last_reply($ticket_id);
+        echo "<pre>" . "Last reply of ticket ID: " . $ticket_id ."</pre>";
         echo "<pre>" . print_r($ticket_history, true) ."</pre>";
 
     }
