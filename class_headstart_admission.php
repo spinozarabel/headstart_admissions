@@ -1786,8 +1786,6 @@ class class_headstart_admission
     {
         global $wpscfunction;
 
-        // $ticket_id = 8;
-
         echo "<h1>" . "List of ALL Ticket custom fields" . "</h1>";
 
         $custom_fields = get_terms([
@@ -1855,7 +1853,10 @@ class class_headstart_admission
             echo nl2br("Ticket id: " . $ticket->id . " \n");
         endforeach;
         */
-        $this->create_update_user_account($ticket_id);
+        // get the the  ticket history of a given ticket
+        $ticket_history = $wpscfunction->get_ticket_history($ticket_id);
+        echo "<pre>" . "Ticket History of ticket ID: " . $ticket_id ."</pre>";
+        echo "<pre>" . print_r($ticket_history, true) ."</pre>";
 
     }
 
