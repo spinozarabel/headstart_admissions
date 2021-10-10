@@ -1854,7 +1854,7 @@ class class_headstart_admission
         endforeach;
         */
         // get the the  ticket history of a given ticket
-        $ticket_history = $wpscfunction->get_last_reply($ticket_id);
+        $ticket_history = $wpscfunction->get_last_reply($ticket_id)['description'];
         echo "<pre>" . "Last reply of ticket ID: " . $ticket_id ."</pre>";
         echo "<pre>" . print_r($ticket_history, true) ."</pre>";
 
