@@ -270,12 +270,12 @@ class class_headstart_admission
         // This is the principal source of data for subsequent actions such as account creation
         add_action( 'ninja_forms_after_submission', [$this, 'map_ninja_form_to_ticket'] );
 
+        // Just after a reply thread is submitted and inserted into the database, this action triggers
+        // do_action('wpsc_after_submit_thread_request',$args,$thread_id)
+        add_action( 'wpsc_after_submit_thread_request', [$this, 'action_on_reply_submission'], 10, 2 );
 
         // add_action('wpsc_set_change_fields', [$this, 'action_on_ticket_field_changed'], 10,4);
-
     }
-
-
 
     /**
      *  NOT USED
@@ -1714,7 +1714,72 @@ class class_headstart_admission
         
     }
 
-    
+    /**
+     * 
+     */
+    public function action_on_reply_submission( array $args, int $thread_id ): void
+    {
+        $reply_text = $args['reply_body'];
+
+        $utr = $this->extract_utr( $reply_text );
+
+        if ( $utr )
+        {
+            $ticket_id  = $args['ticket_id'];
+            
+            $this->update_field_bank_reference( $ticket_id, $utr );
+        }
+    }
+
+    /**
+     *  @param integer:$ticket_id
+     *  @param string:$utr
+     *  @return void
+     */
+    public function update_field_bank_reference(int $ticket_id, string $utr):void
+    {
+        global $wpscfunction;
+
+        $wpscfunction->change_field($ticket_id, 'payment-bank-reference', $utr);
+    }
+
+    /**
+     *  @param string:$reply
+     *  @return string:$utr can also return null and therefore the ? in the decalaration of function
+     *  The given string is searched for space, :, -. and _ and EOL. The characters found are replaced with a space
+     *  Next the string is broken up into an an array of sub strings when separated by a space
+     *  Each of the sub-strings are searched to see if 12, 16, or 22 characters long. If so, the sub-string is returned as UTR
+     */
+    public function extract_utr(string $reply): ?string
+    {
+        $utr = null;    // initialize. 
+
+        // array of possible word separators to look for in reply message text
+        $search = array(" ", ":", "-", "_", PHP_EOL);
+
+        // replace string space
+        $replace = " ";
+
+        // replace the desirable word separators if found with a space
+        $modified_reply = str_replace($search, $replace, $reply);
+
+        // form an array of words using the space as a separator
+        $words_arr      = explode($replace, $modified_reply);
+
+        // check each word for length: IMPS has 12, RTGS 16 and NEFT 22.
+        foreach ($words_arr as $word)
+        {
+            if (iconv_strlen($word) === 12 || iconv_strlen($word) === 16 || iconv_strlen($word) === 22)
+            {
+                $utr = $word;
+                
+                return $utr;
+            }
+        }
+
+        // return a null value for utr since no value was found
+        return $utr;
+    }
 
 
     /**
