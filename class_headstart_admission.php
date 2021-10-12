@@ -1919,9 +1919,9 @@ class class_headstart_admission
         endforeach;
         */
         // get the the  ticket history of a given ticket
-        $ticket_history = $wpscfunction->get_ticket_history_all($ticket_id);
+        $ticket_description = $wpscfunction->get_ticket_description($ticket_id);
         echo "<pre>" . "History of ticket ID: " . $ticket_id ."</pre>";
-        echo "<pre>" . print_r($ticket_history, true) ."</pre>";
+        echo "<pre>" . print_r($ticket_description, true) ."</pre>";
 
     }
 
