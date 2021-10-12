@@ -1783,6 +1783,63 @@ class class_headstart_admission
 
 
     /**
+     * 
+     */
+    public function check_if_payment_utr_input()
+    {
+        // get all tickets that have payment status as shown. 
+        $tickets = $this->get_all_active_tickets_by_status_slug('admission-payment-order-being-created');
+        foreach ($tickets as $ticket)
+        {
+            // get the the  ticket history of a given ticket
+            $threads = $this->get_ticket_threads($ticket->id);
+
+            foreach ($threads as $thread)
+            {
+                $reply = $thread->post_content;
+                if ($reply)
+                {
+                    $utr = $this->extract_utr($reply);
+                }
+    
+                if ($utr)
+                {
+                    break;
+                }
+            }
+        }
+
+        
+    }
+
+    public function get_ticket_threads( int $ticket_id): ?array
+    {
+        $threads = get_posts(array(
+            'post_type'      => 'wpsc_ticket_thread',
+            'post_status'    => 'publish',
+            'posts_per_page' => '1',
+            'orderby'        => 'date',
+            'order'          => 'DESC',
+            'meta_query'     => array(
+                                        'relation' => 'AND',
+                                        array(
+                                            'key'     => 'ticket_id',
+                                            'value'   => $ticket_id,
+                                            'compare' => '='
+                                            ),
+                                        array(
+                                            'key'     => 'thread_type',
+                                            'value'   => 'reply',
+                                            'compare' => '='
+                                            ),
+                                    ),
+            )
+        );
+
+        return $threads;
+    }
+
+    /**
      * @return nul
      * Get a list of all tickets that have error's while creating payment orders
      * The errors could be due to server down issues or data setup issues
@@ -1919,26 +1976,8 @@ class class_headstart_admission
         endforeach;
         */
         // get the the  ticket history of a given ticket
-        $threads = get_posts(array(
-            'post_type'      => 'wpsc_ticket_thread',
-            'post_status'    => 'publish',
-            'posts_per_page' => '1',
-            'orderby'        => 'date',
-            'order'          => 'DESC',
-            'meta_query'     => array(
-              'relation' => 'AND',
-              array(
-                'key'     => 'ticket_id',
-                'value'   => $ticket_id,
-                'compare' => '='
-              ),
-              array(
-                'key'     => 'thread_type',
-                'value'   => 'reply',
-                'compare' => '='
-              ),
-            ),
-          ));
+        $threads = $this->get_ticket_threads($ticket_id);
+        
           foreach ($threads as $thread)
           {
             $reply = $thread->post_content;
