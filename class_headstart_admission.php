@@ -1941,10 +1941,10 @@ class class_headstart_admission
           ));
           foreach ($threads as $thread)
           {
-            $reply = $thread['post_content'];
+            $reply = $thread->post_content;
             if ($reply)
             {
-                // $utr = $this->extract_utr($reply);
+                $utr = $this->extract_utr($reply);
             }
 
             if ($utr)
