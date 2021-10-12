@@ -1944,7 +1944,7 @@ class class_headstart_admission
             $reply = $thread['post_content'];
             if ($reply)
             {
-                $utr = $this->extract_utr($reply);
+                // $utr = $this->extract_utr($reply);
             }
 
             if ($utr)
