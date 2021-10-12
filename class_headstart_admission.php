@@ -1919,9 +1919,28 @@ class class_headstart_admission
         endforeach;
         */
         // get the the  ticket history of a given ticket
-        $ticket_description = $wpscfunction->get_ticket_description($ticket_id);
-        echo "<pre>" . "History of ticket ID: " . $ticket_id ."</pre>";
-        echo "<pre>" . print_r($ticket_description, true) ."</pre>";
+        $threads = get_posts(array(
+            'post_type'      => 'wpsc_ticket_thread',
+            'post_status'    => 'publish',
+            'posts_per_page' => '1',
+            'orderby'        => 'date',
+            'order'          => 'DESC',
+            'meta_query'     => array(
+              'relation' => 'AND',
+              array(
+                'key'     => 'ticket_id',
+                'value'   => $ticket_id,
+                'compare' => '='
+              ),
+              array(
+                'key'     => 'thread_type',
+                'value'   => 'reply',
+                'compare' => '='
+              ),
+            ),
+          ));
+        echo "<pre>" . "Threads of ticket ID: " . $ticket_id ."</pre>";
+        echo "<pre>" . print_r($threads, true) ."</pre>";
 
     }
 
