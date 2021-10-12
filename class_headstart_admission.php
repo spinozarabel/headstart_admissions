@@ -272,7 +272,7 @@ class class_headstart_admission
 
         // Just after a reply thread is submitted and inserted into the database, this action triggers
         // do_action('wpsc_after_submit_thread_request',$args,$thread_id)
-        add_action( 'wpsc_after_submit_thread_request', [$this, 'action_on_reply_submission'], 10, 2 );
+        // add_action( 'wpsc_after_submit_thread_request', [$this, 'action_on_reply_submission'], 10, 2 );
 
         // add_action('wpsc_set_change_fields', [$this, 'action_on_ticket_field_changed'], 10,4);
     }
@@ -1726,7 +1726,7 @@ class class_headstart_admission
         if ( $utr )
         {
             $ticket_id  = $args['ticket_id'];
-            
+
             $this->update_field_bank_reference( $ticket_id, $utr );
         }
     }
@@ -1919,8 +1919,8 @@ class class_headstart_admission
         endforeach;
         */
         // get the the  ticket history of a given ticket
-        $ticket_history = $wpscfunction->get_last_reply($ticket_id)['description'];
-        echo "<pre>" . "Last reply of ticket ID: " . $ticket_id ."</pre>";
+        $ticket_history = $wpscfunction->get_ticket_history_all($ticket_id);
+        echo "<pre>" . "History of ticket ID: " . $ticket_id ."</pre>";
         echo "<pre>" . print_r($ticket_history, true) ."</pre>";
 
     }
