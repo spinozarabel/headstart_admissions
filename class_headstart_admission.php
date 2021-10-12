@@ -1939,7 +1939,16 @@ class class_headstart_admission
               ),
             ),
           ));
-        echo "<pre>" . "Threads of ticket ID: " . $ticket_id ."</pre>";
+          foreach ($threads as $threads)
+          {
+            $reply = $thread['post_content'];
+            $utr = $this->extract_utr($reply);
+            if ($utr)
+            {
+                break;
+            }
+          }
+        echo "<pre>" . "UTR of ticket ID: " . $ticket_id . " is:" . $utr. "</pre>";
         echo "<pre>" . print_r($threads, true) ."</pre>";
 
     }
