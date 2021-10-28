@@ -1758,6 +1758,9 @@ class class_headstart_admission
     {   // sub-strings are searched to see if 12, 16, or 22 characters long. If so, the sub-string is returned as UTR
         $utr = null;    // initialize. 
 
+        // strip all html tags from the input string
+        $reply = strip_tags($reply);
+
         // array of possible word separators to look for in reply message text
         $search = array(" ", ":", "-", "_", PHP_EOL);
 
@@ -1773,7 +1776,8 @@ class class_headstart_admission
         // check each word for length: IMPS has 12, RTGS 16 and NEFT 22.
         foreach ($words_arr as $word)
         {
-            if (iconv_strlen($word) === 12 || iconv_strlen($word) === 16 || iconv_strlen($word) === 22)
+            if ( (iconv_strlen($word) === 12 || iconv_strlen($word) === 16 || iconv_strlen($word) === 22) 
+                 && preg_match('/^(?=.*[\d]).+$/', $word) === 1 )
             {
                 $utr = $word;
                 
@@ -1816,8 +1820,16 @@ class class_headstart_admission
             }
             
             if ( $utr )
-            {   // we have a valid utr in ticket reply, so lets update the field payment-bank-reference
-                // $this->update_field_bank_reference($ticket->id, $utr);
+            {   // we have a valid utr in ticket reply, so lets update the field payment-bank-reference only if not empty
+                $this->get_data_object_from_ticket($ticket->id);
+
+                // get existing value of bank-reference from ticket using data pbject
+                $payment_bank_reference = $this->data_object->ticket_meta['payment-bank-reference'];
+
+                if ( empty($payment_bank_reference) )
+                {
+                    $this->update_field_bank_reference($ticket->id, $utr);
+                }
             }
         }
 
