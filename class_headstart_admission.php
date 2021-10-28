@@ -1817,7 +1817,7 @@ class class_headstart_admission
             
             if ( $utr )
             {   // we have a valid utr in ticket reply, so lets update the field payment-bank-reference
-                $this->update_field_bank_reference($ticket->id, $utr);
+                // $this->update_field_bank_reference($ticket->id, $utr);
             }
         }
 
