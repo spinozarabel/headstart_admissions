@@ -58,14 +58,19 @@ function init_headstart_admission()
 
   add_action('admin_post_nopriv_hset_admission_order_complete_webhook', [$admission, 'webhook_order_complete_process'], 10);
 
-  
+  // setup an hourly wp-cron-task to check if accounts exist on SriToni, especially for new users to SriToni
   add_action ( 'check_if_accounts_created_task_hook',                   [$admission, 'check_if_accounts_created'], 10 );
-
   if (!wp_next_scheduled('check_if_accounts_created_task_hook')) 
   {
       wp_schedule_event( time(), 'hourly', 'check_if_accounts_created_task_hook' );
   }
   
+  // setup an hourly wp-cron-task to check eligible tickets if transaction utr number has been input in reply after payment
+  add_action ( 'check_if_payment_utr_input_task_hook',                   [$admission, 'check_if_payment_utr_input'], 10 );
+  if (!wp_next_scheduled('check_if_payment_utr_input_task_hook')) 
+  {
+      wp_schedule_event( time(), 'hourly', 'check_if_payment_utr_input_task_hook' );
+  }
 
   // add_action( 'wp_login', [$admission, 'action_after_login'], 10,2 );
 }

@@ -245,8 +245,7 @@ class class_headstart_admission
      * @return null
      */
     private function define_admin_hooks()
-    {
-        // create a sub menu called Admissions in the Users menu
+    {   // create a sub menu called Admissions in the Users menu
         add_action('admin_menu', [$this, 'add_my_menu']);
     }
 
@@ -330,7 +329,7 @@ class class_headstart_admission
      *  @return integer:$index the index of the array whose value matches at least partially with the given keyword
      */
     public function array_search_partial($arr, $keyword) 
-    {
+    {   // Given a keyword, looks through the array and returns the index for a partial match. Returns false if no match found
         foreach($arr as $index => $string) 
         {
             if (stripos($string, $keyword) !== FALSE)
@@ -608,7 +607,7 @@ class class_headstart_admission
      *  More can be added here as needed.
      */
     public function action_on_ticket_status_changed($ticket_id, $status_id, $prev_status)
-    {
+    {   // status change triggers the main state machine
         global $wpscfunction;
 
         // add any logoc that you want here based on new status
@@ -695,7 +694,7 @@ class class_headstart_admission
      *  3. If user account exists, change status of that ticket to enable PO creation: 'admission-payment-order-being-created'
      */
     public function check_if_accounts_created()
-    {
+    {   // check if (new) accounts are sync'd and exist on payment server - if so change status to admission-payment-order-being-created
         global $wpscfunction, $wpdb;
 
         // $this->verbose ? error_log("In function check_if_accunts_created caused by scheduled event:"): false;
@@ -757,7 +756,7 @@ class class_headstart_admission
      * 2. If site is unreacheable change status of ticket to error
      */
     public function get_wp_user_hset_payments($email, $ticket_id)
-    {
+    {   // Get wpuser object from site hset-payments with given email using Woocommerce API
         global $wpscfunction;
 
         // $data_object = $this->data_object;
@@ -797,10 +796,15 @@ class class_headstart_admission
 
 
     /**
-     * 
+     * @param integer:$ticket_id
+     * @return void
+     * Takes the data object from the ticket using the ticket_id
+     * Get customer_id from hset-payments site using Woocommerce API
+     * Create a new Payment Order using all the data for the given customer_id
+     * Update the ticket field with the order_id created
      */
     public function create_payment_shop_order($ticket_id)
-    {
+    {   // from email get customer_id and create a new Payment Order - update ticket field with order_id
         global $wpscfunction;
 
         // buuild an object containing all relevant data from ticket useful for crating user accounts and payments
@@ -877,7 +881,7 @@ class class_headstart_admission
      *  @return object:$data_object
      */
     private function get_data_object_from_ticket($ticket_id)
-    {
+    {   // create a data object from ticket fields from ticket using ticket_id
         global $wpscfunction;
 
         $this->ticket_id    = $ticket_id;
@@ -947,7 +951,7 @@ class class_headstart_admission
      * @return obj:woocommerce customer object - null returned in case of server error or if user does not exist or bad email
      */
     private function get_wpuser_hset_payments_check_create_cfva()
-    {
+    {   // Get customer User Object from payments site using email. No Cashfree API used anymore
         global $wpscfunction;
 
         // instantiate woocommerce API class
@@ -989,7 +993,7 @@ class class_headstart_admission
         }
         
 
-        // get the  WP user object from the hset-payments site using woocommerce API, set error ststus if not successfull
+        // get the  WP user object from the hset-payments site using woocommerce API, set error status if not successfull
         $wp_user_hset_payments = $this->get_wp_user_hset_payments($email, $data_object->ticket_id);
 
         return $wp_user_hset_payments;
@@ -1029,7 +1033,7 @@ class class_headstart_admission
      *  @return obj:$order_created
      */
     private function create_wc_order_site_hsetpayments()
-    {
+    {   // creates a new Order at the payments site using information derived from ticket and customer object
         $array_meta_key     = [];
         $array_meta_value   = [];
 
@@ -1195,7 +1199,7 @@ class class_headstart_admission
      *  Update the order with the given order data. The order_data has to be constructed as per requirements
      */
     public function update_wc_order_site_hsetpayments($order_id, $order_data)
-    {
+    {   // Update the order with the given order data. The order_data has to be constructed as per requirements
         // instantiate woocommerce API class
         $woocommerce = new Client(
                                     'https://sritoni.org/hset-payments/',
@@ -1227,7 +1231,7 @@ class class_headstart_admission
      */
 
     public function create_update_user_account($ticket_id)
-    {
+    {   // update existing or create a new SriToni user account using data from ticket. Add user to cohort based on ticket data
         global $wpscfunction;
 
         // buuild an object containing all relevant data from ticket useful for crating user accounts and payments
@@ -1282,7 +1286,7 @@ class class_headstart_admission
      *  2. If error in creating new accoount or username is taken ticket status changed to error.
      */
     private function create_sritoni_account()
-    {
+    {   // checks if username is not taken, only then creates new account -sets ticket error if account not created
         // before coming here the create account object should be already created. We jsut use it here.
         $data_object = $this->data_object;
 
@@ -1545,7 +1549,7 @@ class class_headstart_admission
      *  The user could be a new user or a continuing user
      */
     private function add_user_to_cohort()
-    {
+    {   // adds user to cohort based on settings cohortid array indexed by ticket category
         // before coming here the create account object should be already created. We jsut use it here.
         $data_object = $this->data_object;
 
@@ -1751,7 +1755,7 @@ class class_headstart_admission
      *  Each of the sub-strings are searched to see if 12, 16, or 22 characters long. If so, the sub-string is returned as UTR
      */
     public function extract_utr(string $reply): ?string
-    {
+    {   // sub-strings are searched to see if 12, 16, or 22 characters long. If so, the sub-string is returned as UTR
         $utr = null;    // initialize. 
 
         // array of possible word separators to look for in reply message text
@@ -1783,37 +1787,49 @@ class class_headstart_admission
 
 
     /**
-     * 
+     * This function is called by a wp-cron outside this class usually.
+     * For all tickets of specified status, it checks if any thread contains a possible UTR and updates ticket field
+     * @return void
      */
     public function check_if_payment_utr_input()
-    {
+    {   // For all tickets of specified status, it checks if any thread contains a possible UTR and updates ticket field
         // get all tickets that have payment status as shown. 
         $tickets = $this->get_all_active_tickets_by_status_slug('admission-payment-order-being-created');
         foreach ($tickets as $ticket)
         {
-            // get the the  ticket history of a given ticket
+            // get the  ticket history of a given ticket
             $threads = $this->get_ticket_threads($ticket->id);
 
             foreach ($threads as $thread)
             {
-                $reply = $thread->post_content;
-                if ($reply)
+                $thread_content = $thread->post_content;
+                if ($thread_content)
                 {
-                    $utr = $this->extract_utr($reply);
+                    $utr_thisthread = $this->extract_utr($thread_content);
                 }
-    
-                if ($utr)
+
+                if ($utr_thisthread)
                 {
-                    break;
+                    $utr = $utr_thisthread;
                 }
+                // check next thread and update utr if present
+            }
+            
+            if ( $utr )
+            {   // we have a valid utr in ticket reply, so lets update the field payment-bank-reference
+                $this->update_field_bank_reference($ticket->id, $utr);
             }
         }
 
         
     }
 
+    /**
+     * @param integer:$ticket_id
+     * @param array:$threads
+     */
     public function get_ticket_threads( int $ticket_id): ?array
-    {
+    {   // returns all threads of a ticket from the given ticket_id
         $threads = get_posts(array(
             'post_type'      => 'wpsc_ticket_thread',
             'post_status'    => 'publish',
@@ -1840,7 +1856,7 @@ class class_headstart_admission
     }
 
     /**
-     * @return nul
+     * @return void
      * Get a list of all tickets that have error's while creating payment orders
      * The errors could be due to server down issues or data setup issues
      * For each ticket get the user details and create a payment order in the hset-payments site
@@ -1848,7 +1864,7 @@ class class_headstart_admission
      */
 
     public function trigger_sritoni_account_creation_for_error_tickets()
-    {
+    {   // for all tickets with error status for sritoni, initiate an update-create sritoni account again
         global $wpscfunction, $wpdb;
 
         // get all tickets that have payment status as shown. 
@@ -1977,19 +1993,20 @@ class class_headstart_admission
         */
         // get the the  ticket history of a given ticket
         $threads = $this->get_ticket_threads($ticket_id);
-        
+
           foreach ($threads as $thread)
           {
             $reply = $thread->post_content;
             if ($reply)
             {
-                $utr = $this->extract_utr($reply);
+                $utr_thisthread = $this->extract_utr($reply);
             }
 
-            if ($utr)
+            if ($utr_thisthread)
             {
-                break;
+                $utr = $utr_thisthread;
             }
+            // check next thread and update utr if present
           }
         echo "<pre>" . "UTR of ticket ID: " . $ticket_id . " is:" . $utr. "</pre>";
         echo "<pre>" . print_r($threads, true) ."</pre>";
