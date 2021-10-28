@@ -1758,9 +1758,6 @@ class class_headstart_admission
     {   // sub-strings are searched to see if 12, 16, or 22 characters long. If so, the sub-string is returned as UTR
         $utr = null;    // initialize. 
 
-        // strip all html tags from the input string
-        $reply = strip_tags($reply);
-
         // array of possible word separators to look for in reply message text
         $search = array(" ", ":", "-", "_", PHP_EOL);
 
@@ -1777,7 +1774,7 @@ class class_headstart_admission
         foreach ($words_arr as $word)
         {
             if ( (iconv_strlen($word) === 12 || iconv_strlen($word) === 16 || iconv_strlen($word) === 22) 
-                 && preg_match('/^(?=.*[\d]).+$/', $word) === 1 )
+                 && preg_match('/^(?=.*[\d]).+$/', $word) === 1 && ctype_alnum($word) )
             {
                 $utr = $word;
                 
@@ -1806,7 +1803,7 @@ class class_headstart_admission
 
             foreach ($threads as $thread)
             {
-                $thread_content = $thread->post_content;
+                $thread_content = strip_tags($thread->post_content);
                 if ($thread_content)
                 {
                     $utr_thisthread = $this->extract_utr($thread_content);
