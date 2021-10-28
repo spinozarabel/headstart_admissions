@@ -1795,6 +1795,7 @@ class class_headstart_admission
     public function check_if_payment_utr_input()
     {   // For all tickets of specified status, it checks if any thread contains a possible UTR and updates ticket field
         // get all tickets that have payment status as shown. 
+        return;
         $tickets = $this->get_all_active_tickets_by_status_slug('admission-payment-order-being-created');
         foreach ($tickets as $ticket)
         {
