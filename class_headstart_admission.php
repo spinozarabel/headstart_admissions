@@ -1795,18 +1795,24 @@ class class_headstart_admission
     public function check_if_payment_utr_input()
     {   // For all tickets of specified status, it checks if any thread contains a possible UTR and updates ticket field
         // get all tickets that have payment status as shown. 
-        return;
+
         $tickets = $this->get_all_active_tickets_by_status_slug('admission-payment-order-being-created');
+
         foreach ($tickets as $ticket)
         {
-            // get the  ticket history of a given ticket
+            // initialize $utr for each ticket so as not to carry over from previous tickets
+            $utr = null;
+
+            // get the  ticket history of this ticket
             $threads = $this->get_ticket_threads($ticket->id);
 
+            // process all threads of this ticket
             foreach ($threads as $thread)
             {
                 $thread_content = strip_tags($thread->post_content);
                 if ($thread_content)
                 {
+                    // null value returned if utr doesnt exist in this thread
                     $utr_thisthread = $this->extract_utr($thread_content);
                 }
 
@@ -1817,6 +1823,7 @@ class class_headstart_admission
                 // check next thread and update utr if present
             }
             
+            // if $utr is not null from above processing of threads update this ticket provided existing value for field is empty
             if ( $utr )
             {   // we have a valid utr in ticket reply, so lets update the field payment-bank-reference only if not empty
                 $this->get_data_object_from_ticket($ticket->id);
