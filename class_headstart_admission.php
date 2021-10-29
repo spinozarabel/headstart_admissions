@@ -476,7 +476,19 @@ class class_headstart_admission
 
                     if ($key !== false)
                     {
-                        $ticket_args[$ticket_field->slug]= $value_array[$key];
+                        // get the form-captured field value for customer-name
+                        $customer_name = $value_array[$key];
+                        // We want to format it with 1st letter apital and rest in lowercase
+                        $customer_name_arr = explode(" ", $customer_name);
+
+                        $name = "";
+                        foreach ($customer_name_arr as $partname)
+                        {
+                            $name .= " " . ucfirst(strtolower($partname));
+                        }
+
+                        // remove extraneous spaces at beginning and or end
+                        $ticket_args[$ticket_field->slug]= trim($name);
                     }
                     else
                     {
@@ -571,6 +583,62 @@ class class_headstart_admission
                         $this->verbose ? error_log($ticket_field->slug . " index not found in Ninja forms map to Ticket") : false;
                     }
                     
+                    break;
+
+
+                case ($ticket_field->slug == 'student-first-name'):
+                    // look for the mapping slug in the ninja forms field's admin label
+                    $key = array_search('student-first-name', $admin_label_array);
+
+                    if ($key !== false)
+                    {
+                        // get the custmeer entered students first name
+                        $value    = $value_array[$key];
+
+                        // Convert to lowercase and Capitalize the 1st letter
+                        $ticket_args[$ticket_field->slug] = ucfirst(strtolower($value));
+                    }
+                    else
+                    {
+                        $this->verbose ? error_log($ticket_field->slug . " index not found in Ninja forms map to Ticket") : false;
+                    }
+                    break;
+
+
+                case ($ticket_field->slug == 'student-middle-name'):
+                    // look for the mapping slug in the ninja forms field's admin label
+                    $key = array_search('student-middle-name', $admin_label_array);
+
+                    if ($key !== false)
+                    {
+                        // get the custmeer entered students first name
+                        $value    = $value_array[$key];
+
+                        // Convert to lowercase and Capitalize the 1st letter
+                        $ticket_args[$ticket_field->slug] = ucfirst(strtolower($value));
+                    }
+                    else
+                    {
+                        $this->verbose ? error_log($ticket_field->slug . " index not found in Ninja forms map to Ticket") : false;
+                    }
+                    break;
+
+                case ($ticket_field->slug == 'student-last-name'):
+                    // look for the mapping slug in the ninja forms field's admin label
+                    $key = array_search('student-last-name', $admin_label_array);
+
+                    if ($key !== false)
+                    {
+                        // get the custmeer entered students first name
+                        $value    = $value_array[$key];
+
+                        // Convert to lowercase and Capitalize the 1st letter
+                        $ticket_args[$ticket_field->slug] = ucfirst(strtolower($value));
+                    }
+                    else
+                    {
+                        $this->verbose ? error_log($ticket_field->slug . " index not found in Ninja forms map to Ticket") : false;
+                    }
                     break;
 
 
@@ -1300,6 +1368,10 @@ class class_headstart_admission
 
         $moodle_username    = $data_object->ticket_meta["username"];
         $moodle_email       = $moodle_username . "@headstart.edu.in";
+        $moodle_environment = $data_object->ticket_meta["environment"] ?? "NA";
+        $moodle_phone1      = $data_object->ticket_meta["emergency-contact-number"] ?? "1234567890";
+        $moodle_phone2      = $data_object->ticket_meta["emergency-alternate-contact"] ?? "1234567890";
+        $moodle_department  = $data_object->ticket_meta["department"] ?? "Student";
 
         // prepare the Moodle Rest API object
         $MoodleRest = new MoodleRest();
@@ -1342,9 +1414,9 @@ class class_headstart_admission
                                                     "email"         => $moodle_email,
                                                     "middlename"    => $data_object->ticket_meta["student-middle-name"],
                                                     "institution"   => $data_object->ticket_meta["institution"],
-                                                    "department"    => $data_object->ticket_meta["department"],
-                                                    "phone1"        => $data_object->ticket_meta["emergency-contact-number"],
-                                                    "phone2"        => $data_object->ticket_meta["emergency-alternate-contact"],
+                                                    "department"    => $moodle_department,
+                                                    "phone1"        => $moodle_phone1,
+                                                    "phone2"        => $moodle_phone2,
                                                     "address"       => $data_object->ticket_meta["residential-address"],
                                                     "maildisplay"   => 0,
                                                     "createpassword"=> 0,
@@ -1355,7 +1427,7 @@ class class_headstart_admission
                                                                                         "value"	=>	$data_object->ticket_meta["class"],
                                                                                     ),
                                                                                 array(	"type"	=>	"environment",
-                                                                                        "value"	=>	$data_object->ticket_meta["environment"],
+                                                                                        "value"	=>	$moodle_environment,
                                                                                     ),
                                                                                 array(	"type"	=>	"studentcat",
                                                                                         "value"	=>	$data_object->ticket_meta["studentcat"],
