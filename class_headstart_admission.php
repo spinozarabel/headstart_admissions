@@ -1368,7 +1368,10 @@ class class_headstart_admission
 
         $moodle_username    = $data_object->ticket_meta["username"];
         $moodle_email       = $moodle_username . "@headstart.edu.in";
-        $moodle_environment = $data_object->ticket_meta["environment"] ?? "NA";
+
+        $moodle_environment = $data_object->ticket_meta["environment"];
+        if (empty($moodle_environment)) $moodle_environment = "NA";
+
         $moodle_phone1      = $data_object->ticket_meta["emergency-contact-number"] ?? "1234567890";
         $moodle_phone2      = $data_object->ticket_meta["emergency-alternate-contact"] ?? "1234567890";
         $moodle_department  = $data_object->ticket_meta["department"] ?? "Student";
