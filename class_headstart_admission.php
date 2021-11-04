@@ -1408,6 +1408,12 @@ class class_headstart_admission
         $fees_array = [];
         $fees_json  = json_encode($fees_array);
 
+        $payments   = [];
+        $payments_json = json_encode($payments_json);
+
+        $virtualaccounts = [];
+        $virtualaccounts_json = json_encode($virtualaccounts_json);
+
     	$users = array("users" => array(
                                             array(	"username" 	    => $moodle_username,
                                                     "idnumber"      => $data_object->ticket_meta["idnumber"],
@@ -1431,6 +1437,18 @@ class class_headstart_admission
                                                                                     ),
                                                                                 array(	"type"	=>	"environment",
                                                                                         "value"	=>	$moodle_environment,
+                                                                                    ),
+                                                                                array(	"type"	=>	"emergencymob",
+                                                                                        "value"	=>	$moodle_phone1,
+                                                                                    ),
+                                                                                array(	"type"	=>	"fees",
+                                                                                        "value"	=>	$fees_json,
+                                                                                    ),
+                                                                                array(	"type"	=>	"payments",
+                                                                                        "value"	=>	$payments_json,
+                                                                                    ),
+                                                                                array(	"type"	=>	"virtualaccounts",
+                                                                                        "value"	=>	$virtualaccounts_json,
                                                                                     ),
                                                                                 array(	"type"	=>	"studentcat",
                                                                                         "value"	=>	$data_object->ticket_meta["studentcat"],
