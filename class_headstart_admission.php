@@ -1102,6 +1102,8 @@ class class_headstart_admission
      */
     private function create_wc_order_site_hsetpayments()
     {   // creates a new Order at the payments site using information derived from ticket and customer object
+        global $wpscfunction;
+        
         $array_meta_key     = [];
         $array_meta_value   = [];
 
@@ -1251,6 +1253,11 @@ class class_headstart_admission
         // check if the order has been created and if so what is the order ID
         if (!empty($order_created->id))
         {
+            // Blank any pre-existing error message since we are successful
+            if ( !empty($data_object->ticket_meta["error"]) )
+            {
+                $wpscfunction->change_field($data_object->ticket_id, 'error', "None");
+            }
             return $order_created;
         }
         else
@@ -1356,6 +1363,8 @@ class class_headstart_admission
     private function create_sritoni_account()
     {   // checks if username is not taken, only then creates new account -sets ticket error if account not created
         // before coming here the create account object should be already created. We jsut use it here.
+        global $wpscfunction;
+
         $data_object = $this->data_object;
 
         // run this again since we may be changing API keys. Once in production remove this
@@ -1409,10 +1418,10 @@ class class_headstart_admission
         $fees_json  = json_encode($fees_array);
 
         $payments   = [];
-        $payments_json = json_encode($payments_json);
+        $payments_json = json_encode($payments);
 
         $virtualaccounts = [];
-        $virtualaccounts_json = json_encode($virtualaccounts_json);
+        $virtualaccounts_json = json_encode($virtualaccounts);
 
     	$users = array("users" => array(
                                             array(	"username" 	    => $moodle_username,
@@ -1509,6 +1518,11 @@ class class_headstart_admission
         // let us check to make sure that the user is created
         if ($ret[0]['username'] == $moodle_username && empty($ret["exception"]))
         {
+            // Blank any pre-existing error message since we are successful
+            if ( !empty($data_object->ticket_meta["error"]) )
+            {
+                $wpscfunction->change_field($data_object->ticket_id, 'error', "None");
+            }
             // the returned user has same name as one given to create new user so new user creation was successful
             return $ret[0]['id'];
         }
