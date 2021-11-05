@@ -1256,7 +1256,7 @@ class class_headstart_admission
             // Blank any pre-existing error message since we are successful
             if ( !empty($data_object->ticket_meta["error"]) )
             {
-                $wpscfunction->change_field($data_object->ticket_id, 'error', "None");
+                $wpscfunction->change_field($data_object->ticket_id, 'error', "");
             }
             return $order_created;
         }
@@ -1521,7 +1521,7 @@ class class_headstart_admission
             // Blank any pre-existing error message since we are successful
             if ( !empty($data_object->ticket_meta["error"]) )
             {
-                $wpscfunction->change_field($data_object->ticket_id, 'error', "None");
+                $wpscfunction->change_field($data_object->ticket_id, 'error', "");
             }
             // the returned user has same name as one given to create new user so new user creation was successful
             return $ret[0]['id'];
