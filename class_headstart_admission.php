@@ -1866,7 +1866,7 @@ class class_headstart_admission
         $utr = null;    // initialize. 
 
         // array of possible word separators to look for in reply message text
-        $search = array(" ", ":", "-", "_", PHP_EOL);
+        $search = array(" ", ":", "-", "_", ",", ")", "(", ";", ".", PHP_EOL);
 
         // replace string space
         $replace = " ";
