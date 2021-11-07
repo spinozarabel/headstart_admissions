@@ -1866,17 +1866,17 @@ class class_headstart_admission
         $utr = null;    // initialize. 
 
         // array of possible word separators to look for in reply message text
-        $search = array(" ", ":", "-", "_", ",", ")", "(", ";", ".", PHP_EOL);
+        //$search = array(" ", ":", "-", "_", ",", ")", "(", ";", ".", PHP_EOL);
 
         // replace string space
         $replace = " ";
 
         // replace the desirable word separators if found with a space
-        $modified_reply = str_replace($search, $replace, $reply);
+        //$modified_reply = str_replace($search, $replace, $reply);
 
         // form an array of words using the space as a separator
         //$words_arr      = explode($replace, $modified_reply);
-        $words_arr = explode(" ", preg_replace("/[\W_]+/", $replace, $modified_reply));
+        $words_arr = explode(" ", preg_replace("/[\W_]+/", $replace, $reply));
 
         // check each word for length: IMPS has 12, RTGS 16 and NEFT 22. Also word should have at least 1 digit
         foreach ($words_arr as $word)
