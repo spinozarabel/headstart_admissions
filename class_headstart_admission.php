@@ -1876,7 +1876,7 @@ class class_headstart_admission
 
         // form an array of words using the space as a separator
         //$words_arr      = explode($replace, $modified_reply);
-        $words_arr = preg_replace("/[\W_]+/", $replace, $modified_reply);
+        $words_arr = explode(" ", preg_replace("/[\W_]+/", $replace, $modified_reply));
 
         // check each word for length: IMPS has 12, RTGS 16 and NEFT 22. Also word should have at least 1 digit
         foreach ($words_arr as $word)
