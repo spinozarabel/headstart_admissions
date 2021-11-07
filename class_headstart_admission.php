@@ -1866,7 +1866,7 @@ class class_headstart_admission
         $utr = null;    // initialize. 
 
         // array of possible word separators to look for in reply message text
-        //$search = array(" ", ":", "-", "_", ",", ")", "(", ";", ".", PHP_EOL);
+        $search = array(" ", ":", "-", "_", ",", ")", "(", ";", ".", PHP_EOL);
 
         // replace string space
         $replace = " ";
@@ -1876,7 +1876,7 @@ class class_headstart_admission
 
         // form an array of words using the space as a separator
         //$words_arr      = explode($replace, $modified_reply);
-        $words_arr = preg_replace("/[\W_]+/", $replace, $reply);
+        $words_arr = preg_replace("/[\W_]+/", $replace, $modified_reply);
 
         // check each word for length: IMPS has 12, RTGS 16 and NEFT 22. Also word should have at least 1 digit
         foreach ($words_arr as $word)
@@ -2120,12 +2120,14 @@ class class_headstart_admission
         // get the the  ticket history of a given ticket
         $threads = $this->get_ticket_threads($ticket_id);
 
-          foreach ($threads as $thread)
-          {
-            $reply = $thread->post_content;
-            if ($reply)
+        // process all threads of this ticket
+        foreach ($threads as $thread)
+        {
+            $thread_content = strip_tags($thread->post_content);
+            if ($thread_content)
             {
-                $utr_thisthread = $this->extract_utr($reply);
+                // null value returned if utr doesnt exist in this thread
+                $utr_thisthread = $this->extract_utr($thread_content);
             }
 
             if ($utr_thisthread)
@@ -2133,7 +2135,7 @@ class class_headstart_admission
                 $utr = $utr_thisthread;
             }
             // check next thread and update utr if present
-          }
+        }
         echo "<pre>" . "UTR of ticket ID: " . $ticket_id . " is:" . $utr. "</pre>";
         echo "<pre>" . print_r($threads, true) ."</pre>";
 
