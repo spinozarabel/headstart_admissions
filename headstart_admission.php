@@ -39,7 +39,7 @@ if ( is_admin() )
 
 
 
-// wait for all plugins to be loaded before initializing the new VABACS gateway
+// wait for all plugins to be loaded before initializing our code
 add_action('plugins_loaded', 'init_headstart_admission');
 
 function  action_after_login($user_login, $user)
@@ -49,6 +49,12 @@ function  action_after_login($user_login, $user)
 
 }
 
+/**
+ *  Instantiate the main class that the plugin uses
+ *  Setup webhook to be cauught when Order is COmpleted on the WooCommerce site.
+ *  Setup wp-cron schedule and eveent for hourly checking to see if SriToni Moodle Accounts have been created
+ *  Setup wp-cron schedule and event for hourly checking to see if user has replied to ticket with payment UTR
+ */
 function init_headstart_admission()
 {
   add_action('init','custom_login');
@@ -56,6 +62,7 @@ function init_headstart_admission()
   // instantiate the class for head start admission
   $admission       = new class_headstart_admission();
 
+  // setup process to catch webhook sent from WooCommerce when any order has been marked complete.
   add_action('admin_post_nopriv_hset_admission_order_complete_webhook', [$admission, 'webhook_order_complete_process'], 10);
 
   // setup an hourly wp-cron-task to check if accounts exist on SriToni, especially for new users to SriToni
@@ -75,6 +82,11 @@ function init_headstart_admission()
   // add_action( 'wp_login', [$admission, 'action_after_login'], 10,2 );
 }
 
+/**
+ *  This function gets called by an action on 'init'<
+ *  It checks to see if the user is NOT looged in and is on the login page. 
+ *  If so it redirects the user to the home page so that the user can get started cleanly
+ */
 function custom_login()
 {
   global $pagenow;
