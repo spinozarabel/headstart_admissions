@@ -177,7 +177,7 @@ class class_headstart_admission_settings {
     $value = esc_attr( $settings[$field] );
 
     echo "<textarea name='headstart_admission_settings[$field]' id='headstart_admission_settings[$field]'
-            rows='15' cols='125'>" . $value . "</textarea>Do not enter extra spaces, new lines";
+            rows='15' cols='125'>" . $value . "</textarea><br>Do not enter extra spaces or new lines";
 
     }
 
@@ -195,7 +195,9 @@ class class_headstart_admission_settings {
     $value = esc_attr( $settings[$field] );
 
     echo "<textarea name='headstart_admission_settings[$field]' id='headstart_admission_settings[$field]'
-            rows='15' cols='125'>" . $value . "</textarea>Do not enter extra spaces or new lines. The Cohort ID an integer as seen in the URL when editing the cohort";
+            rows='15' cols='125'>" . $value . "</textarea><br>Do not enter extra spaces or new lines. 
+                                                              The Cohort ID the integer as seen in the URL 
+                                                              when editing the cohort in SriToni";
 
     }
 
@@ -212,7 +214,7 @@ class class_headstart_admission_settings {
     $value = esc_attr( $settings[$field] );
 
     echo "<input type='text' name='headstart_admission_settings[$field]' id='headstart_admission_settings[$field]'
-            value='$value' size='80' class='code' />example:HSEA001,WHS1234";
+            value='$value' size='80' class='code' /><br>example:HSEA001,WHS1234";
 
     }
 

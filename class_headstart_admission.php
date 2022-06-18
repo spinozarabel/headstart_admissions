@@ -759,7 +759,8 @@ class class_headstart_admission
      *  No pre-requisites. Statuses have to  exist in ticket system settings
      *  1. Get a list of all tickets having status: 'school-accounts-being-created'
      *  2. For each ticket, poll the hset-payments site and check if ticket user's user account exists
-     *  3. If user account exists, change status of that ticket to enable PO creation: 'admission-payment-order-being-created'
+     *  3. The accounts get created on payment site by a wp-cron driven  hourly ldap sync process from sritonildapsync plugin
+     *  4. If user account exists, change status of that ticket to enable PO creation: 'admission-payment-order-being-created'
      */
     public function check_if_accounts_created()
     {   // check if (new) accounts are sync'd and exist on payment server - if so change status to admission-payment-order-being-created
@@ -852,7 +853,7 @@ class class_headstart_admission
         }
         catch (HttpClientException $e)
         {   // if cannot access hset-payments server error message and return 1
-            $error_message = "Could NOT access hset-payments site to get customer details: " . $e->getMessage();
+            $error_message = "Intranet Site: hset-payments not reacheable: " . $e->getMessage();
             $this->change_status_error_creating_payment_shop_order($ticket_id, $error_message);
 
             return null;
