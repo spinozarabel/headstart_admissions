@@ -60,7 +60,7 @@ class class_headstart_admission
 
 		$this->plugin_name = 'headstart_admission';
 
-        // load actions for admin
+        // load actions only if admin
 		if (is_admin()) $this->define_admin_hooks();
 
         // load public facing actions
@@ -69,6 +69,7 @@ class class_headstart_admission
         // read the config file and build the secrets array
         $this->get_config();
 
+        // set the logging
         $this->verbose = true;
 
         // read the fee and description pairs from settings and form an associative array
@@ -118,9 +119,10 @@ class class_headstart_admission
 
     /**
      * @return nul
-     * This is the function that processes the webhook coming from hset-payments on any order that is completed
+     * This processes the webhook coming from hset-payments on any order that is completed
      * It extracts the order ID and then gets the order from the hset-payments site.
      * From the order the ticket_id is extracted and it's status is updated.
+     * The server originating the webhook IP and domain are checked in addition to the webhook signature
      */
     public function webhook_order_complete_process()
     {
@@ -410,15 +412,16 @@ class class_headstart_admission
     }
 
     /**
-     *  @return void Nothing is returned
-     *  @param array $form_data from the Ninja forms based on an action callback
+     *  @return int:$ticket_id The ID of the ticket that was created based on the form submission.
+     *  @param array:$form_data from the Ninja forms based on an following action
+     *  add_action( 'ninja_forms_after_submission', [$this, 'map_ninja_form_to_ticket'] );
      *  The function takes the Ninja form immdediately after submission
      *  The form data is captured into the fields of a new ticket that is to be created as a result of this submission.
-     *  The agent only fields are not updated by the form and will be null.
+     *  The agent-only fields are not updated by the form and will be null.
      *  The Admin needs to set these fields which are mostly for new users.
-     *  The data is not modified in anyway except for  residential-address where / is replaced by -
+     *  The data is not modified in anyway except for residential-address where character "/" is replaced by "-"
      */
-    public function map_ninja_form_to_ticket( $form_data )
+    public function map_ninja_form_to_ticket( array $form_data ): ?int
     {
         global $wpscfunction;
 
@@ -665,10 +668,16 @@ class class_headstart_admission
 
         // we have all the necessary ticket fields filled from the Ninja forms, now we can create a new ticket
         $ticket_id = $wpscfunction->create_ticket($ticket_args);
+
+        return $ticket_id;
     }
 
 
     /**
+     *  @param int:$ticket_id is the ID of the ticket concerned
+     *  @param int:$status_id is the current status ID of the ticket
+     *  @param int:$prev_status is the ID of the previous status of the ticket
+     *  add_action('wpsc_set_change_status',        [$this, 'action_on_ticket_status_changed'], 10,3);
      *  This is the  callback that triggers the various tasks contingent upon ticket status change to desired one
      *  When the status changes to Admission Granted, the payment process is triggered immediately
      *  When the ststus is changed to Admission Confirmed the SriToni new user account creation is triggered
@@ -708,7 +717,7 @@ class class_headstart_admission
 
             case ($wpscfunction->get_status_name($status_id) === 'School Accounts Being Created'):
 
-                // Create a new user account in SriToni remotely
+                // Create a new user account in SriToni remotely using Moodle API
                 $moodle_id = $this->create_update_user_account($ticket_id);
 
                 // if successful in sritoni account creation change to next status - admission-payment-order-being-created
@@ -1298,7 +1307,7 @@ class class_headstart_admission
 
 
     /**
-     * @param integer $ticket_id
+     * @param int:$ticket_id
      * @return void
      * 1. Get the data object for account creation from ticket
      * 2. If user already has a Head Start account (detected by their email domain) update user
@@ -1355,7 +1364,7 @@ class class_headstart_admission
 
 
     /**
-     *  @return integer moodle user id from table mdl_user. null if error in creation
+     *  @return int:moodle user id from table mdl_user. null if error in creation
      *  This is to be called after the data_object has been already created.
      *      AND the data checked to ensure it is set and not empty
      *  1. Function checks if username is not taken, only then creates new account.
@@ -1549,9 +1558,6 @@ class class_headstart_admission
     {
         // before coming here the create account object should be already created. We jsut use it here.
         $data_object = $this->data_object;
-
-        // run this again since we may be changing API keys. Once in production remove this
-        // $this->get_config();
 
             // read in the Moodle API config array
         $config			= $this->config;
@@ -1844,8 +1850,8 @@ class class_headstart_admission
     }
 
     /**
-     *  @param integer:$ticket_id
-     *  @param string:$utr
+     *  @param int:$ticket_id of the ticket whose payment-bank-reference field needs to be updated
+     *  @param string:$utr is the Unique Transaction ID
      *  @return void
      */
     public function update_field_bank_reference(int $ticket_id, string $utr):void
