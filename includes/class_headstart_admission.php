@@ -10,10 +10,15 @@
 
 /**
  * The core plugin class.
+ *  1. The ticket (non-defualt) custom field names MUST exactly match the admin label from the Ninja forms
+ *  2. The ticket (non-default) custom field names are used to derive the custom slugs for the CF as SLugs are not user settable.
+ *  3. The status names in the code must exactly match the names in the status settings of Support Candy plugin
+ *  4. The Category names used on the code must exactly match the names of the categories in the Support Candy plugin.
+ *  5. The fees and cohorts etc., in the settings must be keyed correctly to category names, not slugs.
  *
- * This is used to define internationalization, admin-specific hooks, and
- * public-facing site hooks.
- *
+ *  Statusses used: 'Admission Payment Process Completed' , 'Interaction Completed' , 'School Accounts Being Created'
+ *                  'Admission Payment Order Being Created', 'Admission Granted', 'Admission Confirmed'
+ *                  
  * Also maintains the unique identifier of this plugin as well as the current
  * version of the plugin.
  *
@@ -21,25 +26,45 @@
  * @author     Madhu Avasarala
  */
 
+ if ( ! defined( 'ABSPATH' ) ) {
+	exit; // Exit if accessed directly!
+}
+
 //setup for the WooCommerce REST API
 require __DIR__ . '/vendor/autoload.php';
 
 use Automattic\WooCommerce\Client;
 use Automattic\WooCommerce\HttpClient\HttpClientException;
 
-class class_headstart_admission
+class headstart_admission
 {
-	// The loader that's responsible for maintaining and registering all hooks that power
-	protected $loader;
+    // keeps the secret information for APIs etc.
+    public static $config;
 
-	// The unique identifier of this plugin.
-	protected $plugin_name;
+    // keeps the fees indexed by category name
+    public static $category_fee_arr;
 
-	 // The current version of the plugin.
-	protected $version;
+    // keeps the payment decsription keyed by category name
+    public static $category_paymentdescription_arr;
 
-    //
-    protected $config;
+    // keeps the cohortid that new students should be put into keyed by category name
+    public static $category_cohortid_arr;
+
+    // dictates the logging
+    public static $verbose;
+
+    // WP user object obtained by WooCommerce API from hset-payments intranet site
+    public static $wp_user_hset_payments; // WooCommerce user object as returned by Woocommerce API
+
+    // This is an array that is indexed by Status Name having value as status object
+    public static $status_name_slug_array;
+
+    // same thing indexed by status id with value as status object
+     public static $status_id_name_array;
+
+    // name of plugin
+    public static $plugin_name;
+
 
     /**
 	 * Define the core functionality of the plugin.
@@ -50,38 +75,71 @@ class class_headstart_admission
 	 */
 	public function __construct()
     {
-		if ( defined( 'HEADSTART_ADMISSION_VERSION' ) )
-        {
-			$this->version = HEADSTART_ADMISSION_VERSION;
-		} else
-        {
-			$this->version = '2.0.0';
-		}
-
-		$this->plugin_name = 'headstart_admission';
-
-        // load actions only if admin
-		if (is_admin()) $this->define_admin_hooks();
-
-        // load public facing actions
-		$this->define_public_hooks();
-
-        // read the config file and build the secrets array
-        $this->get_config();
-
-        // set the logging
-        $this->verbose = true;
-
-        // read the fee and description pairs from settings and form an associative array
-        $this->admission_settings();
+        self::init();
 	}
 
+    public static function init()
+    {
+        // define plugin name using constant defined in main plugin file
+        self::$plugin_name = 'headstart_admission';
+
+        // load admin actions only if admin
+		if ( is_admin() ) 
+        {
+            self::define_admin_hooks();
+        }
+
+        // load public facing actions
+		self::define_public_hooks();
+
+        // read the config file and build the secrets array
+        self::get_config();
+
+        // set the logging
+        self::$verbose = true;
+
+        // read the fee and description pairs from settings and form an associative array
+        self::admission_settings();
+
+        // Index ths status name vs slug and id vs name arrays
+        self::index_status_array();
+    }
+
     /**
+     *  VISUALLY CHECKED for SC 3.0 compatibility
+     */
+    public static function index_status_array()
+    {
+        // get an array of all statuses
+        $status_objects = WPSC_Status::find( array( 'items_per_page' => 0 ) )['results'];
+
+        $status_name_slug_array = [];
+        $status_id_name_array = [];
+
+        foreach ($status_objects as $status_object):
+            
+            // for each status object add a row indexed by status name
+            $status_name_slug_array[$status_object->name] = $status_object->slug;
+
+            $status_id_name_array[$status_object->id]     = $status_object->name;
+
+        endforeach;
+
+        self::$status_name_slug_array = $status_name_slug_array;
+        self::$status_id_name_array   = $status_id_name_array;
+    }
+
+
+
+
+    /**
+     * VISUALLY CHECKED for SC 3.0 compatibility
+     * 
      * This function is sually called once, from the class constructor
      * Get settings values for fee and description based on category
      * This array will be used to look up fee and payment description agent fields, based on category
      */
-    private function admission_settings()
+    public static function admission_settings() : void
     {
         $setting_category_fee = get_option('headstart_admission_settings')['category_fee'];
 
@@ -90,19 +148,24 @@ class class_headstart_admission
 
         // array_map takes array1 and makes it into an array of arrays by exploding => separator.
         // finally use the array_column to index the column 1 of each subarray indexed by column 0
-        $this->category_fee_arr = array_column(array_map(function($row){
-                                                                        return explode("=>", $row);
-                                                                       }, $array1), 1, 0);
+        $category_fee_arr = array_column(array_map(function($row){
+                                                                    return explode("=>", $row);
+                                                                }, $array1), 1, 0);
+        self::$category_fee_arr = $category_fee_arr;
 
-        // $this->verbose ? error_log(print_r($this->category_fee_arr, true)) : false;
+        self::$verbose ? error_log( print_r( $category_fee_arr, true ) ) : false;
 
         $setting_category_paymentdescription = get_option('headstart_admission_settings')['category_paymentdescription'];
 
         $array2 = explode(PHP_EOL, $setting_category_paymentdescription); 
 
-        $this->category_paymentdescription_arr = array_column(array_map(function($row){
-                                                                                        return explode("=>", $row);
-                                                                                      }, $array2), 1, 0);
+        $category_paymentdescription_arr = array_column(array_map(function($row){
+                                                                                    return explode("=>", $row);
+                                                                                }, $array2), 1, 0);
+
+        self::$category_paymentdescription_arr = $category_paymentdescription_arr;
+
+        self::$verbose ? error_log( print_r( $category_paymentdescription_arr, true ) ) : false;
 
         $setting_category_cohortid = get_option('headstart_admission_settings')['category_cohortid'];
 
@@ -111,93 +174,103 @@ class class_headstart_admission
 
         // array_map takes array3 and makes it into an array of arrays by exploding => separator.
         // finally use the array_column to index the column 1 of each subarray indexed by column 0
-        $this->category_cohortid_arr = array_column(array_map(function($row){
-                                                                                return explode("=>", $row);
-                                                                            }, $array3), 1, 0);
+        $category_cohortid_arr = array_column(array_map(function($row){
+                                                                        return explode("=>", $row);
+                                                                    }, $array3), 1, 0);
+
+        self::$category_cohortid_arr = $category_cohortid_arr;
+
+        self::$verbose ? error_log( print_r( $category_cohortid_arr, true ) ) : false;
     }
 
 
     /**
-     * @return nul
-     * This processes the webhook coming from hset-payments on any order that is completed
+     * VISUALLY CHECKED for SC 3.0 compatibility
+     * 
+     * @return bool
+     * This processes the webhook coming from site hset-payments on any order that is completed
      * It extracts the order ID and then gets the order from the hset-payments site.
      * From the order the ticket_id is extracted and it's status is updated.
      * The server originating the webhook IP and domain are checked in addition to the webhook signature
      */
-    public function webhook_order_complete_process()
+    public static function webhook_order_complete_process() : bool
     {
-        global $wpscfunction;
-
-        // add these as properties of object
-		$this->wc_webhook_secret    = $this->config['wc_webhook_secret'];
-
         if ( $_SERVER['REMOTE_ADDR']              == '68.183.189.119' &&
              $_SERVER['HTTP_X_WC_WEBHOOK_SOURCE'] == 'https://sritoni.org/hset-payments/'     
            )
         {
-            // if here it means that origin IP and domain have been verified
+            // if you get here it means that origin IP and domain have been verified
 
-            $this->signature = $_SERVER['HTTP_X_WC_WEBHOOK_SIGNATURE'];
+            $signature = $_SERVER['HTTP_X_WC_WEBHOOK_SIGNATURE'];
 
             $request_body = file_get_contents('php://input');
 
-            $signature_verified = $this->verify_webhook_signature($request_body);
+            $signature_verified = self::verify_webhook_signature($request_body, $signature);
 
             if ($signature_verified)
             {
-                $this->verbose ? error_log("HSET order completed webhook signature verified") : false;
+                self::$verbose ? error_log("HSET order completed webhook signature verified") : false;
 
-                $data = json_decode($request_body, false);  // decoded as object
+                // decoded as object
+                $data = json_decode($request_body, false);  
 
                 if ($data->action = "woocommerce_order_status_completed")
                 {
                     $order_id = $data->arg;
 
-                    $this->verbose ? error_log($data->action . " " . $order_id) : false;
+                    self::$verbose ? error_log($data->action . " for Order: " . $order_id) : false;
 
                     // so we now have the order id for the completed order. Fetch the order object!
-                    $order = $this->get_wc_order($order_id);
+                    $order = self::get_wc_order($order_id);
 
                     // from the order, extract the admission number which is our ticket id
                     $ticket_id = $order->admission_number;
 
-                    // using the ticket id, update the ticket status to payment process completed
-                    $status_id =  136; // admission-payment-process-completed
-                    $wpscfunction->change_status($ticket_id, $status_id);
+                    $new_status_name = 'Admission Payment Process Completed';
 
+                    // change the status of the ticket to 'Admission Payment Process Completed'
+                    self::change_ticket_status($ticket_id, $new_status_name);
+
+                    // extract the transaction ID from the order
                     $transaction_id = str_replace (['{', '}'], ['', ''], $order->transaction_id);
  
                     // update the agent only fields payment-bank-reference which is really thee transaction_id
-                    $wpscfunction->change_field($ticket_id, 'payment-bank-reference', $transaction_id);
+                    self::change_ticket_field($ticket_id, 'payment-bank-reference', $transaction_id);
 
                     // return after successful termination of webhook
-                    return;
+                    return true;
                 }
             }
             else 
             {
-                $this->verbose ? error_log("HSET order completed webhook signature NOT verified") : false;
+                self::$verbose ? error_log("HSET order completed webhook signature NOT verified") : false;
                 die;
             }
         }
         else
         {
-            $this->verbose ? error_log("HSET order completed webhook source NOT verified") : false;
-            $this->verbose ? error_log($_SERVER['REMOTE_ADDR'] . " " . $_SERVER['HTTP_X_WC_WEBHOOK_SOURCE']) : false;
+            self::$verbose ? error_log("HSET order completed webhook source NOT verified") : false;
+            self::$verbose ? error_log($_SERVER['REMOTE_ADDR'] . " " . $_SERVER['HTTP_X_WC_WEBHOOK_SOURCE']) : false;
 
             die;
         }
     }
 
-    private function verify_webhook_signature($request_body)
+    /**
+     * 
+     */
+    public static function verify_webhook_signature( $request_body, $signature ): bool
     {
-        $signature    = $this->signature;
-        $secret       = $this->wc_webhook_secret;
+        $secret = self::$config['wc_webhook_secret'];
 
-        return (base64_encode(hash_hmac('sha256', $request_body, $secret, true)) == $signature);
+        // true if verified, false if not verified
+        $is_signature_verified = base64_encode(hash_hmac('sha256', $request_body, $secret, true)) == $signature;
+
+        return $is_signature_verified;
     }
 
     /**
+     *  VISUALLY CHECKED for SC 3.0 compatibility
      *  reads in a config php file and gets the API secrets. The file has to be in gitignore and protected
      *  The information is read into an associative arrray automatically by the nature of the process
      *  1. Key and Secret of Payment Gateway involved needed to ccheck/create VA and read payments
@@ -205,132 +278,118 @@ class class_headstart_admission
      *  3. Woocommerce Key and Secret for Woocommerce API on payment server
      *  4. Webhook secret for order completed, from payment server
      */
-    private function get_config()
+    public static  function get_config()
     {
-      $this->config = include( __DIR__."/" . $this->plugin_name . "_config.php");
+      $config = include( __DIR__."/" . self::$plugin_name . "_config.php");
+
+      self::$config = $config;
     }
 
-
-    /**
-     *  @param integer:$order_id
-     *  @return object:$order
-     * Uses the WooCommerce API to get back the order object for a given order_id
-     * It prints outthe order object but this is only visible in a test page and gets overwritten by a short code elsewhere
-     */
-    private function get_wc_order($order_id)
-    {
-        // instantiate woocommerce API class
-        $woocommerce = new Client(
-                                    'https://sritoni.org/hset-payments/',
-                                    $this->config['wckey'],
-                                    $this->config['wcsec'],
-                                    [
-                                        'wp_api'            => true,
-                                        'version'           => 'wc/v3',
-                                        'query_string_auth' => true,
-
-                                    ]);
-
-
-        $endpoint   = "orders/" . $order_id;
-        $params     = array($order_id);
-        $order      = $woocommerce->get($endpoint);
-
-        echo "<pre>" . print_r($order, true) ."</pre>";
-
-        return $order;
-    }
 
 
     /**
      * Define all of the admin facing hooks and filters required for this plugin
      * @return null
      */
-    private function define_admin_hooks()
+    private static function define_admin_hooks()
     {   // create a sub menu called Admissions in the Users menu
-        add_action('admin_menu', [$this, 'add_my_menu']);
+        add_action( 'admin_menu', array( __CLASS__, 'add_my_menu' ) );
     }
 
     /**
+     * VISUALLY CHECKED for SC 3.0 compatibility
      * Define all of the public facing hooks and filters required for this plugin
      * @return null
      */
-    private function define_public_hooks()
+    private static function define_public_hooks() : void
     {
-        // on admission form submission update user meta with form data
-        // add_action( 'wpsc_ticket_created', [$this, 'update_user_meta_form'], 10, 1 );
-
         // do_action('wpsc_set_change_status', $ticket_id, $status_id, $prev_status);
         // This is the main state control for this App
-        add_action('wpsc_set_change_status',        [$this, 'action_on_ticket_status_changed'], 10,3);
+        add_action( 'wpsc_change_ticket_status',   array( __CLASS__, 'my_wpsc_change_ticket_status_action_callback' ), 10,4 );
 
         // check Ninja form data before it is saved
         // add_filter( 'ninja_forms_submit_data',      [$this, 'action_validate_ninja_form_data'] );
 
         // after a NInja form submission, its data is mapped to a support ticket
         // This is the principal source of data for subsequent actions such as account creation
-        add_action( 'ninja_forms_after_submission', [$this, 'map_ninja_form_to_ticket'] );
-
-        // Just after a reply thread is submitted and inserted into the database, this action triggers
-        // do_action('wpsc_after_submit_thread_request',$args,$thread_id)
-        // add_action( 'wpsc_after_submit_thread_request', [$this, 'action_on_reply_submission'], 10, 2 );
-
-        // add_action('wpsc_set_change_fields', [$this, 'action_on_ticket_field_changed'], 10,4);
+        add_action( 'ninja_forms_after_submission', array( __CLASS__, 'map_ninja_form_to_ticket' ) );
     }
 
     /**
-     *  NOT USED
-     * 
-     *  Was meant to be used when a given ticket field was updated and some action needed to be taken on that
+     *  VISUALLY CHECKED for SC 3.0 compatibility
+     *  @param int:$ticket_id
+     *  @param string:$cf_name
+     *  @param mixed:$value is the value to be assigned to the field whose name is passed in for the given ticket id.
      */
-    public function action_on_ticket_field_changed($ticket_id, $field_slug, $field_val, $prev_field_val)
+    public static function change_ticket_field( int $ticket_id, string $cf_name, mixed $value): void
     {
-        // we are only interested if the field that changed is non-empty payment-bank-reference. For all others return
-        if ($field_slug !== "payment-bank-reference" || empty($field_val)) return;
+        // build the ticket  using pased id parameter
+        $ticket = new WPSC_Ticket( $ticket_id );
 
-        // if you get here this field is payment-bank-reference ad the value is non-empty
-        // so we can go ahead and change the associated order's meta value to this new number
-        // get the order-id for this ticket. If it doesn't exist then return
-        $this->get_data_object_from_ticket($ticket_id);
+        // get the slug of the custom field using the custom field name of ticket passed in as parameter
+        $cf_slug = self::get_cf_slug_by_cf_name( $cf_name );
 
-        $order_id = $this->data_object->ticket_meta['order-id'];
-
-        if (empty($order_id)) return;
-
-        // check status of order to make sure it is still ON-HOLD
-        $order = $this->get_wc_order($order_id);
-
-        if (empty($order)) return;
-
-        if ($order->status == "completed"  || $order->status == "processing")
+        if ( $cf_slug )
         {
+            // if the slug of the ticket's custom field is valid then set the new value for the ticket field
+            $ticket->$cf_slug = $value;
+
+            // set the update date and time
+            $ticket->date_updated = new DateTime();
+
+            // save the modified ticket
+            $ticket->save();
+        }
+        else {
+            // slug was not found for the given ticket custom field name. Log the issue and return
+            self::$verbose ? error_log( "CF Slug non-existent for Ticket:" . $ticket_id . " for CF Name->" . $cf_name): false;
+        }
+    }
+
+
+    /**
+     *  VISUALLY CHECKED for SC 3.0 compatibility
+     *  Build the ticket using supplied ID and extract the status ID and customer ID information.
+     *  Use the supplied new status name to extract its ID and change status
+     * 
+     *  @param int:$ticket_id
+     *  @param string:$new_status_name is the name of the desired status that ticket needs to be changed to
+     */
+    public static function change_ticket_status( int $ticket_id, string $new_status_name ) : void
+    {
+
+    $desired_status_id = self::get_status_id_given_name( $new_status_name );
+
+        $ticket = new WPSC_Ticket( $ticket_id );
+
+        if ( ! $ticket->id ) {
+
+            self::$verbose ? error_log( "Could NOT get id for Ticket:" . $ticket_id ): false;
+
             return;
         }
-        else
-        {
-            // lets now prepare the data for the new order to be created
-            $order_data = [
-                            'meta_data' => [
-                                                [
-                                                    'key' => 'bank_reference',
-                                                    'value' => $field_val
-                                                ]
-                                            ]
-                        ];
-            $order_updated = $this->update_wc_order_site_hsetpayments($order_id, $order_data);
 
-            $this->verbose ? error_log("Read back bank reference from Updated Order ID:" . $order_id . " is: " . $order_updated->bank_reference): false;
+        WPSC_Individual_Ticket::$ticket = $ticket;
+
+        // only cgange status if new status id is valid AND not already same as existing status of ticket
+        if ( $desired_status_id && $ticket->status->id != $desired_status_id ) {
+            //                                   { prev status ID, new statusID, customer_id)}
+            // includes the hook for 'wpsc_change_ticket_status'
+            WPSC_Individual_Ticket::change_status( $ticket->status->id, $desired_status_id, $ticket->customer );
         }
     }
 
 
+
     /**
+     *  VISUALLY CHECKED for SC 3.0 compatibility
+     * 
      *  Given a keyword, looks through the array and returns the index for a partial match. Returns false if no match found
      *  @param array:$arr is the array to be serached
      *  @param string:$keyword is the key to be serached for even a partial match
      *  @return integer:$index the index of the array whose value matches at least partially with the given keyword
      */
-    public function array_search_partial($arr, $keyword) 
+    public static function array_search_partial($arr, $keyword) 
     {   // Given a keyword, looks through the array and returns the index for a partial match. Returns false if no match found
         foreach($arr as $index => $string) 
         {
@@ -341,147 +400,173 @@ class class_headstart_admission
     }
 
 
+    
+
     /**
-     *  NOT USED
-     *  The AJAX in the form was not working correctly, so abandoned
-     *  @param array:$form_data is the form data Ninja forms
-     *  1. if category contains internal then the email must contain headstart.edu.in, otherwise form should be corrected
+     *  VISUALLY CHECKED for SC 3.0 compatibility
+     * 
+     *  @param string:$cf_name is the exact name of the custom field including case and spaces, whose id we desire
+     *  @return int$cf_id is the id of the desired custom field that is returned If not found null is returned
+     * 
+     *  Given the name of an existing category, its integer ID is returned if it exists. If not, null is returned
      */
-    public function action_validate_ninja_form_data( $form_data )
+    public static function get_cf_id_given_name(string  $cf_name): ? int
     {
-        // extract the fields array from the form data
-        $fields_ninjaforms = $form_data['fields'];
+        $cf_id = null;    // initialize the return object
 
-        // extract a single column from all fields containing the admin_label key
-        $key_array         = array_column($fields_ninjaforms, 'key');
+        // get an array of all statuses
+        $cf_objects = WPSC_Custom_Field::find( array( 'items_per_page' => 0 ) )['results'];
 
-        // extract the corresponding value array. They both will share the same  numerical index.
-        $value_array       = array_column($fields_ninjaforms, 'value');
-
-        $field_id_array    = array_column($fields_ninjaforms, 'id');
-
-        // Check if form category contains internal or not. The category is a hidden field
-        // look for the mapping slug in the ninja forms field's admin label
-        $index_ticket_category  = $this->array_search_partial( $key_array, 'ticket_category' );
-        $category_name          = $value_array[$index_ticket_category];
-
-        $index_address  = $this->array_search_partial( $key_array, 'residential_address' );
-        $address        = $value_array[$index_address];
-
-        $index_email    = $this->array_search_partial( $key_array, 'primary_email' );
-        $email          = $value_array[$index_email];
-
-
-        if ( stripos($category_name, "internal") !== false )
-        {
-            // the forms's hidden field for category does contain substring internal so we need to check  for headstart domain
-            // look for the mapping slug in the ninja forms field's admin label for email field
-
-            // check if the email contains headstart.edu.in
-            if ( stripos( $email, "headstart.edu.in") === false)
-            {
-                $this->verbose ? error_log("validating email - Internal user, expecting @headstart.edu.in, didnt find it"): false;
-                // our form's category is internal but does not contain desired domain so flag an error in form
-
-                //
-                $form_data['errors']['fields'][$field_id_array[$index_email]] = 'Email must be of Head Start domain, because continuing student';
-            }
-
-        }
-        if ( stripos($address, "/") !== false )
-        {
-            $this->verbose ? error_log("validating address - does contain forbidden character '/'."): false;
-
-            $errors = [
-                'fields' => [
-                $field_id_array[$index_address]   => 'Addtress must not contain "/" please correct'
-                ],
-              ];
-
-            $response = [
-            'errors' => $errors,
-            ];
-            
-            wp_send_json( $response );
-            wp_die(); // this is required to terminate immediately and return a proper response
-        }
+        foreach ($cf_objects as $cf_object):
         
-        return $form_data;
+            if ( $cf_name == $cf_object->name)
+            {
+                self::$verbose ? ("Custom Field name - " . $cf_name . " Corresponds to ID: " . $cf_object->id) : false;
 
+                $cf_id = $cf_object->id;    // capture the CF ID from object
+                
+                break;                                  // we found our match and so we exit the loop
+            } 
+        endforeach;
 
+        return $cf_id;
     }
 
+
     /**
+     *  VISUALLY CHECKED for SC 3.0 compatibility
+     * 
+     *  @param string:$status_name is the exact name of the status whose id we desire
+     *  @return int$status_id is the id of the desired status that is returned If not found null is returned
+     * 
+     *  Given the name of an existing category, its integer ID is returned if it exists. If not, null is returned
+     */
+    public static function get_status_id_given_name(string  $status_name): ? int
+    {
+        $status_id = null;    // initialize the return variable
+
+        // get an array of all statuses
+        $status_objects = WPSC_Status::find( array( 'items_per_page' => 0 ) )['results'];
+
+        foreach ($status_objects as $status_object):
+        
+            if ( $status_name == $status_object->name)
+            {
+                self::$verbose ? ("Status name - " . $status_name . " Corresponds to Status ID: " . $status_object->id) : false;
+
+                $status_id = $status_object->id;    // capture the Status ID from Status object
+                
+                break;                              // we found our match and so we exit the loop
+            } 
+        endforeach;
+
+        return $status_id;
+    }
+
+
+
+    /**
+     *  VISUALLY CHECKED for SC 3.0 compatibility
+     * 
+     *  @param string:$category_name is the exact name of the category whose id we desire
+     *  @return int$category_id is the id of the desired categoy that is returned If not found null is returned
+     * 
+     *  Given the name of an existing category, its integer ID is returned if it exists. If not, null is returned
+     */
+    public static function get_category_id_given_name( string  $category_name ): ? int
+    {
+        $category_id = null;    // initialize the return object
+
+        // get an array of all statuses
+        $category_objects = WPSC_Category::find( array( 'items_per_page' => 0 ) )['results'];
+
+        foreach ($category_objects as $category_object):
+        
+            if ( $category_name == $category_object->name)
+            {
+                self::$verbose ? ("Category name - " . $category_name . " Corresponds to Category ID: " . $category_object->id) : false;
+
+                $category_id = $category_object->id;    // capture the category ID from object
+                
+                break;                                  // we found our match and so we exit the loop
+            } 
+        endforeach;
+
+        return $category_id;
+    }
+
+
+
+    /**
+     *  VISUALLY CHECKED for SC 3.0 compatibility
+     * 
      *  @return int:$ticket_id The ID of the ticket that was created based on the form submission.
-     *  @param array:$form_data from the Ninja forms based on an following action
-     *  add_action( 'ninja_forms_after_submission', [$this, 'map_ninja_form_to_ticket'] );
-     *  The function takes the Ninja form immdediately after submission
+     *  @param array:$form_data from the Ninja forms based on the  action below:
+     * 
+     *  add_action( 'ninja_forms_after_submission', array( __CLASS__, 'map_ninja_form_to_ticket' ) );
+     *  The function takes the Ninja form data immdediately after submission
      *  The form data is captured into the fields of a new ticket that is to be created as a result of this submission.
      *  The agent-only fields are not updated by the form and will be null.
      *  The Admin needs to set these fields which are mostly for new users.
      *  The data is not modified in anyway except for residential-address where character "/" is replaced by "-"
      */
-    public function map_ninja_form_to_ticket( array $form_data ): ?int
+    public static function map_ninja_form_to_ticket( array $form_data ): ?int
     {
-        global $wpscfunction;
-
         // $form_data['fields']['id']['seetings']['admin_label']
         // $form_data['fields']['id'][''value']
-        // Loop through each of the ticket fields, match its slug to the admin_label and get its corresponding value
-        $current_user       = wp_get_current_user();
+
+        // get the current logged in user from support candy
+        $current_user = WPSC_Current_User::$current_user;
+
+        // get customer's registered email
         $registered_email   = $current_user->user_email;
 
         // Initialize the new ticket values array needed for a new ticket creation
-        $ticket_args = [];
+        $data = [];
 
-        // extract the fields array from the form data
+        // extract the fields array from the Ninja form data
         $fields_ninjaforms = $form_data['fields'];
 
-        // extract a single column from all fields containing the admin_label key
-        $admin_label_array = array_column(array_column($fields_ninjaforms, 'settings'), 'admin_label');
+        // extract a single column from all fields containing the admin_label key from the Ninja form data
+        $admin_label_array_ninjaforms = array_column(array_column($fields_ninjaforms, 'settings'), 'admin_label');
 
         // extract the corresponding value array. They both will share the same  numerical index.
-        $value_array       = array_column(array_column($fields_ninjaforms, 'settings'), 'value');
+        $value_array_ninjaforms       = array_column(array_column($fields_ninjaforms, 'settings'), 'value');
 
-        // get the ticket field objects using term search. We are getting only the non-agent ticket fields here for mapping
-        // since the form only contains user input
-        $ticket_fields = get_terms([
-            'taxonomy'   => 'wpsc_ticket_custom_fields',
-            'hide_empty' => false,
-            'orderby'    => 'meta_value_num',
-            'meta_key'	 => 'wpsc_tf_load_order',
-            'order'    	 => 'ASC',
-            'meta_query' => array(
-                                    'relation' => 'AND',
-                                    array(
-                                        'key'       => 'agentonly',
-                                        'value'     => '0',
-                                        'compare'   => '='
-                                    ),
-                                )
-        ]);
+        // Loop through all the custom fields of the ticket
+        foreach ( WPSC_Custom_Field::$custom_fields as $cf ):
 
-        foreach ($ticket_fields as $ticket_field):
-
-            if ($ticket_field->slug == 'ticket_priority')
-            {
-                continue;     // we don't modify these fields values, so skip
+            // If the CF's field property is not ticket or agentonly, skip
+            if ( ! in_array( $cf->field, array( 'ticket', 'agentonly' ) )  ) {
+                continue;
             }
 
-            // capture the ones of interest to us
+            // if the CF has default value set then get the default value into the ticket data array
+            if ( method_exists( $cf->type, 'get_default_value' ) ) {
+                $data[ $cf->slug ] = $cf->type::get_default_value( $cf );
+            }
+
+            // we have nothing to do with this ticket field priority so skip
+            if ($cf->slug == 'priority') {  
+                continue;     
+            }
+
+            // For each of the ticket CF we look at the matching form field using the admin label column
+            // for non-default ticket CFs we match using CF name not CF slug since we cannot set the CF slug for these
             switch (true):
 
-                // customer_name ticket field mapping. The form must have an admin label same as this
-                case ($ticket_field->slug == 'customer_name'):
+                // This is the admin label for applicant's name usually a parent
+                case ($cf->name == 'customer_name'):
 
-                    // look for the mapping slug in the ninja forms field's admin label
-                    $key = array_search('customer_name', $admin_label_array);
+                    // look for array index in the ninja forms field's admin label for this
+                    $key = array_search('customer_name', $admin_label_array_ninjaforms);
 
                     if ($key !== false)
                     {
                         // get the form-captured field value for customer-name
-                        $customer_name = $value_array[$key];
-                        // We want to format it with 1st letter apital and rest in lowercase
+                        $customer_name = $value_array_ninjaforms[$key];
+
+                        // We want to format it with 1st letter capital and rest in lowercase
                         $customer_name_arr = explode(" ", $customer_name);
 
                         $name = "";
@@ -490,255 +575,308 @@ class class_headstart_admission
                             $name .= " " . ucfirst(strtolower($partname));
                         }
 
-                        // remove extraneous spaces at beginning and or end
-                        $ticket_args[$ticket_field->slug]= trim($name);
+                        // remove extraneous spaces at beginning and or end and index in data array by the CF slug always
+                        $data[$cf->slug]= trim($name);
                     }
                     else
                     {
-                        $this->verbose ? error_log($ticket_field->slug . " index not found in Ninja forms value array") : false;
-                        
+                        self::$verbose ? error_log($cf->name . " -> index not found in Ninja forms value array") : false;  
                     }
-                    break;
+                break;
 
-
-
-                    // ticket_category custom field gets mapped to ticket_category in Ninja forms but need id not slug
-                case ($ticket_field->slug == 'ticket_category'):
-
-                    // look for the mapping slug in the ninja forms field's admin label
-                    $key = array_search('ticket_category', $admin_label_array);
-
-                    $category_name = $value_array[$key];
-
-                    // now to get the category id using the slug we got from the ninja form field
-                    $term = get_term_by('slug', $category_name, 'wpsc_categories');
-
-                    // we give the category's term_id, not its name, when we create the ticket.
-                    $ticket_args[$ticket_field->slug]= $term->term_id;
-
-                    break;
-
-
-
-                    // customer email in ticket maps to the user registered email.
-                    // This is done so that all communication is on the registered email.
-                case ($ticket_field->slug == 'customer_email'):
-
-                    $ticket_args[$ticket_field->slug]= $registered_email;
-
-                    break;
-
-
-                    // map the ticket field 'headstart-email' to Ninja forms 'primary-email' field
-                case ($ticket_field->slug == 'headstart-email'):
+                // ticket's custom field 'category is a default predefined field and slug can be used here
+                // Thhere should be a hidden field in the Ninja forms with values corresponding to Support Candy Settings
+                case ($cf->slug == 'category'):
 
                     // look for the mapping slug in the ninja forms field's admin label
-                    $key = array_search('primary-email', $admin_label_array);
+                    $key                = array_search('ticket_category', $admin_label_array_ninjaforms);
+
+                    // extract the ticket category usually a hidden field in the form
+                    $category_name      = $value_array_ninjaforms[$key];
+
+                    // now to get the category id using the name we got from the ninja form
+                    $category_id        = self::get_category_id_given_name( $category_name) ;
+
+                    // we give the category's id, not its name, when we create the ticket.
+                    $data[$cf->slug]    = $category_id;
+
+                break;
+
+                // customer email in ticket maps to the user registered email.
+                // This is done so that all communication is on the registered email.
+                // This is nopt derived from the Ninja form but from the user object itself
+                case ($cf->name == 'customer_email'):
+
+                    $data[$cf->slug]= $registered_email;    // slug is something like cust_dd
+
+                break;
+
+
+                // map the ticket field 'headstart-email' to Ninja forms 'primary-email' field
+                case ($cf->name == 'headstart-email'):
+
+                    // look for the mapping slug in the ninja forms field's admin label
+                    $key = array_search('primary-email', $admin_label_array_ninjaforms);
 
                     if ($key !== false)
                     {
-                        $ticket_args[$ticket_field->slug]= $value_array[$key];
+                        $data[$cf->slug]= $value_array_ninjaforms[$key];
                     }
                     else
                     {
-                        $this->verbose ? error_log( "index for: primary-email, not found in Ninja forms value array" ) : false;
+                        self::$verbose ? error_log( "index for: primary-email, not found in Ninja forms value array" ) : false;
                     }
+                break;
 
-                    break;
 
-
-                    // the subject is fixed to Admission
-                case ($ticket_field->slug == 'ticket_subject'):
-
-                    // default for all users
-                    $ticket_args[$ticket_field->slug]= 'Admission';
-
-                    break;
-
-                    // Description is a fixed string
-                case ($ticket_field->slug == 'ticket_description'):
+                // the ticket custom field 'subject' is fixed to 'Admission'
+                case ($cf->slug == 'subject'):
 
                     // default for all users
-                    $ticket_args[$ticket_field->slug]= 'Admission';
+                    $data[$cf->slug]= 'Admission';
 
-                    break;
+                break;
+
+                // Description is a fixed string 'Admission' for all tickets
+                case ($cf->slug == 'description'):
+
+                    // default for all users
+                    $data[$cf->slug]= 'Admission';
+
+                break;
 
                     // ensure that the address does not contain forbidden characters.
-                    // replace a / with a - otherwise the ticket creation will not happen
-                case ($ticket_field->slug == 'residential-address'):
+                    // replace a / with a - otherwise the ticket creation will  result in error
+                case ($cf->name == 'residential-address'):
                     // set the search and replace strings
                     $find       = "/";
                     $replace    = "-";
 
                     // look for the mapping slug in the ninja forms field's admin label
-                    $key = array_search('residential-address', $admin_label_array);
+                    $key = array_search('residential-address', $admin_label_array_ninjaforms);
 
                     if ($key !== false)
                     {
                         // get the custmeer entered residential address using the key
-                        $value    = $value_array[$key];
+                        $value    = $value_array_ninjaforms[$key];
 
                         // set the value for the ticket custom field by search and replace of potential bad character "/"
-                        $ticket_args[$ticket_field->slug] = str_ireplace($find, $replace, $value);
+                        $data[$cf->slug] = str_ireplace($find, $replace, $value);
                     }
                     else
                     {
-                        $this->verbose ? error_log($ticket_field->slug . " index not found in Ninja forms map to Ticket") : false;
-                    }
-                    
-                    break;
+                        self::$verbose ? error_log($cf->name  . " -> index not found in Ninja forms value array") : false;
+                    } 
+                break;
 
 
-                case ($ticket_field->slug == 'student-first-name'):
+                case ($cf->name == 'student-first-name'):
                     // look for the mapping slug in the ninja forms field's admin label
-                    $key = array_search('student-first-name', $admin_label_array);
+                    $key = array_search('student-first-name', $admin_label_array_ninjaforms);
 
                     if ($key !== false)
                     {
                         // get the custmeer entered students first name
-                        $value    = $value_array[$key];
+                        $value    = $value_array_ninjaforms[$key];
 
                         // Convert to lowercase and Capitalize the 1st letter
-                        $ticket_args[$ticket_field->slug] = ucfirst(strtolower($value));
+                        $data[$cf->slug] = ucfirst(strtolower($value));
                     }
                     else
                     {
-                        $this->verbose ? error_log($ticket_field->slug . " index not found in Ninja forms map to Ticket") : false;
+                        self::$verbose ? error_log($cf->name . " -> index not found in Ninja forms value array") : false;
                     }
-                    break;
+                break;
 
 
-                case ($ticket_field->slug == 'student-middle-name'):
+                case ($cf->name == 'student-middle-name'):
                     // look for the mapping slug in the ninja forms field's admin label
-                    $key = array_search('student-middle-name', $admin_label_array);
+                    $key = array_search('student-middle-name', $admin_label_array_ninjaforms);
 
                     if ($key !== false)
                     {
                         // get the custmeer entered students first name
-                        $value    = $value_array[$key];
+                        $value    = $value_array_ninjaforms[$key];
 
                         // Convert to lowercase and Capitalize the 1st letter
-                        $ticket_args[$ticket_field->slug] = ucfirst(strtolower($value));
+                        $data[$cf->slug] = ucfirst(strtolower($value));
                     }
                     else
                     {
-                        $this->verbose ? error_log($ticket_field->slug . " index not found in Ninja forms map to Ticket") : false;
+                        self::$verbose ? error_log($cf->name . " -> index not found in Ninja forms value array") : false;
                     }
-                    break;
+                break;
 
-                case ($ticket_field->slug == 'student-last-name'):
+                case ($cf->name == 'student-last-name'):
                     // look for the mapping slug in the ninja forms field's admin label
-                    $key = array_search('student-last-name', $admin_label_array);
+                    $key = array_search('student-last-name', $admin_label_array_ninjaforms);
 
                     if ($key !== false)
                     {
                         // get the custmeer entered students first name
-                        $value    = $value_array[$key];
+                        $value    = $value_array_ninjaforms[$key];
 
                         // Convert to lowercase and Capitalize the 1st letter
-                        $ticket_args[$ticket_field->slug] = ucfirst(strtolower($value));
+                        $data[$cf->slug] = ucfirst(strtolower($value));
                     }
                     else
                     {
-                        $this->verbose ? error_log($ticket_field->slug . " index not found in Ninja forms map to Ticket") : false;
+                        self::$verbose ? error_log($cf->name . " -> index not found in Ninja forms value array") : false;
                     }
-                    break;
+                break;
 
 
                 default:
 
                     // from here on the ticket slug is same as form field slug so mapping is  easy.
                     // look for the mapping slug in the ninja forms field's admin label
-                    $key = array_search($ticket_field->slug, $admin_label_array);
+                    $key = array_search($cf->name, $admin_label_array_ninjaforms);
 
                     if ($key !== false)
                     {
-                        $ticket_args[$ticket_field->slug]= $value_array[$key];
+                        $data[$cf->slug]= $value_array_ninjaforms[$key];
                     }
                     else
                     {
-                        $this->verbose ? error_log($ticket_field->slug . " index not found in Ninja forms map to Ticket") : false;
+                        self::$verbose ? error_log($cf->name . " -> index not found in Ninja forms value array") : false;
                     }
-
-                    break;
+                break;
 
             endswitch;          // end switching throgh the ticket fields looking for a match
 
         endforeach;             // finish looping through the ticket fields for mapping Ninja form data to ticket
 
-        // we have all the necessary ticket fields filled from the Ninja forms, now we can create a new ticket
-        $ticket_id = $wpscfunction->create_ticket($ticket_args);
+        // Seperate description from $data.
+        $description = $category_name ?? $data['description'];  // Give the category name which describes the admission well
+        unset( $data['description'] );
 
-        return $ticket_id;
+        // Seperate description attachments from $data.
+        $description_attachments = $data['description_attachments'] ?? "";
+        unset( $data['description_attachments'] );
+
+        $data['last_reply_on'] = ( new DateTime() )->format( 'Y-m-d H:i:s' );
+
+        // we have all the necessary ticket fields filled from the Ninja forms, now we can create a new ticket
+        $ticket = WPSC_Ticket::insert( $data );
+
+        if ( ! $ticket ) 
+        {
+            self::$verbose ? error_log('Could not create a new SC ticket from Ninja form submission, Investigate'): false;
+
+            return null;
+        }
+
+        // if we get here it means that the new ticket was successfully created. Lets add the thread and finish
+        $ticket->last_reply_by = $ticket->customer->id;
+		$ticket->save();
+
+        // Create report thread.
+        $thread = WPSC_Thread::insert(
+            array(
+                'ticket'      => $ticket->id,
+                'customer'    => $ticket->customer->id,
+                'type'        => 'report',
+                'body'        => $description,
+                'attachments' => $description_attachments,
+                'source'      => 'MA_plugin_code',
+            )
+        );
+
+        // Create an action hook for just after creation of a new ticket  in case the SC plugin needs to do something here
+        do_action( 'wpsc_create_new_ticket', $ticket );
+
+        return $ticket->id;
+    }
+
+    /**
+     *  VISUALLY CHECKED for SC 3.0 compatibility
+     * 
+     *  @param object:$ticket is the ticket object passed in
+     *  @return string:$student_fullname is the full name formed from first, middle and last names of student in ticket
+     */
+    public static function get_student_full_name_from_ticket( object $ticket ) : ? string
+    
+    {
+        $student_fullname = self::get_ticket_value_given_cf_name( $ticket,  'student-first-name' )     . " " . 
+                            self::get_ticket_value_given_cf_name( $ticket,  'student-middle-name' )    . " " . 
+                            self::get_ticket_value_given_cf_name( $ticket,  'student-last-name' );
+        
+        return $student_fullname;
     }
 
 
     /**
-     *  @param int:$ticket_id is the ID of the ticket concerned
-     *  @param int:$status_id is the current status ID of the ticket
-     *  @param int:$prev_status is the ID of the previous status of the ticket
-     *  add_action('wpsc_set_change_status',        [$this, 'action_on_ticket_status_changed'], 10,3);
+     *  @param int:$ticket is the ticket concerned
+     *  @param int:$prev is the previous status ID of the ticket
+     *  @param int:$new is the ID of the current new status of the ticket
+     *  do_action( 'wpsc_change_ticket_status', self::$ticket, $prev, $new, $customer_id ) in class_wpsc_individual_ticket
      *  This is the  callback that triggers the various tasks contingent upon ticket status change to desired one
      *  When the status changes to Admission Granted, the payment process is triggered immediately
      *  When the ststus is changed to Admission Confirmed the SriToni new user account creation is triggered
      *  More can be added here as needed.
      */
-    public function action_on_ticket_status_changed($ticket_id, $status_id, $prev_status)
+    public static function my_wpsc_change_ticket_status_action_callback( $ticket, $prev, $new, $customer_id)
     {   // status change triggers the main state machine
-        global $wpscfunction;
-
         // add any logoc that you want here based on new status
+        $prev_status_object = new WPSC_Status( $prev ); // rebuild status object using previous status id passed in
+        $prev_status_name   = $prev_status_object->name;
+
+        $new_status_object = new WPSC_Status( $new );   // rebuild status pbject using current status id passed in
+        $new_status_name   = $new_status_object->name;
+
         switch (true):
 
-            case ($wpscfunction->get_status_name($status_id) === 'Interaction Completed'):
+            // If new status is "Interaction Completed" then calculate fees and payment description and update the ticket fields
+            case ( $new_status_name === 'Interaction Completed' ):
 
-                // we set the product description and its amount from information in the settings
-                $this->get_data_object_from_ticket($ticket_id);
+                $student_fullname = self::get_student_full_name_from_ticket( $ticket );
 
-                // get the category id from the ticket
-                $ticket_category_id = $this->data_object->ticket_meta['ticket_category'];
-                $fullname           = $this->data_object->ticket_meta['student-first-name']  . " " . 
-                                      $this->data_object->ticket_meta['student-middle-name'] . " " .
-                                      $this->data_object->ticket_meta['student-last-name'];
+                // get the object from category using category id from ticket
+                $category_object_from_ticket = new WPSC_Category( $ticket->category );
+
                 // get the ticket category name from ID
-                $term_category              = get_term_by('id', $ticket_category_id, 'wpsc_categories');
+                $name_of_ticket_category = $category_object_from_ticket->name;
 
-                // the category slug is used as key to get the required data
-                $admission_fee_payable      = $this->category_fee_arr[$term_category->slug];
+                // the category NAME (not slug as in prev version) is used as key to get the required data
+                // make sure this is adjusted correctly in the settings for fees
+                $admission_fee_payable      = self::$category_fee_arr[$name_of_ticket_category];
 
-                $product_customized_name    = $this->category_paymentdescription_arr[$term_category->slug] . " " . $fullname;
+                $product_customized_name    = self::$category_paymentdescription_arr[$name_of_ticket_category] . " " . $student_fullname;
 
-                // update the agent fields for fee and fee description
-                $wpscfunction->change_field($ticket_id, 'admission-fee-payable', $admission_fee_payable);
+                // update the agent fields for fee and fee description. 1st form the slug of the custom field using name
+                $cf_slug = self::get_cf_slug_by_cf_name( 'admission fee payable' );
+                $ticket->$cf_slug = $admission_fee_payable;
+                $ticket->save();
 
-                $wpscfunction->change_field($ticket_id, 'product-customized-name', $product_customized_name);
+                $cf_slug = self::get_cf_slug_by_cf_name( 'product customized name' );
+                $ticket->$cf_slug = $product_customized_name;
+                $ticket->save();
                 
-                 break;
+            break;
 
-            case ($wpscfunction->get_status_name($status_id) === 'School Accounts Being Created'):
+            // If new status is 'School Accounts Being Created' Create a new user account in SriToni remotely using Moodle API
+            case ( $new_status_name === 'School Accounts Being Created' ):
 
-                // Create a new user account in SriToni remotely using Moodle API
-                $moodle_id = $this->create_update_user_account($ticket_id);
+                // Create a new user account in SriToni remotely using Moodle API. If existing user, update the profile information
+                $moodle_id = self::prepare_and_create_or_update_moodle_account( $ticket );
 
-                // if successful in sritoni account creation change to next status - admission-payment-order-being-created
+                // if successful in sritoni account creation, change to next status - admission-payment-order-being-created
                 if ($moodle_id)
                 {
-                    // TODO: update an agent only field with this information so that the sritoni idnumber can be same as this
-                    // $this->update_sritoni_idnumber($moodle_id);
+                    // 
                 }
             break;
 
 
-
-            case ($wpscfunction->get_status_name($status_id) === 'Admission Payment Order Being Created'):
-
-                // This assumes that we have a valid sritoni account, a valid hset-payment account
-                $this->create_payment_shop_order($ticket_id);
+            // This assumes that we have a valid sritoni account, and a valid hset-payment intranet account after ldap-sync
+            case ( $new_status_name === 'Admission Payment Order Being Created' ):
+                
+                self::create_payment_shop_order( $ticket );
 
             break;
 
 
-            case ($wpscfunction->get_status_name($status_id) === 'Admission Granted'):
+            case ( $new_status_name === 'Admission Granted' ):
 
                 // Emails are sent to user for making payments.
                 // Once payment is made the Order is set to Processing
@@ -749,7 +887,7 @@ class class_headstart_admission
              break;
 
 
-            case ($wpscfunction->get_status_name($status_id) === 'Admission Confirmed'):
+            case ( $new_status_name === 'Admission Confirmed' ):
 
                 // No explicit action in code here
                 // The admin needs to trigger the next step by changing the status
@@ -764,6 +902,8 @@ class class_headstart_admission
     }                  
 
     /**
+     *  VISUALLY CHECKED for SC 3.0 compatibility
+     * 
      *  This routine is typically called by a scheduled task from outside the class using the instance so this is public
      *  No pre-requisites. Statuses have to  exist in ticket system settings
      *  1. Get a list of all tickets having status: 'school-accounts-being-created'
@@ -771,30 +911,24 @@ class class_headstart_admission
      *  3. The accounts get created on payment site by a wp-cron driven  hourly ldap sync process from sritonildapsync plugin
      *  4. If user account exists, change status of that ticket to enable PO creation: 'admission-payment-order-being-created'
      */
-    public function check_if_accounts_created()
+    public function check_if_accounts_created() : void
     {   // check if (new) accounts are sync'd and exist on payment server - if so change status to admission-payment-order-being-created
-        global $wpscfunction, $wpdb;
-
         // $this->verbose ? error_log("In function check_if_accunts_created caused by scheduled event:"): false;
-
         // keep status id prepared in advance to change status of selected ticket in loop
-        $status_id      = get_term_by('slug','admission-payment-order-being-created','wpsc_statuses')->term_id;
 
         // get all tickets that have payment status as shown. 
-        $tickets = $this->get_all_active_tickets_by_status_slug('school-accounts-being-created');
+        $tickets = self::get_all_active_tickets_by_status_name( "School Accounts Being Created" );
 
-        $this->verbose ? error_log("Number of tickets being processed with status 'school-accounts-being-created':" . count($tickets)): false;
+        self::$verbose ? error_log("Number of tickets being processed with status 'School Accounts Being Created':" . count($tickets)): false;
 
         foreach ($tickets as $ticket):
         
             $ticket_id = $ticket->id;
 
-            $data_object = $this->get_data_object_from_ticket($ticket_id);
-
-            // since we are checking for creation of new accounts we cannot use ticket email.
+            // since we are checking for creation of new SriToniaccounts we cannot use ticket email.
             // we have to use admin given username (agent field) with our domain. So username has to be set for this.
             // since this comes after sritoni account creation we know this would have been set.
-            $headstart_email = $data_object->ticket_meta['headstart-email'];
+            $headstart_email = $ticket->{ self::get_cf_slug_by_cf_name( 'headstart-email' ) };
 
             if ( !empty($headstart_email) && stripos( $headstart_email, "@headstart.edu.in" ) !== false )
             {
@@ -804,20 +938,22 @@ class class_headstart_admission
             else
             {
                 // this is a new headstart user so compose the email
-                $email = $data_object->ticket_meta['username'] . '@headstart.edu.in';
+                $email = $ticket->{ self::get_cf_slug_by_cf_name( 'username' ) } . '@headstart.edu.in';
             }
             
 
             // check if wpuser with this email exists in site hset-payments
-            $wp_user_hset_payments = $this->get_wp_user_hset_payments($email, $ticket_id);
+            $wp_user_hset_payments = self::get_wp_user_hset_payments($email, $ticket_id);
 
             if ($wp_user_hset_payments)
             {
+                $new_status_name_desired = "Admission Payment Order Being Created";
+
                 // we have a valid customer so go ahead and change status of this ticket to enable PO creation
-                $wpscfunction->change_status($ticket_id, $status_id);
+                self::change_ticket_status( $ticket_id, $new_status_name_desired );
 
                 // log the user id and displayname
-                $this->verbose ? error_log("User Account with id:" . $wp_user_hset_payments->id 
+                self::$verbose ? error_log("User Account with id:" . $wp_user_hset_payments->id 
                                                     . " And name:" . $wp_user_hset_payments->data->display_name): false;
 
             }
@@ -827,23 +963,22 @@ class class_headstart_admission
 
 
     /**
+     *  VISUALLY CHECKED for SC 3.0 compatibility
+     * 
      *  @param string:$email
      *  @return object:$customers[0]
      * Pre-requisites: None
      * 1. Get wpuser object from site hset-payments with given email using Woocommerce API
      * 2. If site is unreacheable change status of ticket to error
      */
-    public function get_wp_user_hset_payments($email, $ticket_id)
+    public static function get_wp_user_hset_payments($email, $ticket_id)
     {   // Get wpuser object from site hset-payments with given email using Woocommerce API
-        global $wpscfunction;
-
-        // $data_object = $this->data_object;
 
         // instantiate woocommerce API class
         $woocommerce = new Client(
                                     'https://sritoni.org/hset-payments/',
-                                    $this->config['wckey'],
-                                    $this->config['wcsec'],
+                                    self::$config['wckey'],
+                                    self::$config['wcsec'],
                                     [
                                         'wp_api'            => true,
                                         'version'           => 'wc/v3',
@@ -863,7 +998,7 @@ class class_headstart_admission
         catch (HttpClientException $e)
         {   // if cannot access hset-payments server error message and return 1
             $error_message = "Intranet Site: hset-payments not reacheable: " . $e->getMessage();
-            $this->change_status_error_creating_payment_shop_order($ticket_id, $error_message);
+            self::change_status_error_creating_payment_shop_order($ticket_id, $error_message);
 
             return null;
         }
@@ -874,32 +1009,30 @@ class class_headstart_admission
 
 
     /**
-     * @param integer:$ticket_id
+     * @param object:$ticket
      * @return void
      * Takes the data object from the ticket using the ticket_id
      * Get customer_id from hset-payments site using Woocommerce API
      * Create a new Payment Order using all the data for the given customer_id
      * Update the ticket field with the order_id created
      */
-    public function create_payment_shop_order($ticket_id)
+    public static function create_payment_shop_order( object $ticket ) : void
     {   // from email get customer_id and create a new Payment Order - update ticket field with order_id
-        global $wpscfunction;
-
-        // buuild an object containing all relevant data from ticket useful for crating user accounts and payments
-        $this->get_data_object_from_ticket($ticket_id);
 
         // get the category id from the ticket
-        $ticket_category_id = $this->data_object->ticket_meta['ticket_category'];
+        $ticket_category_id = $ticket->category;
+
+        $category_object = new WPSC_Category( $ticket_category_id );
         
         // get the ticket category name from ID
-        $term_category      = get_term_by('id', $ticket_category_id, 'wpsc_categories');
+        $category_name_of_ticket = $category_object->name;
 
         /*
         1. Get customer object from site hset-payments using the email
         2. Check if VA data in the user meta is valid. If not update if VA exists. If VA does not exist, create new VA
         3. If VA updated or created, update the site hset-payments with updated user meta for VA data.
         */
-        $wp_user_hset_payments = $this->get_wpuser_hset_payments_check_create_cfva();
+        $wp_user_hset_payments = self::get_wpuser_hset_payments_check_create_cfva();
 
         if (empty($wp_user_hset_payments)) return;  // safety catch
 
@@ -908,27 +1041,22 @@ class class_headstart_admission
         // if you got here you must be a head start user with a valid VA and customer_id and valid customer object
 
         // let's write this customer id to the ticket's agent only field for easy reference
-        $wpscfunction->change_field($ticket_id, 'wp-user-id-hset-payments', $customer_id);
-        
-        // Assign the customer as a property of the class in case we need it later on
-        $this->data_object->wp_user_hset_payments = $wp_user_hset_payments;
+        self::change_ticket_field( $ticket_id, 'wp-user-id-hset-payments', $customer_id);
 
         // check that admission-fee-payable and product-customized-name  fields are set
-        $product_customized_name    = $this->data_object->ticket_meta["product-customized-name"];
+        $product_customized_name    = $ticket->{ self::get_cf_slug_by_cf_name( 'product-customized-name' ) };
         if ( empty( $product_customized_name ) )
         {
             // means agent has not set it so get the value from the settings
-            $fullname       = $this->data_object->ticket_meta['student-first-name']  . " " . 
-                              $this->data_object->ticket_meta['student-middle-name'] . " " .
-                              $this->data_object->ticket_meta['student-last-name'];
-            $product_customized_name = $this->category_paymentdescription_arr[$term_category->slug] . " " . $fullname;
+            $fullname       = self::get_student_full_name_from_ticket( $ticket );
+            $product_customized_name = self::$category_paymentdescription_arr[$category_name_of_ticket] . " " . $fullname;
         }
         
-        $regular_price = $this->data_object->ticket_meta["admission-fee-payable"];
+        $regular_price = $ticket->{ self::get_cf_slug_by_cf_name( 'admission-fee-payable' ) };
         if ( empty( $regular_price ) )
         {
             // agent has not set this so use the value from settings based on ticket category
-            $regular_price = $this->category_fee_arr[$term_category->slug];
+            $regular_price = self::$category_fee_arr[$category_name_of_ticket];
         }
 
 
@@ -937,17 +1065,17 @@ class class_headstart_admission
             // change ticket status to error with an error message
             $error_message = "Admission-fee-payable and or the product-customized-name fields need to be set";
 
-            $this->change_status_error_creating_payment_shop_order($ticket_id, $error_message);
+            self::change_status_error_creating_payment_shop_order( $ticket->id, $error_message);
 
             return;
         }
 
-        $new_order = $this->create_wc_order_site_hsetpayments();
+        $new_order = self::create_wc_order_site_hsetpayments( $ticket );
 
-        $this->verbose ? error_log($new_order->id . " ID of newly created payment SHOP Order") : false;
+        self::$verbose ? error_log($new_order->id . " ID of newly created payment SHOP Order") : false;
 
         // update the agent field with the newly created order ID
-        $wpscfunction->change_field($ticket_id, 'order-id', $new_order->id);
+        self::change_ticket_field( $ticket_id, 'order-id', $new_order->id);
     }
 
 
@@ -955,12 +1083,11 @@ class class_headstart_admission
      * 1. This function grabs all ticket fields (agent and non-agent) data from a given ticket id
      * 2. It then creates a new data_object that contains all of the ticket data,for ease of access
      * 3. This data_object is also set as a property of $this class
-     *  @param integer:$ticket_id
+     *  @param object:$ticket_id
      *  @return object:$data_object
      */
-    private function get_data_object_from_ticket($ticket_id)
+    private function get_data_object_from_ticket( $ticket )
     {   // create a data object from ticket fields from ticket using ticket_id
-        global $wpscfunction;
 
         $this->ticket_id    = $ticket_id;
         $this->ticket_data  = $wpscfunction->get_ticket($ticket_id);
@@ -1022,21 +1149,19 @@ class class_headstart_admission
 
     /**
      *  pre-reqiosites before coming here:
-     * 1. $this->get_data_object_from_ticket($ticket_id) to get the data from ticket
      * 
      *  Gets customer user object from payments site and returns it. No Cashfree account check or creation.
      *
      * @return obj:woocommerce customer object - null returned in case of server error or if user does not exist or bad email
      */
-    private function get_wpuser_hset_payments_check_create_cfva()
+    public static function get_wpuser_hset_payments_check_create_cfva( $ticket ) : ? object
     {   // Get customer User Object from payments site using email. No Cashfree API used anymore
-        global $wpscfunction;
 
         // instantiate woocommerce API class
         $woocommerce = new Client(
                                     'https://sritoni.org/hset-payments/',
-                                    $this->config['wckey'],
-                                    $this->config['wcsec'],
+                                    self::$config['wckey'],
+                                    self::$config['wcsec'],
                                     [
                                         'wp_api'            => true,
                                         'version'           => 'wc/v3',
@@ -1044,27 +1169,28 @@ class class_headstart_admission
 
                                     ]);
 
-        $data_object = $this->data_object;
 
-        $category_id = $data_object->ticket_meta['ticket_category'];
+        $category_id = $ticket->category;
+
+        $category_object = new WPSC_Category( $category_id );
 
         // from category ID get the category name
-        $category_slug = get_term_by('id', $category_id, 'wpsc_categories')->slug;
+        $category_name = $category_object->name;
 
         // for Internal users get email directly from ticket->headstart-email - for new users, use agent assigned username
-        if (stripos($category_slug, "internal") === false)
+        if (stripos($category_name, "internal") === false)
         {       // Category slug does NOT contain 'internal' so external user application so use agent assigned username
-            $email = $data_object->ticket_meta['username'] . '@headstart.edu.in'; 
+            $email = $ticket->{ self::get_cf_slug_by_cf_name( 'username' ) } . '@headstart.edu.in'; 
         }
         else
         {       // headstart user so use form/ticket email directly
-            $email = $data_object->ticket_meta['headstart-email'];
+            $email = $ticket->{ self::get_cf_slug_by_cf_name( 'headstart-email' ) };
 
             if (stripos($email, "headstart.edu.in") === false)
             {   // email is NOT headstart domain, cannot process further
-                $this->verbose? error_log("Email is NOT of Head Start Domain: " . $email) : false;
+                self::$verbose? error_log("Email is NOT of Head Start Domain: " . $email) : false;
                 $error_message = "Email is NOT Head Start Domain: " . $email;
-                $this->change_status_error_creating_payment_shop_order($data_object->ticket_id, $error_message);
+                self::change_status_error_creating_payment_shop_order( $ticket->id, $error_message );
 
                 return null;
             }
@@ -1072,31 +1198,11 @@ class class_headstart_admission
         
 
         // get the  WP user object from the hset-payments site using woocommerce API, set error status if not successfull
-        $wp_user_hset_payments = $this->get_wp_user_hset_payments($email, $data_object->ticket_id);
+        $wp_user_hset_payments = self::get_wp_user_hset_payments( $email, $ticket->id) ;
+
+        self::$wp_user_hset_payments = $wp_user_hset_payments;
 
         return $wp_user_hset_payments;
-
-        /* get the moodle_id which is same as wpuser's login at the hset-payments site
-        $moodle_id = $wp_user_hset_payments->username;
-
-        // pad the moodleuserid with leading 0's if length less than 4. If not leave alone
-        $vAccountId = str_pad($moodle_id, 4, "0", STR_PAD_LEFT);
-
-        // extract VA data from the WP customer object meta, obtained from site hset-payments
-        // form array_keys and array_values from user meta to search for user meta data
-        $array_meta_key    = array_column($wp_user_hset_payments->meta_data, "key");
-        $array_meta_value  = array_column($wp_user_hset_payments->meta_data, "value");
-
-        $index_va_id            = array_search("va_id", $array_meta_key);
-        $index_account_number   = array_search("account_number", $array_meta_key);
-        $index_beneficiary_name = array_search("beneficiary_name", $array_meta_key);
-        $index_va_ifsc_code     = array_search("va_ifsc_code", $array_meta_key);
-
-        $va_id              = $array_meta_value[$index_va_id]               ?? null;
-        $account_number     = $array_meta_value[$index_account_number]      ?? null;
-        $beneficiary_name   = $array_meta_value[$index_beneficiary_name]    ?? null;
-        $va_ifsc_code       = $array_meta_value[$index_va_ifsc_code]        ?? null;
-        */
     }
 
 
@@ -1104,26 +1210,22 @@ class class_headstart_admission
     /**
      *  Creates a new Order on the payments site
      *  Prerequisites:
-     *  1. Valid data_object for this ticket: $this->get_data_object_from_ticket($ticket_id)
-     *  2. $this->get_wpuser_hset_payments_check_create_cfva() to get valid customet object and also valid VA
+     *  
+     *  1. $this->get_wpuser_hset_payments_check_create_cfva() to get valid customet object and also valid VA
      *  
      *  This function creates a new Order at the payments site using information derived from ticket and customer object
      *  @return obj:$order_created
      */
-    private function create_wc_order_site_hsetpayments()
+    public static function create_wc_order_site_hsetpayments( $ticket )
     {   // creates a new Order at the payments site using information derived from ticket and customer object
-        global $wpscfunction;
         
         $array_meta_key     = [];
         $array_meta_value   = [];
 
         $index              = null;
 
-        // before coming here the create account object is already created. We jsut use it here.
-        $data_object = $this->data_object;
-
         // fix the customer_id and corresponding va_id
-        if ($this->data_object->wp_user_hset_payments)
+        if (self::$wp_user_hset_payments)
         {
             // customer object is not null, so should contain valid customer ID and va_id
             // customer ID is the WP id of this user in site hset-payments
@@ -1135,41 +1237,36 @@ class class_headstart_admission
         }
         else
         {
-            $this->change_status_error_creating_payment_shop_order($data_object->ticket_id, 'Null customer object found at line 1054 -  No PO created');
-            $this->verbose ? error_log("Null wp user object found at line 1045 -  No PO created for ticket:" . $data_object->ticket_id): false;
+            self::change_status_error_creating_payment_shop_order($data_object->ticket_id, 'Null customer object found at line 1054 -  No PO created');
+            self::$verbose ? error_log("Null wp user object found at line 1045 -  No PO created for ticket:" . $data_object->ticket_id): false;
             return;
         }
         
         // derive the fee and description from ticket field/settings based on agent override
         // get the category id from the data object ticket meta
-        $ticket_category_id = $this->data_object->ticket_meta['ticket_category'];
-        
-        // get the ticket category name from ID
-        $term_category      = get_term_by('id', $ticket_category_id, 'wpsc_categories');
-		
-		// check if admission-fee-payable and product-customized-name  fields are set by agent
-        $product_customized_name    = $this->data_object->ticket_meta["product-customized-name"];
+        $ticket_category_id = $ticket->category;
+
+        // check that admission-fee-payable and product-customized-name  fields are set
+        $product_customized_name    = $ticket->{ self::get_cf_slug_by_cf_name( 'product-customized-name' ) };
         if ( empty( $product_customized_name ) )
         {
             // means agent has not set it so get the value from the settings
-            $fullname       = $this->data_object->ticket_meta['student-first-name']  . " " . 
-                              $this->data_object->ticket_meta['student-middle-name'] . " " .
-                              $this->data_object->ticket_meta['student-last-name'];
-            $product_customized_name = $this->category_paymentdescription_arr[$term_category->slug] . " " . $fullname;
+            $fullname       = self::get_student_full_name_from_ticket( $ticket );
+            $product_customized_name = self::$category_paymentdescription_arr[$category_name_of_ticket] . " " . $fullname;
         }
         
-        $regular_price = $this->data_object->ticket_meta["admission-fee-payable"];
+        $regular_price = $ticket->{ self::get_cf_slug_by_cf_name( 'admission-fee-payable' ) };
         if ( empty( $regular_price ) )
         {
             // agent has not set this so use the value from settings based on ticket category
-            $regular_price = $this->category_fee_arr[$term_category->slug];
+            $regular_price = self::$category_fee_arr[$category_name_of_ticket];
         }
 
         // instantiate woocommerce API class
         $woocommerce = new Client(
                                     'https://sritoni.org/hset-payments/',
-                                    $this->config['wckey'],
-                                    $this->config['wcsec'],
+                                    self::$config['wckey'],
+                                    self::$config['wcsec'],
                                     [
                                         'wp_api'            => true,
                                         'version'           => 'wc/v3',
@@ -1273,7 +1370,7 @@ class class_headstart_admission
         else
         {
             // there was an error in creating the prder. Update the status and the error message for the ticket
-            $this->change_status_error_creating_payment_shop_order($data_object->ticket_id, 'could NOT create payment order, check');
+            self::change_status_error_creating_payment_shop_order($data_object->ticket_id, 'could NOT create payment order, check');
         }
     }
 
@@ -1307,56 +1404,125 @@ class class_headstart_admission
 
 
     /**
-     * @param int:$ticket_id
-     * @return void
-     * 1. Get the data object for account creation from ticket
-     * 2. If user already has a Head Start account (detected by their email domain) update user
-     * 3. Check that required data is not empty. If so, change ticket status to error
-     * 4. Processd for SriToni account creation
+     *  VISUALLY CHECKED for SC 3.0 compatibility
+     * 
+     *  This works for any ticket field wether default predefined type or custom type with slug like cust_35 etc.
+     */
+    public static function get_ticket_value_given_cf_name( object $ticket, string $cf_name ) : ? mixed
+    {
+        $cf_slug = self::get_cf_slug_by_cf_name( $cf_name );
+
+        $cf_value = $ticket->$cf_slug ?? null;
+
+        return $cf_value;
+    }
+
+
+
+    /**
+     *  VISUALLY CHECKED for SC 3.0 compatibility
+     * 
+     *  @param string:$cf_name is the name of the ticket custom field that is not of the default pre-defined type
+     *  This is to be used for custom ticket fields that end up having slug like cust_45 where 45 is the cf id.
+     */
+    public static function get_cf_slug_by_cf_name( string $cf_name ) : string
+    {
+        // get the object using the name
+        $cf = self::get_cf_object_by_cf_name( $cf_name );
+
+        // extract the slug from the ststus object
+        $cf_slug = $cf->slug;
+
+        return $cf_slug;
+    }
+
+    /**
+     *  VISUALLY CHECKED for SC 3.0 compatibility
+     * 
+     *  @param string:$cf_name is the name of the ticket custom field that is not of the default pre-defined type
+     *  This is to be used for custom ticket fields that end up having slug like cust_45 where 45 is the cf id.
+     */
+    public static function get_cf_object_by_cf_name( string $cf_name ) : ? object
+    {
+        foreach ( WPSC_Custom_Field::$custom_fields as $cf ):
+
+            // get only ticket fields, and agent only fields
+            if ( ! in_array( $cf->field, array( 'ticket', 'agentonly' ) )  ) {
+                continue;
+            }
+            if ( $cf->name === $cf_name )   // Does the field name match passed in field name?
+            {
+                // we have a match, so return this object
+                return $cf;
+            }
+
+        endforeach;
+
+        // could not find a match so return null
+        return null;
+    }
+
+
+
+    /**
+     * VISUALLY CHECKED for SC 3.0 compatibility
+     * 
+     * @param object:$ticket
+     * @return mixed: 
+     * 1. If user already has a Head Start account (detected by their email domain) update user
+     * 2. Check that required data is not empty. If so, change ticket status to error
+     * 3. Processd for SriToni account creation
      */
 
-    public function create_update_user_account($ticket_id)
+    public static function prepare_and_create_or_update_moodle_account( $ticket ) : mixed
     {   // update existing or create a new SriToni user account using data from ticket. Add user to cohort based on ticket data
-        global $wpscfunction;
 
-        // buuild an object containing all relevant data from ticket useful for crating user accounts and payments
-        $this->get_data_object_from_ticket($ticket_id);
+        // get the headstart email from the ticket using the cf name 'headstart-email'
+        $headstart_email = self::get_ticket_value_given_cf_name( $ticket, 'headstart-email' );
+ 
+        if (stripos( $headstart_email, 'headstart.edu.in') !== false)
+        {   // User already has an exising SriToni email ID and Head Start Account, just update with form info in case something has changed
 
-        if (stripos($this->data_object->ticket_meta['headstart-email'], 'headstart.edu.in') !== false)
-        {
-            // User already has an exising SriToni email ID and Head Start Account, just update with form info
-            // does not need any agent only fields to be set as they are not involved in the update
-            $this->update_sritoni_account();
+            self::update_sritoni_account( $ticket );
             
             // add user to relevant incoming cohort for easy cohort management
-            $this->add_user_to_cohort();
+            self::add_user_to_cohort( $ticket );
 
-            return;
+            return false;
         }
 
         // if you are here you don't have an existing Head Start email. So Create a new SriToni account using username
+        // username must be set by an agent from the support UI.
         // check if all required data for new account creation is set
+        
+        $username       = self::get_ticket_value_given_cf_name( $ticket, 'username' );
+        $idnumber       = self::get_ticket_value_given_cf_name( $ticket, 'idnumber' );
+        $studentcat     = self::get_ticket_value_given_cf_name( $ticket, 'studentcat' );
+        $department     = self::get_ticket_value_given_cf_name( $ticket, 'department' );
+        $institution    = self::get_ticket_value_given_cf_name( $ticket, 'institution' );
+        $class          = self::get_ticket_value_given_cf_name( $ticket, 'class' );
+
         if 
-        (   !empty( $this->data_object->ticket_meta['username'] )      &&
-            !empty( $this->data_object->ticket_meta['idnumber'] )      &&
-            !empty( $this->data_object->ticket_meta['studentcat'] )    &&
-            !empty( $this->data_object->ticket_meta['department'] )    &&
-            !empty( $this->data_object->ticket_meta['institution'] )   &&
-            !empty( $this->data_object->ticket_meta['class'] )
+        (   ! empty( $username )      &&
+            ! empty( $idnumber )      &&
+            ! empty( $studentcat )    &&
+            ! empty( $department )    &&
+            ! empty( $institution )   &&
+            ! empty( $class )
         )        
         {
             // go create a new SriToni user account for this child using ticket dataa. Return the moodle id if successfull
-            $moodle_id = $this->create_sritoni_account();
+            $moodle_id = self::create_sritoni_account( $ticket );
 
             // after creation of SriToni user account add the user to appropriate cohort for easy management later on
-            $this->add_user_to_cohort();
+            self::add_user_to_cohort( $ticket );
 
             return $moodle_id;
         }
         else
         {
             $error_message = "Sritoni Account NOT CREATED! Ensure username, idnumber, studentcat, department, and institution fields are Set";
-            $this->change_status_error_creating_sritoni_account($this->data_object->ticket_id, $error_message);
+            self::change_status_error_creating_sritoni_account( $ticket->id, $error_message);
 
             return null;
         }
@@ -1364,36 +1530,31 @@ class class_headstart_admission
 
 
     /**
+     *  VISUALLY CHECKED for SC 3.0 compatibility
+     * 
      *  @return int:moodle user id from table mdl_user. null if error in creation
      *  This is to be called after the data_object has been already created.
      *      AND the data checked to ensure it is set and not empty
      *  1. Function checks if username is not taken, only then creates new account.
      *  2. If error in creating new accoount or username is taken ticket status changed to error.
      */
-    private function create_sritoni_account()
+    private static function create_sritoni_account( $ticket )
     {   // checks if username is not taken, only then creates new account -sets ticket error if account not created
-        // before coming here the create account object should be already created. We jsut use it here.
-        global $wpscfunction;
-
-        $data_object = $this->data_object;
-
-        // run this again since we may be changing API keys. Once in production remove this
-        // $this->get_config();
 
         // read in the Moodle API config array
-        $config			= $this->config;
+        $config			= self::$config;
         $moodle_url 	= $config["moodle_url"] . '/webservice/rest/server.php';
         $moodle_token	= $config["moodle_token"];
 
-        $moodle_username    = $data_object->ticket_meta["username"];
-        $moodle_email       = $moodle_username . "@headstart.edu.in";
+        $moodle_username    = self::get_ticket_value_given_cf_name( $ticket, 'username' );
+        $moodle_email       = $moodle_username . "@headstart.edu.in";   // new account so this is the rule
 
-        $moodle_environment = $data_object->ticket_meta["environment"];
+        $moodle_environment = self::get_ticket_value_given_cf_name( $ticket, 'environment' );
         if (empty($moodle_environment)) $moodle_environment = "NA";
 
-        $moodle_phone1      = $data_object->ticket_meta["emergency-contact-number"] ?? "1234567890";
-        $moodle_phone2      = $data_object->ticket_meta["emergency-alternate-contact"] ?? "1234567890";
-        $moodle_department  = $data_object->ticket_meta["department"] ?? "Student";
+        $moodle_phone1      = self::get_ticket_value_given_cf_name( $ticket, 'emergency-contact-number' )     ?? "1234567890";
+        $moodle_phone2      = self::get_ticket_value_given_cf_name( $ticket, 'emergency-alternate-contact' )  ?? "1234567890";
+        $moodle_department  = self::get_ticket_value_given_cf_name( $ticket, 'department' )                   ?? "Student";
 
         // prepare the Moodle Rest API object
         $MoodleRest = new MoodleRest();
@@ -1412,10 +1573,10 @@ class class_headstart_admission
             // An account with this username already exssts. So set error status so Admin can set a different username and try again
             $error_message = "This username already exists! Is this an existing user? If not change username and retry";
 
-            $this->verbose ? error_log($error_message) : false;
+            self::$verbose ? error_log($error_message) : false;
 
             // change the ticket status to error
-            $this->change_status_error_creating_sritoni_account($data_object->ticket_id, $error_message);
+            self::change_status_error_creating_sritoni_account( $ticket, $error_message );
 
             return;
         }
@@ -1435,24 +1596,24 @@ class class_headstart_admission
 
     	$users = array("users" => array(
                                             array(	"username" 	    => $moodle_username,
-                                                    "idnumber"      => $data_object->ticket_meta["idnumber"],
+                                                    "idnumber"      => self::get_ticket_value_given_cf_name( $ticket, "idnumber"),
                                                     "auth"          => "oauth2",
-                                                    "firstname"     => $data_object->ticket_meta["student-first-name"],
-                                                    "lastname"      => $data_object->ticket_meta["student-last-name"],
+                                                    "firstname"     => self::get_ticket_value_given_cf_name( $ticket, "student-first-name"),
+                                                    "lastname"      => self::get_ticket_value_given_cf_name( $ticket, "student-last-name"),
                                                     "email"         => $moodle_email,
-                                                    "middlename"    => $data_object->ticket_meta["student-middle-name"],
-                                                    "institution"   => $data_object->ticket_meta["institution"],
+                                                    "middlename"    => self::get_ticket_value_given_cf_name( $ticket, "student-middle-name"),
+                                                    "institution"   => self::get_ticket_value_given_cf_name( $ticket, "institution"),
                                                     "department"    => $moodle_department,
                                                     "phone1"        => $moodle_phone1,
                                                     "phone2"        => $moodle_phone2,
-                                                    "address"       => $data_object->ticket_meta["residential-address"],
+                                                    "address"       => self::get_ticket_value_given_cf_name( $ticket, "residential-address"),
                                                     "maildisplay"   => 0,
                                                     "createpassword"=> 0,
-                                                    "city"          => $data_object->ticket_meta["city"],
+                                                    "city"          => self::get_ticket_value_given_cf_name( $ticket, "city"),
 
                                                     "customfields" 	=> array(
                                                                                 array(	"type"	=>	"class",
-                                                                                        "value"	=>	$data_object->ticket_meta["class"],
+                                                                                        "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "class"),
                                                                                     ),
                                                                                 array(	"type"	=>	"environment",
                                                                                         "value"	=>	$moodle_environment,
@@ -1470,52 +1631,52 @@ class class_headstart_admission
                                                                                         "value"	=>	$virtualaccounts_json,
                                                                                     ),
                                                                                 array(	"type"	=>	"studentcat",
-                                                                                        "value"	=>	$data_object->ticket_meta["studentcat"],
+                                                                                        "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "studentcat"),
                                                                                     ),
                                                                                 array(	"type"	=>	"bloodgroup",
-                                                                                        "value"	=>	$data_object->ticket_meta["blood-group"],
+                                                                                        "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "blood-group"),
                                                                                     ),
                                                                                 array(	"type"	=>	"motheremail",
-                                                                                        "value"	=>	$data_object->ticket_meta["mothers-email"],
+                                                                                        "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "mothers-email"),
                                                                                     ),
                                                                                 array(	"type"	=>	"fatheremail",
-                                                                                        "value"	=>	$data_object->ticket_meta["fathers-email"],
+                                                                                        "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "fathers-email"),
                                                                                     ),
                                                                                 array(	"type"	=>	"motherfirstname",
-                                                                                        "value"	=>	$data_object->ticket_meta["mothers-first-name"],
+                                                                                        "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "mothers-first-name"),
                                                                                     ),
                                                                                 array(	"type"	=>	"motherlastname",
-                                                                                        "value"	=>	$data_object->ticket_meta["mothers-last-name"],
+                                                                                        "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "mothers-last-name"),
                                                                                     ),
                                                                                 array(	"type"	=>	"fatherfirstname",
-                                                                                        "value"	=>	$data_object->ticket_meta["fathers-first-name"],
+                                                                                        "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "fathers-first-name"),
                                                                                     ),
                                                                                 array(	"type"	=>	"fatherlastname",
-                                                                                        "value"	=>	$data_object->ticket_meta["fathers-last-name"],
+                                                                                        "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "fathers-last-name"),
                                                                                     ),
                                                                                 array(	"type"	=>	"mothermobile",
-                                                                                        "value"	=>	$data_object->ticket_meta["mothers-contact-number"],
+                                                                                        "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "mothers-contact-number"),
                                                                                     ),
                                                                                 array(	"type"	=>	"fathermobile",
-                                                                                        "value"	=>	$data_object->ticket_meta["fathers-contact-number"],
+                                                                                        "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "fathers-contact-number"),
                                                                                     ),
                                                                                 array(	"type"	=>	"allergiesillnesses",
-                                                                                        "value"	=>	$data_object->ticket_meta["allergies-illnesses"],
+                                                                                        "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "allergies-illnesses"),
                                                                                     ),
                                                                                 array(	"type"	=>	"birthplace",
-                                                                                        "value"	=>	$data_object->ticket_meta["birthplace"],
+                                                                                        "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "birthplace"),
                                                                                     ),
                                                                                 array(	"type"	=>	"nationality",
-                                                                                        "value"	=>	$data_object->ticket_meta["nationality"],
+                                                                                        "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "nationality"),
                                                                                     ),
                                                                                 array(	"type"	=>	"languages",
-                                                                                        "value"	=>	$data_object->ticket_meta["languages-spoken"],
+                                                                                        "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "languages-spoken"),
                                                                                     ),
                                                                                 array(	"type"	=>	"dob",
-                                                                                        "value"	=>	$data_object->ticket_meta["date-of-birth"],
+                                                                                        "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "date-of-birth"),
                                                                                     ),
                                                                                 array(	"type"	=>	"pin",
-                                                                                        "value"	=>	$data_object->ticket_meta["pin-code"],
+                                                                                        "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "pin-code"),
                                                                                     ),           
                                                                             )
                                                 )
@@ -1529,20 +1690,20 @@ class class_headstart_admission
         if ($ret[0]['username'] == $moodle_username && empty($ret["exception"]))
         {
             // Blank any pre-existing error message since we are successful
-            if ( !empty($data_object->ticket_meta["error"]) )
+            if ( ! empty( self::get_ticket_value_given_cf_name( $ticket, "error" )) )
             {
-                $wpscfunction->change_field($data_object->ticket_id, 'error', "");
+                self::change_ticket_field( $ticket->id, 'error', "");
             }
             // the returned user has same name as one given to create new user so new user creation was successful
             return $ret[0]['id'];
         }
         else
         {
-            $this->verbose ? error_log("Create new user did NOT return expected username: " . $moodle_username) : false;
-            $this->verbose ? error_log(print_r($ret, true)) : false;
+            self::$verbose ? error_log("Create new user did NOT return expected username: " . $moodle_username) : false;
+            self::$verbose ? error_log(print_r($ret, true)) : false;
 
             // change the ticket status to error
-            $this->change_status_error_creating_sritoni_account($data_object->ticket_id, $ret["message"]);
+            self::change_status_error_creating_sritoni_account( $ticket->id, $ret["message"] );
 
             return null;
         }
@@ -1551,99 +1712,101 @@ class class_headstart_admission
 
 
     /**
+     *  VISUALLY CHECKED for SC 3.0 compatibility
+     * 
+     *  @param object:$ticket
+     *  @return array:$ret returned array from Moodle update user API call
+     *  The calling routine should check for $ret['exception'] to verify is call was OK or not
      * The existing user's SriToni account details are updated.
      *  Check that the  headstart-email is already validated to contain headstart.edu.in before coming here
      */
-    private function update_sritoni_account()
+    private static function update_sritoni_account( object $ticket ) : ? array
     {
-        // before coming here the create account object should be already created. We jsut use it here.
-        $data_object = $this->data_object;
-
-            // read in the Moodle API config array
-        $config			= $this->config;
+        // read in the Moodle API config array
+        $config			= self::$config;
         $moodle_url 	= $config["moodle_url"] . '/webservice/rest/server.php';
         $moodle_token	= $config["moodle_token"];
 
         // Existing user, the username needs to be extracted from the headstart-email
-        $moodle_email       = $this->data_object->ticket_meta['headstart-email'];
+        $moodle_email       = self::get_ticket_value_given_cf_name( $ticket, "headstart-email" );
 
         // get the  WP user object from the hset-payments site using woocommerce API, set error ststus if not successfull
-        $wp_user_hset_payments = $this->get_wp_user_hset_payments($moodle_email, $data_object->ticket_id);
+        $wp_user_hset_payments = self::get_wp_user_hset_payments( $moodle_email, $ticket->id );
 
         // get the moodle_id which is same as wpuser's login at the hset-payments site
         $moodle_id = $wp_user_hset_payments->username;
 
-            // prepare the Moodle Rest API object
+        // prepare the Moodle Rest API object
         $MoodleRest = new MoodleRest();
         $MoodleRest->setServerAddress($moodle_url);
         $MoodleRest->setToken( $moodle_token ); // get token from ignore_key file
         $MoodleRest->setReturnFormat(MoodleRest::RETURN_ARRAY); // Array is default. You can use RETURN_JSON or RETURN_XML too.
 
         
-        // We have a valid Moodle user id, form the array to updatethis user
+        // We have a valid Moodle user id, form the array to updatethis user. The ticket custom field name must be exactly as shown.
         $users = array("users" => array(
                                         array(	"id" 	        => $moodle_id,
                                         //      "idnumber"      => $data_object->ticket_meta["idnumber"],
                                         //      "auth"          => "oauth2",
-                                                "firstname"     => $data_object->ticket_meta["student-first-name"],
-                                                "lastname"      => $data_object->ticket_meta["student-last-name"],
+                                                "firstname"     => self::get_ticket_value_given_cf_name( $ticket, "student-first-name" ),
+                                                "lastname"      => self::get_ticket_value_given_cf_name( $ticket, "student-last-name" ),
                                         //      "email"         => $moodle_email,
-                                                "middlename"    => $data_object->ticket_meta["student-middle-name"],
+                                                "middlename"    => self::get_ticket_value_given_cf_name( $ticket, "student-middle-name" ),
                                         //      "institution"   => $data_object->ticket_meta["institution"],
                                         //      "department"    => $data_object->ticket_meta["department"],
-                                                "phone1"        => $data_object->ticket_meta["emergency-contact-number"],
-                                                "phone2"        => $data_object->ticket_meta["emergency-alternate-contact"],
-                                                "address"       => $data_object->ticket_meta["residential-address"],
+                                                "phone1"        => self::get_ticket_value_given_cf_name( $ticket, "emergency-contact-number" ),
+                                                "phone2"        => self::get_ticket_value_given_cf_name( $ticket, "emergency-alternate-contact" ),
+                                                "address"       => self::get_ticket_value_given_cf_name( $ticket, "residential-address" ),
                                          //     "maildisplay"   => 0,
                                          //     "createpassword"=> 0,
-                                                "city"          => $data_object->ticket_meta["city"],
+                                                "city"          => self::get_ticket_value_given_cf_name( $ticket, "city" ),
 
                                                 "customfields" 	=> array(
                                                                             
                                                                             array(	"type"	=>	"bloodgroup",
-                                                                                    "value"	=>	$data_object->ticket_meta["blood-group"],
+                                                                                    "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "blood-group" ),
                                                                                 ),
                                                                             array(	"type"	=>	"motheremail",
-                                                                                    "value"	=>	$data_object->ticket_meta["mothers-email"],
+                                                                                    "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "mothers-email" ),
                                                                                 ),
                                                                             array(	"type"	=>	"fatheremail",
-                                                                                    "value"	=>	$data_object->ticket_meta["fathers-email"],
+                                                                                    "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "fathers-email" ),
                                                                                 ),
                                                                             array(	"type"	=>	"motherfirstname",
-                                                                                    "value"	=>	$data_object->ticket_meta["mothers-first-name"],
+                                                                                    "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "mothers-first-name" ),
                                                                                 ),
                                                                             array(	"type"	=>	"motherlastname",
-                                                                                    "value"	=>	$data_object->ticket_meta["mothers-last-name"],
+                                                                                    "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "mothers-last-name" ),
                                                                                 ),
                                                                             array(	"type"	=>	"fatherfirstname",
-                                                                                    "value"	=>	$data_object->ticket_meta["fathers-first-name"],
+                                                                                    "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "fathers-first-name" ),
                                                                                 ),
                                                                             array(	"type"	=>	"fatherlastname",
-                                                                                    "value"	=>	$data_object->ticket_meta["fathers-last-name"],
+                                                                                    "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "fathers-last-name" ),
                                                                                 ),
                                                                             array(	"type"	=>	"mothermobile",
-                                                                                    "value"	=>	$data_object->ticket_meta["mothers-contact-number"],
+                                                                                    "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "mothers-contact-number" ),
                                                                                 ),
                                                                             array(	"type"	=>	"fathermobile",
-                                                                                    "value"	=>	$data_object->ticket_meta["fathers-contact-number"],
+                                                                                    "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "fathers-contact-number" ), 
                                                                                 ),
                                                                             array(	"type"	=>	"allergiesillnesses",
-                                                                                    "value"	=>	$data_object->ticket_meta["allergies-illnesses"],
+                                                                                    "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "allergies-illnesses" ),
                                                                                 ),
                                                                             array(	"type"	=>	"birthplace",
-                                                                                    "value"	=>	$data_object->ticket_meta["birthplace"],
+                                                                                    "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "birthplace" ), 
                                                                                 ),
                                                                             array(	"type"	=>	"nationality",
-                                                                                    "value"	=>	$data_object->ticket_meta["nationality"],
+                                                                                    "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "nationality" ),
                                                                                 ),
                                                                             array(	"type"	=>	"languages",
-                                                                                    "value"	=>	$data_object->ticket_meta["languages-spoken"],
+                                                                                    "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "languages-spoken" ),
                                                                                 ),
                                                                             array(	"type"	=>	"dob",
-                                                                                    "value"	=>	$data_object->ticket_meta["date-of-birth"],
+                                                                                    "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "date-of-birth" ),
                                                                                 ),
                                                                             array(	"type"	=>	"pin",
-                                                                                    "value"	=>	$data_object->ticket_meta["pin-code"],
+                                                                                    "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "pin-code" ),
                                                                                 ),           
                                                                         )
                                             )
@@ -1653,33 +1816,37 @@ class class_headstart_admission
 
         if ($ret["exception"])
         {
-            $this->verbose ? error_log(print_r($ret, true)) : false;
+            self::$verbose ? error_log(print_r($ret, true)) : false;
         }
-        $this->verbose ? error_log(print_r($ret, true)) : false;
+        self::$verbose ? error_log(print_r($ret, true)) : false;
+
+        return $ret;
     }
 
     /**
+     *  VISUALLY CHECKED for SC 3.0 compatibility
+     * 
+     *  @param object:$ticket
      *  You must have the data pbject ready before coming here
      *  The user could be a new user or a continuing user
      */
-    private function add_user_to_cohort()
+    private static function add_user_to_cohort( $ticket )
     {   // adds user to cohort based on settings cohortid array indexed by ticket category
-        // before coming here the create account object should be already created. We jsut use it here.
-        $data_object = $this->data_object;
-
-        // run this again since we may be changing API keys. Once in production remove this
-        // $this->get_config();
 
         // read in the Moodle API config array
-        $config			= $this->config;
+        $config			= self::$config;
+
         $moodle_url 	= $config["moodle_url"] . '/webservice/rest/server.php';
         $moodle_token	= $config["moodle_token"];
 
-        
-        if (stripos($this->data_object->ticket_meta['headstart-email'], '@headstart.edu.in') !==false)
+        $ticket_headstart_email       = self::get_ticket_value_given_cf_name( $ticket, "headstart-email" );        
+
+
+        // check if ticket field for headstart email contains the domain name
+        if (stripos( $ticket_headstart_email, '@headstart.edu.in') !==false)
         {
             // Continuing user, the username needs to be extracted from the headstart-email
-            $moodle_email       = $this->data_object->ticket_meta['headstart-email'];
+            $moodle_email       = $ticket_headstart_email;
 
             // get 1st part of the email as the username
             $moodle_username    = explode( "@headstart.edu.in", $moodle_email, 2 )[0];
@@ -1687,18 +1854,20 @@ class class_headstart_admission
         else
         {
             // New account just created so get info from ticket fields
-            $moodle_username    = $data_object->ticket_meta["username"];
+            $moodle_username    = self::get_ticket_value_given_cf_name( $ticket, "username" );
             $moodle_email       = $moodle_username . "@headstart.edu.in";
         }
         
 
-        $category_id = $data_object->ticket_meta['ticket_category'];
+        $category_id = $ticket->category;   // since this is a default ticket field the slug is pre-defined
 
         // from category ID get the category name
-        $category_slug = get_term_by('id', $category_id, 'wpsc_categories')->slug;
+        $category_object = new WPSC_Category( $category_id );
+
+        $category_name = $category_object->name;
 
         // get the cohortid for this ticket based on category-cohortid mapping from settings
-        $cohortidnumber = $this->category_cohortid_arr[$category_slug];
+        $cohortidnumber = self::$category_cohortid_arr[$$category_name];
 
         // prepare the Moodle Rest API object
         $MoodleRest = new MoodleRest();
@@ -1719,10 +1888,12 @@ class class_headstart_admission
 
         $cohort_ret = $MoodleRest->request('core_cohort_add_cohort_members', $parameters, MoodleRest::METHOD_GET);
         error_log(print_r($cohort_ret, true));
+
+        return $cohort_ret;
     }
 
     /**
-     *
+     *  VISUALLY CHECKED for SC 3.0 compatibility
      */
     public function add_my_menu()
     {
@@ -1745,13 +1916,17 @@ class class_headstart_admission
     }
 
     /**
-     *
+     *  VISUALLY CHECKED for SC 3.0 compatibility
      */
     public function render_admissions_page()
     {
         echo "This is the admissions page where stuff about admissions is displayed";
     }
 
+
+    /**
+     *  VISUALLY CHECKED for SC 3.0 compatibility
+     */
     public function sritoni_tools_render()
     {
         // this is for rendering the API test onto the sritoni_tools page
@@ -1778,52 +1953,45 @@ class class_headstart_admission
 
         <?php
 
-        
+        $id = sanitize_text_field( $_POST['id'] );
         
         switch ($_POST['button'])
         {
             case 'test_sritoni_connection':
-                $id = sanitize_text_field( $_POST['id'] );
                 $this->test_sritoni_connection($id);
-                break;
+            break;
 
             case 'test_cashfree_connection':
-                $id = sanitize_text_field( $_POST['id'] );
                 $this->test_cashfree_connection($id);
-                break;
+            break;
 
             case 'test_woocommerce_customer':
-                $id = sanitize_text_field( $_POST['id'] );
                 $this->test_woocommerce_customer($id);
-                break;
+            break;
 
             case 'test_get_ticket_data':
-                $id = sanitize_text_field( $_POST['id'] );
                 $this->test_get_ticket_data($id);
-                break;
+            break;
 
             case 'test_get_wc_order':
-                $order_id = sanitize_text_field( $_POST['id'] );
-                $this->get_wc_order($order_id);
-                break;
+                $this->get_wc_order($id);
+            break;
 
             case 'trigger_payment_order_for_error_tickets':
                 $this->trigger_payment_order_for_error_tickets();
-                break;
+            break;
 
             case 'trigger_sritoni_account_creation_for_error_tickets':
                 $this->trigger_sritoni_account_creation_for_error_tickets();
-                break;
+            break;
 
             case 'test_get_data_object_from_ticket':
-                $ticket_id = sanitize_text_field( $_POST['id'] );
-                $this->test_get_data_object_from_ticket($ticket_id);
-                break;
+                $this->test_get_data_object_from_ticket($id);
+            break;
 
             case 'test_custom_code':
-                $id = sanitize_text_field( $_POST['id'] );
                 $this->test_custom_code($id);
-                break;
+            break;
 
             default:
                 // do nothing
@@ -1849,17 +2017,7 @@ class class_headstart_admission
         }
     }
 
-    /**
-     *  @param int:$ticket_id of the ticket whose payment-bank-reference field needs to be updated
-     *  @param string:$utr is the Unique Transaction ID
-     *  @return void
-     */
-    public function update_field_bank_reference(int $ticket_id, string $utr):void
-    {
-        global $wpscfunction;
-
-        $wpscfunction->change_field($ticket_id, 'payment-bank-reference', $utr);
-    }
+    
 
     /**
      *  @param string:$reply
@@ -1908,19 +2066,28 @@ class class_headstart_admission
      * For all tickets of specified status, it checks if any thread contains a possible UTR and updates ticket field
      * @return void
      */
-    public function check_if_payment_utr_input()
+    public static function check_if_payment_utr_input()
     {   // For all tickets of specified status, it checks if any thread contains a possible UTR and updates ticket field
         // get all tickets that have payment status as shown. 
 
-        $tickets = $this->get_all_active_tickets_by_status_slug('admission-payment-order-being-created');
+        return;
+
+        $tickets = self::get_all_active_tickets_by_status_name('Admission Payment Order Being Created');
 
         foreach ($tickets as $ticket)
         {
+            $payment_bank_reference = self::get_ticket_value_given_cf_name( $ticket, 'payment-bank-reference');
+
+                if ( ! empty($payment_bank_reference) )
+                {
+                    continue; // skip this ticket
+                }
+
             // initialize $utr for each ticket so as not to carry over from previous tickets
             $utr = null;
 
             // get the  ticket history of this ticket
-            $threads = $this->get_ticket_threads($ticket->id);
+            $threads = self::get_ticket_threads($ticket->id);
 
             // process all threads of this ticket
             foreach ($threads as $thread)
@@ -1929,7 +2096,7 @@ class class_headstart_admission
                 if ($thread_content)
                 {
                     // null value returned if utr doesnt exist in this thread
-                    $utr_thisthread = $this->extract_utr($thread_content);
+                    $utr_thisthread = self::extract_utr($thread_content);
                 }
 
                 if ($utr_thisthread)
@@ -1941,21 +2108,14 @@ class class_headstart_admission
             
             // if $utr is not null from above processing of threads update this ticket provided existing value for field is empty
             if ( $utr )
-            {   // we have a valid utr in ticket reply, so lets update the field payment-bank-reference only if not empty
-                $this->get_data_object_from_ticket($ticket->id);
-
-                // get existing value of bank-reference from ticket using data pbject
-                $payment_bank_reference = $this->data_object->ticket_meta['payment-bank-reference'];
-
-                if ( empty($payment_bank_reference) )
-                {
-                    $this->update_field_bank_reference($ticket->id, $utr);
-                }
+            {   
+                self::change_ticket_field( $ticket->id, $utr );
             }
         }
+    }
 
         
-    }
+    
 
     /**
      * @param integer:$ticket_id
@@ -2007,7 +2167,7 @@ class class_headstart_admission
         
             $ticket_id = $ticket->id;
 
-            $this->create_update_user_account($ticket_id);
+            $this->prepare_and_create_or_update_moodle_account($ticket_id);
             
         endforeach;
     }
@@ -2294,76 +2454,106 @@ class class_headstart_admission
     /**
      *
      */
-    private function change_status_error_creating_payment_shop_order($ticket_id, $error_message)
+    private static function change_status_error_creating_payment_shop_order( $ticket_id, $error_message )
     {
-        global $wpscfunction;
+        $new_status_name = "Error Creating Payment Shop Order";
 
-        $status_id = 94;    // corresponds to status error creating payment order
+        self::change_ticket_status( $ticket_id, $new_status_name );
 
-        $wpscfunction->change_status($ticket_id, $status_id);
+        // update agent field error message with the passed in error message
+        if ( ! empty($error_message) )
+        {
+            self::change_ticket_field( $ticket_id, 'error', $error_message );
+        }
+    }
 
-				$ticket_slug = "error";
+    /**
+     *  VISUALLY CHECKED for SC 3.0 compatibility
+     */
+    private static function change_status_error_creating_sritoni_account( $ticket_id,  $error_message )
+    {
+        $new_status_name = "Error Creating SriToni Account";
+
+        self::change_ticket_status( $ticket_id, $new_status_name );
 
         // update agent field error message with the passed in error message
         if (!empty($error_message))
         {
-            $wpscfunction->change_field($ticket_id, $ticket_slug, $error_message);
+            self::change_ticket_field( $ticket_id, 'error', $error_message );
         }
+
     }
 
+
     /**
-     *
+     *  VISUALLY CHECKED for SC 3.0 compatibility
+     * 
+     *  @param integer:$order_id
+     *  @return object:$order
+     * Uses the WooCommerce API to get back the order object for a given order_id
+     * It prints outthe order object but this is only visible in a test page and gets overwritten by a short code elsewhere
      */
-    private function change_status_error_creating_sritoni_account($ticket_id, $error_message)
+    public static function get_wc_order( int $order_id): ? object
     {
-        global $wpscfunction;
+        // instantiate woocommerce API class
+        $woocommerce = new Client(
+                                    'https://sritoni.org/hset-payments/',
+                                    self::$config['wckey'],
+                                    self::$config['wcsec'],
+                                    [
+                                        'wp_api'            => true,
+                                        'version'           => 'wc/v3',
+                                        'query_string_auth' => true,
 
-        $status_id = 95;    // corresponds to status error creating sritoni account
+                                    ]);
 
-        $wpscfunction->change_status($ticket_id, $status_id);
 
-				$ticket_slug = "error";
+        $endpoint   = "orders/" . $order_id;
+        $params     = array($order_id);
+        $order      = $woocommerce->get($endpoint);
 
-        // update agent field error message with the passed in error message
-        if (!empty($error_message))
-        {
-            $wpscfunction->change_field($ticket_id, $ticket_slug, $error_message);
-        }
+        echo "<pre>" . print_r($order, true) ."</pre>";
 
+        return $order;
     }
 
+
+
+    
+
     /**
-     *
+     *  Since SUpport Candy update 3.0 the ueser cannot set the slug of the custom field. So we are forced to use the status name instead
+     *  @param string:$status_name
+     *  @return array:$tickets
      */
-    private function get_status_id_by_slug($slug)
+    public static function get_all_active_tickets_by_status_name( $status_name ) : array
     {
-        $fields = get_terms([
-            'taxonomy'   => 'wpsc_ticket_custom_fields',
-            'hide_empty' => false,
-            'orderby'    => 'meta_value_num',
-            'meta_key'	 => 'wpsc_tf_load_order',
-            'order'    	 => 'ASC',
+        $tickets = [];  // initialize empty array
 
-            'meta_query' => array(
-                                    array(
-                                        'key'       => 'agentonly',
-                                        'value'     => ["0", "1"],  // get all ticket meta fields
-                                        'compare'   => 'IN',
-                                        ),
-                                ),
+        // first we need to get the id of the desired status based on its name passed in as the parameter
+        $status_id_of_ticket = self::get_status_id_given_name( $status_name );
 
-        ]);
-        foreach ($fields as $field)
-        {
-            if ($field->slug == $slug)
-            {
-                return $field->term_id;
-            }
-        }
+        $filter_array = array(
+                                'meta_query' => array(
+                                                        'relation' => 'AND',
+                                                        array(
+                                                            'slug'    => 'status',
+                                                            'compare' => '=',
+                                                            'val'     => $status_id_of_ticket,
+                                                        ),
+                            )
+        );
+    
+        $tickets = WPSC_Ticket::find( $filter_array );
+
+        return $tickets;
     }
-
+    
+    
+    
+    
     /**
-     *
+     *  NOT USED (For old version of Support Candy pre 3.0)
      */
     private function get_ticket_meta_key_by_slug($slug)
     {
@@ -2392,67 +2582,123 @@ class class_headstart_admission
         }
     }
 
-    public function test_get_ticket_data($ticket_id)
-    {
-        global $wpscfunction;
-
-        // $ticket_id =8;
-
-        $fields = get_terms([
-            'taxonomy'   => 'wpsc_ticket_custom_fields',
-            'hide_empty' => false,
-            'orderby'    => 'meta_value_num',
-            'meta_key'	 => 'wpsc_tf_load_order',
-            'order'    	 => 'ASC',
-
-            'meta_query' => array(
-                                    array(
-                                        'key'       => 'agentonly',
-                                        'value'     => ["0", "1"],  // get all ticket meta fields
-                                        'compare'   => 'IN',
-                                        ),
-                                ),
-
-        ]);
-
-        echo "<pre>" . print_r($fields, true) . "for Ticket:" . $ticket_id. "</pre>";
-
-        $status_id      = get_term_by('slug','admission-payment-order-being-created','wpsc_statuses')->term_id;
-        echo "Status id and name corresponding to Status slug - admission-payment-order-being-created: " . $status_id . ":" . $wpscfunction->get_status_name($status_id);
-
-    }
 
     /**
-     *  @param string $status_slug is the slug of desired status that all tickets are filtered by
-     *  @return array $tickets
+     *  NOT USED
+     *  The AJAX in the form was not working correctly, so abandoned
+     *  @param array:$form_data is the form data Ninja forms
+     *  1. if category contains internal then the email must contain headstart.edu.in, otherwise form should be corrected
      */
-    public function get_all_active_tickets_by_status_slug($status_slug)
+    public function action_validate_ninja_form_data( $form_data )
     {
-        // get a list of all tickets having desired status
-        global $wpscfunction, $wpdb;
+        // extract the fields array from the form data
+        $fields_ninjaforms = $form_data['fields'];
 
-        $term = get_term_by('slug', $status_slug, 'wpsc_statuses');
+        // extract a single column from all fields containing the admin_label key
+        $key_array         = array_column($fields_ninjaforms, 'key');
 
-        // get all tickets with this status_id and active
-        $meta_query[] = array(
-            'key'     => 'ticket_status',
-            'value'   => $term->term_id,
-            'compare' => '='
-        );
+        // extract the corresponding value array. They both will share the same  numerical index.
+        $value_array       = array_column($fields_ninjaforms, 'value');
+
+        $field_id_array    = array_column($fields_ninjaforms, 'id');
+
+        // Check if form category contains internal or not. The category is a hidden field
+        // look for the mapping slug in the ninja forms field's admin label
+        $index_ticket_category  = $this->array_search_partial( $key_array, 'ticket_category' );
+        $category_name          = $value_array[$index_ticket_category];
+
+        $index_address  = $this->array_search_partial( $key_array, 'residential_address' );
+        $address        = $value_array[$index_address];
+
+        $index_email    = $this->array_search_partial( $key_array, 'primary_email' );
+        $email          = $value_array[$index_email];
+
+
+        if ( stripos($category_name, "internal") !== false )
+        {
+            // the forms's hidden field for category does contain substring internal so we need to check  for headstart domain
+            // look for the mapping slug in the ninja forms field's admin label for email field
+
+            // check if the email contains headstart.edu.in
+            if ( stripos( $email, "headstart.edu.in") === false)
+            {
+                $this->verbose ? error_log("validating email - Internal user, expecting @headstart.edu.in, didnt find it"): false;
+                // our form's category is internal but does not contain desired domain so flag an error in form
+
+                //
+                $form_data['errors']['fields'][$field_id_array[$index_email]] = 'Email must be of Head Start domain, because continuing student';
+            }
+
+        }
+        if ( stripos($address, "/") !== false )
+        {
+            $this->verbose ? error_log("validating address - does contain forbidden character '/'."): false;
+
+            $errors = [
+                'fields' => [
+                $field_id_array[$index_address]   => 'Addtress must not contain "/" please correct'
+                ],
+              ];
+
+            $response = [
+            'errors' => $errors,
+            ];
+            
+            wp_send_json( $response );
+            wp_die(); // this is required to terminate immediately and return a proper response
+        }
         
-        $meta_query[] = array(
-            'key'     => 'active',
-            'value'   => 1,
-            'compare' => '='
-        );
-        
-        $select_str   = 'SQL_CALC_FOUND_ROWS DISTINCT t.*';
-        $sql          = $wpscfunction->get_sql_query( $select_str, $meta_query);
-        $tickets      = $wpdb->get_results($sql);
+        return $form_data;
+    }
 
-        return $tickets;
+
+    /**
+     *  NOT USED
+     * 
+     *  Was meant to be used when a given ticket field was updated and some action needed to be taken on that
+     */
+    public function action_on_ticket_field_changed($ticket_id, $field_slug, $field_val, $prev_field_val)
+    {
+        // we are only interested if the field that changed is non-empty payment-bank-reference. For all others return
+        if ($field_slug !== "payment-bank-reference" || empty($field_val)) return;
+
+        // if you get here this field is payment-bank-reference ad the value is non-empty
+        // so we can go ahead and change the associated order's meta value to this new number
+        // get the order-id for this ticket. If it doesn't exist then return
+        $this->get_data_object_from_ticket($ticket_id);
+
+        $order_id = $this->data_object->ticket_meta['order-id'];
+
+        if (empty($order_id)) return;
+
+        // check status of order to make sure it is still ON-HOLD
+        $order = $this->get_wc_order($order_id);
+
+        if (empty($order)) return;
+
+        if ($order->status == "completed"  || $order->status == "processing")
+        {
+            return;
+        }
+        else
+        {
+            // lets now prepare the data for the new order to be created
+            $order_data = [
+                            'meta_data' => [
+                                                [
+                                                    'key' => 'bank_reference',
+                                                    'value' => $field_val
+                                                ]
+                                            ]
+                        ];
+            $order_updated = $this->update_wc_order_site_hsetpayments($order_id, $order_data);
+
+            $this->verbose ? error_log("Read back bank reference from Updated Order ID:" . $order_id . " is: " . $order_updated->bank_reference): false;
+        }
     }
 
 
 
 }   // end of class bracket
+
+headstart_admission::init();

@@ -7,6 +7,8 @@
 * ver 1.4 make the site settings generic instead of hset, etc.
 * ver 1.3 add Moodle and WP compatibility and get settings appropriately
 *         all data returned as objects instead of arrays in json_decode
+* When an order in the WooCommerce  HSET intranet site is marked complete a webhook is issued
+* The data sent out is the id of the order that was marked complete.
 */
 
 // if directly called with both unset, die. If any one is set then proceed internally
