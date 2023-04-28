@@ -80,8 +80,10 @@ class headstart_admission
 
     public static function init()
     {
-        // define plugin name using constant defined in main plugin file
-        self::$plugin_name = 'headstart_admission';
+        if ( defined( 'MA_HSA_PLUGIN_NAME' ) ) {
+            // define plugin name using constant defined in main plugin file
+            self::$plugin_name = MA_HSA_PLUGIN_NAME;    // defined in plugin construct function as 'headstart_admission'
+        }
 
         // load admin actions only if admin
 		if ( is_admin() ) 
@@ -303,7 +305,7 @@ class headstart_admission
      */
     private static function define_public_hooks() : void
     {
-        // do_action('wpsc_set_change_status', $ticket_id, $status_id, $prev_status);
+        // do_action( 'wpsc_change_ticket_status', self::$ticket, $prev, $new, $customer_id ); in class individual ticket SCandy
         // This is the main state control for this App
         add_action( 'wpsc_change_ticket_status',   array( __CLASS__, 'my_wpsc_change_ticket_status_action_callback' ), 10,4 );
 
@@ -371,7 +373,7 @@ class headstart_admission
 
         WPSC_Individual_Ticket::$ticket = $ticket;
 
-        // only cgange status if new status id is valid AND not already same as existing status of ticket
+        // only change status if new status id is valid AND not already same as existing status of ticket
         if ( $desired_status_id && $ticket->status->id != $desired_status_id ) {
             //                                   { prev status ID, new statusID, customer_id)}
             // includes the hook for 'wpsc_change_ticket_status'
@@ -536,7 +538,7 @@ class headstart_admission
         // Loop through all the custom fields of the ticket
         foreach ( WPSC_Custom_Field::$custom_fields as $cf ):
 
-            // If the CF's field property is not ticket or agentonly, skip
+            // If the CF's field property is not ticket or agentonly, skip. TODO: Skip agentonly also????
             if ( ! in_array( $cf->field, array( 'ticket', 'agentonly' ) )  ) {
                 continue;
             }
@@ -546,7 +548,7 @@ class headstart_admission
                 $data[ $cf->slug ] = $cf->type::get_default_value( $cf );
             }
 
-            // we have nothing to do with this ticket field priority so skip
+            // we have nothing to do with the ticket field priority so skip
             if ($cf->slug == 'priority') {  
                 continue;     
             }
@@ -566,16 +568,18 @@ class headstart_admission
                         // get the form-captured field value for customer-name
                         $customer_name = $value_array_ninjaforms[$key];
 
-                        // We want to format it with 1st letter capital and rest in lowercase
+                        // We want to format it with 1st letter capital and rest in lowercase. Split the name using space
                         $customer_name_arr = explode(" ", $customer_name);
 
                         $name = "";
                         foreach ($customer_name_arr as $partname)
                         {
+                            // Each subname such as First, Middle, and Last will have 1st letter Capitalized
                             $name .= " " . ucfirst(strtolower($partname));
                         }
 
                         // remove extraneous spaces at beginning and or end and index in data array by the CF slug always
+                        // The slug will have some strange characters and so we will just use as is.
                         $data[$cf->slug]= trim($name);
                     }
                     else
@@ -604,7 +608,9 @@ class headstart_admission
 
                 // customer email in ticket maps to the user registered email.
                 // This is done so that all communication is on the registered email.
-                // This is nopt derived from the Ninja form but from the user object itself
+                // This is not derived from the Ninja form but from the user object itself
+                // This was a legacy feature since email was not included as part of ticket in ver1 of support candy
+                // But we are keeing the feature for legacy and continuity
                 case ($cf->name == 'customer_email'):
 
                     $data[$cf->slug]= $registered_email;    // slug is something like cust_dd
@@ -613,6 +619,7 @@ class headstart_admission
 
 
                 // map the ticket field 'headstart-email' to Ninja forms 'primary-email' field
+                // This maybe blank except for the case where it is an internal admission form submission
                 case ($cf->name == 'headstart-email'):
 
                     // look for the mapping slug in the ninja forms field's admin label
@@ -657,7 +664,7 @@ class headstart_admission
 
                     if ($key !== false)
                     {
-                        // get the custmeer entered residential address using the key
+                        // get the custmeer entered residential address from the form data array using the key
                         $value    = $value_array_ninjaforms[$key];
 
                         // set the value for the ticket custom field by search and replace of potential bad character "/"
@@ -681,6 +688,9 @@ class headstart_admission
 
                         // Convert to lowercase and Capitalize the 1st letter
                         $data[$cf->slug] = ucfirst(strtolower($value));
+
+                        // capture student's name for use in description later on
+                        $student_first_name = $data[$cf->slug];
                     }
                     else
                     {
@@ -700,6 +710,9 @@ class headstart_admission
 
                         // Convert to lowercase and Capitalize the 1st letter
                         $data[$cf->slug] = ucfirst(strtolower($value));
+
+                        // capture student's name for use in description later on
+                        $student_middle_name = $data[$cf->slug];
                     }
                     else
                     {
@@ -718,6 +731,9 @@ class headstart_admission
 
                         // Convert to lowercase and Capitalize the 1st letter
                         $data[$cf->slug] = ucfirst(strtolower($value));
+
+                        // capture student's name for use in description later on
+                        $student_last_name = $data[$cf->slug];
                     }
                     else
                     {
@@ -728,12 +744,13 @@ class headstart_admission
 
                 default:
 
-                    // from here on the ticket slug is same as form field slug so mapping is  easy.
-                    // look for the mapping slug in the ninja forms field's admin label
+                    // from here on  we do not need to manipulate the value so this is generic
+                    // look for the mapping name in the ninja forms field's admin label
                     $key = array_search($cf->name, $admin_label_array_ninjaforms);
 
                     if ($key !== false)
                     {
+                        // no need to manipulate, just index using slug and populate the value extracted
                         $data[$cf->slug]= $value_array_ninjaforms[$key];
                     }
                     else
@@ -746,8 +763,10 @@ class headstart_admission
 
         endforeach;             // finish looping through the ticket fields for mapping Ninja form data to ticket
 
-        // Seperate description from $data.
-        $description = $category_name ?? $data['description'];  // Give the category name which describes the admission well
+        $student_full_name = $student_first_name . ' ' . $student_middle_name . ' ' . $student_last_name;
+
+        // Seperate the 'description' custom field from $data as required by Support Candy
+        $description = "Application for Admission of " . $student_full_name . 'to ' . $category_name;
         unset( $data['description'] );
 
         // Seperate description attachments from $data.
@@ -816,7 +835,7 @@ class headstart_admission
      *  More can be added here as needed.
      */
     public static function my_wpsc_change_ticket_status_action_callback( $ticket, $prev, $new, $customer_id)
-    {   // status change triggers the main state machine
+    {   // status change triggers the main state machine of our plugin
         // add any logoc that you want here based on new status
         $prev_status_object = new WPSC_Status( $prev ); // rebuild status object using previous status id passed in
         $prev_status_name   = $prev_status_object->name;
@@ -860,10 +879,10 @@ class headstart_admission
                 // Create a new user account in SriToni remotely using Moodle API. If existing user, update the profile information
                 $moodle_id = self::prepare_and_create_or_update_moodle_account( $ticket );
 
-                // if successful in sritoni account creation, change to next status - admission-payment-order-being-created
+                // if successful in sritoni account creation, change to next status - @TODO
                 if ($moodle_id)
                 {
-                    // 
+                    // TODO:
                 }
             break;
 
@@ -883,6 +902,7 @@ class headstart_admission
                 // Once Admin sets Order as completed, the webhook fires on the payment site and is captured on this site
                 // The captured webhook sets the status as Payment completed
                 // There is no other explicit code to be executed here
+                // TODO:
 
              break;
 
@@ -1009,6 +1029,7 @@ class headstart_admission
 
 
     /**
+     * TODO: Obsolete function, delete once flow is finalized
      * @param object:$ticket
      * @return void
      * Takes the data object from the ticket using the ticket_id
@@ -1080,6 +1101,7 @@ class headstart_admission
 
 
     /**
+     *    OBSOLETE TODO: Delete this function
      * 1. This function grabs all ticket fields (agent and non-agent) data from a given ticket id
      * 2. It then creates a new data_object that contains all of the ticket data,for ease of access
      * 3. This data_object is also set as a property of $this class
@@ -1148,7 +1170,7 @@ class headstart_admission
 
 
     /**
-     *  pre-reqiosites before coming here:
+     *  TODO: Obsolete, delete when flow is finalized
      * 
      *  Gets customer user object from payments site and returns it. No Cashfree account check or creation.
      *
@@ -1208,6 +1230,7 @@ class headstart_admission
 
 
     /**
+     *  TODO: Obsolete, delete once flow is finalized
      *  Creates a new Order on the payments site
      *  Prerequisites:
      *  
@@ -1376,6 +1399,7 @@ class headstart_admission
 
 
     /**
+     *  TODO: Obsolete, delete once flow is finalized
      *  @param int:$order_id
      *  @param array:$order_data
      *  Update the order with the given order data. The order_data has to be constructed as per requirements
@@ -1408,7 +1432,7 @@ class headstart_admission
      * 
      *  This works for any ticket field wether default predefined type or custom type with slug like cust_35 etc.
      */
-    public static function get_ticket_value_given_cf_name( object $ticket, string $cf_name ) : ? mixed
+    public static function get_ticket_value_given_cf_name( object $ticket, string $cf_name )
     {
         $cf_slug = self::get_cf_slug_by_cf_name( $cf_name );
 
@@ -1468,20 +1492,19 @@ class headstart_admission
      * VISUALLY CHECKED for SC 3.0 compatibility
      * 
      * @param object:$ticket
-     * @return mixed: 
+     * @return bool or int
      * 1. If user already has a Head Start account (detected by their email domain) update user
      * 2. Check that required data is not empty. If so, change ticket status to error
      * 3. Processd for SriToni account creation
      */
-
-    public static function prepare_and_create_or_update_moodle_account( $ticket ) : mixed
+    public static function prepare_and_create_or_update_moodle_account( object $ticket )
     {   // update existing or create a new SriToni user account using data from ticket. Add user to cohort based on ticket data
 
         // get the headstart email from the ticket using the cf name 'headstart-email'
         $headstart_email = self::get_ticket_value_given_cf_name( $ticket, 'headstart-email' );
  
         if (stripos( $headstart_email, 'headstart.edu.in') !== false)
-        {   // User already has an exising SriToni email ID and Head Start Account, just update with form info in case something has changed
+        {   // User already has an exising SriToni email ID and Head Start Account, just update with form info
 
             self::update_sritoni_account( $ticket );
             
@@ -1501,6 +1524,8 @@ class headstart_admission
         $department     = self::get_ticket_value_given_cf_name( $ticket, 'department' );
         $institution    = self::get_ticket_value_given_cf_name( $ticket, 'institution' );
         $class          = self::get_ticket_value_given_cf_name( $ticket, 'class' );
+        $moodle_phone1  = self::get_ticket_value_given_cf_name( $ticket, 'emergency-contact-number' );
+        $moodle_phone2  = self::get_ticket_value_given_cf_name( $ticket, 'emergency-alternate-contact' );
 
         if 
         (   ! empty( $username )      &&
@@ -1508,20 +1533,25 @@ class headstart_admission
             ! empty( $studentcat )    &&
             ! empty( $department )    &&
             ! empty( $institution )   &&
-            ! empty( $class )
+            ! empty( $class )         &&
+            ! empty( $moodle_phone1 ) &&
+            ! empty( $moodle_phone2 )
         )        
         {
             // go create a new SriToni user account for this child using ticket dataa. Return the moodle id if successfull
             $moodle_id = self::create_sritoni_account( $ticket );
 
-            // after creation of SriToni user account add the user to appropriate cohort for easy management later on
-            self::add_user_to_cohort( $ticket );
-
+            if ($moodle_id)
+            {
+                // IF new user account is valid, add the user to appropriate cohort for easy management later on
+                self::add_user_to_cohort( $ticket );
+            }
+            
             return $moodle_id;
         }
         else
         {
-            $error_message = "Sritoni Account NOT CREATED! Ensure username, idnumber, studentcat, department, and institution fields are Set";
+            $error_message = "Error in user creation! Ensure username, idnumber, studentcat, department, institution, class, phone1, 2 are Set";
             self::change_status_error_creating_sritoni_account( $ticket->id, $error_message);
 
             return null;
@@ -1531,44 +1561,27 @@ class headstart_admission
 
     /**
      *  VISUALLY CHECKED for SC 3.0 compatibility
-     * 
+     *  @param object:$ticket
      *  @return int:moodle user id from table mdl_user. null if error in creation
-     *  This is to be called after the data_object has been already created.
-     *      AND the data checked to ensure it is set and not empty
-     *  1. Function checks if username is not taken, only then creates new account.
-     *  2. If error in creating new accoount or username is taken ticket status changed to error.
+     *  1. The data is extracted from the ticket and checked to ensure it is set and not empty
+     *  2. Function checks if username is not taken, only then creates new account.
+     *  3. If error in creating new accoount or username is taken, ticket status changed to error.
      */
-    private static function create_sritoni_account( $ticket )
-    {   // checks if username is not taken, only then creates new account -sets ticket error if account not created
+    private static function create_sritoni_account( object $ticket ) : ? int
+    {   // checks if username is not taken, only then creates new account -sets ticket error status if account not created
 
         // read in the Moodle API config array
         $config			= self::$config;
         $moodle_url 	= $config["moodle_url"] . '/webservice/rest/server.php';
         $moodle_token	= $config["moodle_token"];
 
+        // username is to be set by agent for the agentonly field. This is a new user so required to be set correctly
         $moodle_username    = self::get_ticket_value_given_cf_name( $ticket, 'username' );
-        $moodle_email       = $moodle_username . "@headstart.edu.in";   // new account so this is the rule
 
-        $moodle_environment = self::get_ticket_value_given_cf_name( $ticket, 'environment' );
-        if (empty($moodle_environment)) $moodle_environment = "NA";
+        // Check to see if a user with this username already exists. A pre-existing account is an error that is handled here
+        $existing_moodle_user_array = self::get_user_account_from_sritoni( $ticket, $moodle_username,  false);
 
-        $moodle_phone1      = self::get_ticket_value_given_cf_name( $ticket, 'emergency-contact-number' )     ?? "1234567890";
-        $moodle_phone2      = self::get_ticket_value_given_cf_name( $ticket, 'emergency-alternate-contact' )  ?? "1234567890";
-        $moodle_department  = self::get_ticket_value_given_cf_name( $ticket, 'department' )                   ?? "Student";
-
-        // prepare the Moodle Rest API object
-        $MoodleRest = new MoodleRest();
-        $MoodleRest->setServerAddress($moodle_url);
-        $MoodleRest->setToken( $moodle_token ); // get token from ignore_key file
-        $MoodleRest->setReturnFormat(MoodleRest::RETURN_ARRAY); // Array is default. You can use RETURN_JSON or RETURN_XML too.
-        // $MoodleRest->setDebug();
-        // get moodle user details associated with this completed order from SriToni
-        $parameters   = array("criteria" => array(array("key" => "username", "value" => $moodle_username)));
-
-        // get moodle user satisfying above criteria if any
-        $moodle_users = $MoodleRest->request('core_user_get_users', $parameters, MoodleRest::METHOD_GET);
-
-        if ( ( $moodle_users["users"][0] ) )
+        if ( $existing_moodle_user_array )
         {
             // An account with this username already exssts. So set error status so Admin can set a different username and try again
             $error_message = "This username already exists! Is this an existing user? If not change username and retry";
@@ -1578,10 +1591,16 @@ class headstart_admission
             // change the ticket status to error
             self::change_status_error_creating_sritoni_account( $ticket, $error_message );
 
-            return;
+            return null; 
         }
 
         // if you are here we have a username that does not exist yet so create a new moodle user account with this username
+
+        // moodle email for a new user is username@domain
+        $moodle_email       = $moodle_username . "@headstart.edu.in";   // new account so this is the rule
+
+        $moodle_environment = self::get_ticket_value_given_cf_name( $ticket, 'environment' );
+        if (empty($moodle_environment)) $moodle_environment = "NA";
 
         // write the data back to Moodle using REST API
         // create the users array in format needed for Moodle RSET API
@@ -1595,91 +1614,91 @@ class headstart_admission
         $virtualaccounts_json = json_encode($virtualaccounts);
 
     	$users = array("users" => array(
-                                            array(	"username" 	    => $moodle_username,
-                                                    "idnumber"      => self::get_ticket_value_given_cf_name( $ticket, "idnumber"),
-                                                    "auth"          => "oauth2",
-                                                    "firstname"     => self::get_ticket_value_given_cf_name( $ticket, "student-first-name"),
-                                                    "lastname"      => self::get_ticket_value_given_cf_name( $ticket, "student-last-name"),
-                                                    "email"         => $moodle_email,
-                                                    "middlename"    => self::get_ticket_value_given_cf_name( $ticket, "student-middle-name"),
-                                                    "institution"   => self::get_ticket_value_given_cf_name( $ticket, "institution"),
-                                                    "department"    => $moodle_department,
-                                                    "phone1"        => $moodle_phone1,
-                                                    "phone2"        => $moodle_phone2,
-                                                    "address"       => self::get_ticket_value_given_cf_name( $ticket, "residential-address"),
-                                                    "maildisplay"   => 0,
-                                                    "createpassword"=> 0,
-                                                    "city"          => self::get_ticket_value_given_cf_name( $ticket, "city"),
+                                        array(	"username" 	    => $moodle_username,
+                                                "idnumber"      => self::get_ticket_value_given_cf_name( $ticket, "idnumber"),
+                                                "auth"          => "oauth2",
+                                                "firstname"     => self::get_ticket_value_given_cf_name( $ticket, "student-first-name"),
+                                                "lastname"      => self::get_ticket_value_given_cf_name( $ticket, "student-last-name"),
+                                                "email"         => $moodle_email,
+                                                "middlename"    => self::get_ticket_value_given_cf_name( $ticket, "student-middle-name"),
+                                                "institution"   => self::get_ticket_value_given_cf_name( $ticket, "institution"),
+                                                "department"    => self::get_ticket_value_given_cf_name( $ticket, 'department' ),
+                                                "phone1"        => self::get_ticket_value_given_cf_name( $ticket, 'emergency-contact-number' ),
+                                                "phone2"        => self::get_ticket_value_given_cf_name( $ticket, 'emergency-alternate-contact' ),
+                                                "address"       => self::get_ticket_value_given_cf_name( $ticket, "residential-address"),
+                                                "maildisplay"   => 0,
+                                                "createpassword"=> 0,
+                                                "city"          => self::get_ticket_value_given_cf_name( $ticket, "city"),
 
-                                                    "customfields" 	=> array(
-                                                                                array(	"type"	=>	"class",
-                                                                                        "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "class"),
-                                                                                    ),
-                                                                                array(	"type"	=>	"environment",
-                                                                                        "value"	=>	$moodle_environment,
-                                                                                    ),
-                                                                                array(	"type"	=>	"emergencymob",
-                                                                                        "value"	=>	$moodle_phone1,
-                                                                                    ),
-                                                                                array(	"type"	=>	"fees",
-                                                                                        "value"	=>	$fees_json,
-                                                                                    ),
-                                                                                array(	"type"	=>	"payments",
-                                                                                        "value"	=>	$payments_json,
-                                                                                    ),
-                                                                                array(	"type"	=>	"virtualaccounts",
-                                                                                        "value"	=>	$virtualaccounts_json,
-                                                                                    ),
-                                                                                array(	"type"	=>	"studentcat",
-                                                                                        "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "studentcat"),
-                                                                                    ),
-                                                                                array(	"type"	=>	"bloodgroup",
-                                                                                        "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "blood-group"),
-                                                                                    ),
-                                                                                array(	"type"	=>	"motheremail",
-                                                                                        "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "mothers-email"),
-                                                                                    ),
-                                                                                array(	"type"	=>	"fatheremail",
-                                                                                        "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "fathers-email"),
-                                                                                    ),
-                                                                                array(	"type"	=>	"motherfirstname",
-                                                                                        "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "mothers-first-name"),
-                                                                                    ),
-                                                                                array(	"type"	=>	"motherlastname",
-                                                                                        "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "mothers-last-name"),
-                                                                                    ),
-                                                                                array(	"type"	=>	"fatherfirstname",
-                                                                                        "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "fathers-first-name"),
-                                                                                    ),
-                                                                                array(	"type"	=>	"fatherlastname",
-                                                                                        "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "fathers-last-name"),
-                                                                                    ),
-                                                                                array(	"type"	=>	"mothermobile",
-                                                                                        "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "mothers-contact-number"),
-                                                                                    ),
-                                                                                array(	"type"	=>	"fathermobile",
-                                                                                        "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "fathers-contact-number"),
-                                                                                    ),
-                                                                                array(	"type"	=>	"allergiesillnesses",
-                                                                                        "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "allergies-illnesses"),
-                                                                                    ),
-                                                                                array(	"type"	=>	"birthplace",
-                                                                                        "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "birthplace"),
-                                                                                    ),
-                                                                                array(	"type"	=>	"nationality",
-                                                                                        "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "nationality"),
-                                                                                    ),
-                                                                                array(	"type"	=>	"languages",
-                                                                                        "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "languages-spoken"),
-                                                                                    ),
-                                                                                array(	"type"	=>	"dob",
-                                                                                        "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "date-of-birth"),
-                                                                                    ),
-                                                                                array(	"type"	=>	"pin",
-                                                                                        "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "pin-code"),
-                                                                                    ),           
-                                                                            )
-                                                )
+                                                "customfields" 	=> array(
+                                                                        array(	"type"	=>	"class",
+                                                                                "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "class"),
+                                                                            ),
+                                                                        array(	"type"	=>	"environment",
+                                                                                "value"	=>	$moodle_environment,
+                                                                            ),
+                                                                        array(	"type"	=>	"emergencymob",
+                                                                                "value"	=>	self::get_ticket_value_given_cf_name( $ticket, 'emergency-contact-number' ),
+                                                                            ),
+                                                                        array(	"type"	=>	"fees",
+                                                                                "value"	=>	$fees_json,
+                                                                            ),
+                                                                        array(	"type"	=>	"payments",
+                                                                                "value"	=>	$payments_json,
+                                                                            ),
+                                                                        array(	"type"	=>	"virtualaccounts",
+                                                                                "value"	=>	$virtualaccounts_json,
+                                                                            ),
+                                                                        array(	"type"	=>	"studentcat",
+                                                                                "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "studentcat"),
+                                                                            ),
+                                                                        array(	"type"	=>	"bloodgroup",
+                                                                                "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "blood-group"),
+                                                                            ),
+                                                                        array(	"type"	=>	"motheremail",
+                                                                                "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "mothers-email"),
+                                                                            ),
+                                                                        array(	"type"	=>	"fatheremail",
+                                                                                "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "fathers-email"),
+                                                                            ),
+                                                                        array(	"type"	=>	"motherfirstname",
+                                                                                "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "mothers-first-name"),
+                                                                            ),
+                                                                        array(	"type"	=>	"motherlastname",
+                                                                                "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "mothers-last-name"),
+                                                                            ),
+                                                                        array(	"type"	=>	"fatherfirstname",
+                                                                                "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "fathers-first-name"),
+                                                                            ),
+                                                                        array(	"type"	=>	"fatherlastname",
+                                                                                "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "fathers-last-name"),
+                                                                            ),
+                                                                        array(	"type"	=>	"mothermobile",
+                                                                                "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "mothers-contact-number"),
+                                                                            ),
+                                                                        array(	"type"	=>	"fathermobile",
+                                                                                "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "fathers-contact-number"),
+                                                                            ),
+                                                                        array(	"type"	=>	"allergiesillnesses",
+                                                                                "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "allergies-illnesses"),
+                                                                            ),
+                                                                        array(	"type"	=>	"birthplace",
+                                                                                "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "birthplace"),
+                                                                            ),
+                                                                        array(	"type"	=>	"nationality",
+                                                                                "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "nationality"),
+                                                                            ),
+                                                                        array(	"type"	=>	"languages",
+                                                                                "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "languages-spoken"),
+                                                                            ),
+                                                                        array(	"type"	=>	"dob",
+                                                                                "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "date-of-birth"),
+                                                                            ),
+                                                                        array(	"type"	=>	"pin",
+                                                                                "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "pin-code"),
+                                                                            ),           
+                                                                        )
+                                            )
                                         )
         );
 
@@ -1712,29 +1731,130 @@ class headstart_admission
 
 
     /**
-     *  VISUALLY CHECKED for SC 3.0 compatibility
-     * 
-     *  @param object:$ticket
-     *  @return array:$ret returned array from Moodle update user API call
-     *  The calling routine should check for $ret['exception'] to verify is call was OK or not
-     * The existing user's SriToni account details are updated.
-     *  Check that the  headstart-email is already validated to contain headstart.edu.in before coming here
+     * @param object:$ticket is the ticket object passed in
+     * @param string:$moodle_username is the username of the user we are interested in getting from SriToni server
+     * @param array: The user account array object from SriToni indexed by fields such as id, username, etc.
+     * If user account exists, the user account array is returned
+     * If account does not exist, a null is returned
+     * If account exists and flag is true then ticket error status is set that account already exists
+     * If account does NOT exist flag is don't care and no ticket status is set
      */
-    private static function update_sritoni_account( object $ticket ) : ? array
+    private static function get_user_account_from_sritoni( object $ticket, string  $moodle_username, bool $err_flag = false ) : ? array
     {
         // read in the Moodle API config array
         $config			= self::$config;
         $moodle_url 	= $config["moodle_url"] . '/webservice/rest/server.php';
         $moodle_token	= $config["moodle_token"];
 
-        // Existing user, the username needs to be extracted from the headstart-email
+        // prepare the Moodle Rest API object
+        $MoodleRest = new MoodleRest();
+        $MoodleRest->setServerAddress($moodle_url);
+        $MoodleRest->setToken( $moodle_token ); // get token from ignore_key file
+        $MoodleRest->setReturnFormat(MoodleRest::RETURN_ARRAY); // Array is default. You can use RETURN_JSON or RETURN_XML too.
+        // $MoodleRest->setDebug();
+        // get moodle user details associated with this completed order from SriToni
+        $parameters   = array("criteria" => array(array("key" => "username", "value" => $moodle_username)));
+
+        // get moodle user satisfying above criteria if any
+        $moodle_users = $MoodleRest->request('core_user_get_users', $parameters, MoodleRest::METHOD_GET);
+
+        // let us check to make sure that the user exists
+        if ($moodle_users[0]['username'] == $moodle_username && empty($moodle_users["exception"]))
+        {   // A user exists with given username.
+
+            self::$verbose ? error_log("SriToni user query has existing account with username: " . $moodle_username) : false;
+
+            // Now depending on the error flag set the error and change status for ticket
+            if ( $err_flag)
+            {
+                // Account exists and flag is true so set error status for ticket
+                self::change_status_error_creating_sritoni_account( $ticket->id, 'A SriToni account with this username already exists' );
+
+                self::$verbose ? error_log(print_r($moodle_users[0], true)) : false; 
+            }
+            
+            // independent of error flag return auser account array of existing user
+            return $moodle_users[0];
+        }
+        else
+        {
+            // A user Does NOT exist with given username.
+            self::$verbose ? error_log("A SriToni account Does NOT exist with username: " . $moodle_username) : false;  
+            
+            return null;
+        }
+    }
+
+
+
+    /**
+     *  VISUALLY CHECKED for SC 3.0 compatibility
+     * 
+     *  @param object:$ticket
+     *  @return array:$ret returned array from Moodle update user API call
+     *  1. Extracts the username from the headstart email field in ticket
+     *  2. If the username is empty returns with an error and changes the ticket status
+     *  3. An API call is made to the SriToni server to get the user account array based on username
+     *  4. If the call is successful default data for idnumber, department, etc., is extracted
+     *  5. Ticket data is used to update the user account. For some fields if ticket data is empty, defaults from above are used
+     *  6. The updated user array is returned
+     *  The calling routine should check for $ret['exception'] to verify is call was OK or not
+     */
+    private static function update_sritoni_account( object $ticket ) : ? array
+    {
+        // Presume Existing user, so the username needs to be extracted from the headstart-email ticket field
         $moodle_email       = self::get_ticket_value_given_cf_name( $ticket, "headstart-email" );
+        
+        if (($moodle_email  = filter_var($moodle_email, FILTER_VALIDATE_EMAIL)) !== false) 
+        {   // validate the email extract everything before @headstart.edu.in. Following is case-sensitive
+            $moodle_username = strstr($moodle_email, '@', true);
+        }
 
-        // get the  WP user object from the hset-payments site using woocommerce API, set error ststus if not successfull
-        $wp_user_hset_payments = self::get_wp_user_hset_payments( $moodle_email, $ticket->id );
+        if ( empty( $moodle_username ) )
+        {
+            // Something wrong with extraction of email from user supplied headstart email
+            self::$verbose ? error_log("Something wrong with extraction of username from email: " . $moodle_email) : false;
 
-        // get the moodle_id which is same as wpuser's login at the hset-payments site
-        $moodle_id = $wp_user_hset_payments->username;
+            $error_message = 'Problem extracting username from email - check user supplied headstart email';
+
+            // change the ticket status to error
+            self::change_status_error_creating_sritoni_account( $ticket->id, $error_message );
+
+            return null;
+        }
+
+        // get the  WP user object from the hset-payments site using woocommerce API. TODO: Delete this if Moodle get user works
+        // $wp_user_hset_payments = self::get_wp_user_hset_payments( $moodle_email, $ticket->id );
+
+        // get the moodle_id which is same as wpuser's login at the hset-payments site TODO: Delete if moodle get user works
+        // $moodle_id = $wp_user_hset_payments->username;
+
+        // return user if username matches in extracted record and no exception happened. We will handle errors here
+        $moodle_user_array = self::get_user_account_from_sritoni( $ticket, $moodle_username, false );
+
+        if ( ! $moodle_user_array )
+        {
+            // The user account does not exist as expected!!!
+            $error_message = 'Problem extracting SriToni account using username from email - check user supplied headstart email';
+
+            // change the ticket status to error
+            self::change_status_error_creating_sritoni_account( $ticket->id, $error_message );
+
+            return null;
+        }
+
+        // before coming here, check that ticket fields such as idnumber, department, etc., are not empty
+        // if ticket values are not set, the user's previous values are reused in the update for these fields
+        $moodle_idnumber    = self::get_ticket_value_given_cf_name( $ticket, "idnumber") ?? $moodle_user_array['idnumber'];
+
+        $moodle_department  = self::get_ticket_value_given_cf_name( $ticket, 'department' ) ?? $moodle_user_array['department'];
+
+        $moodle_id = $moodle_user_array['id'];
+
+        // read in the Moodle API config array
+        $config			= self::$config;
+        $moodle_url 	= $config["moodle_url"] . '/webservice/rest/server.php';
+        $moodle_token	= $config["moodle_token"];
 
         // prepare the Moodle Rest API object
         $MoodleRest = new MoodleRest();
@@ -1745,69 +1865,68 @@ class headstart_admission
         
         // We have a valid Moodle user id, form the array to updatethis user. The ticket custom field name must be exactly as shown.
         $users = array("users" => array(
-                                        array(	"id" 	        => $moodle_id,
-                                        //      "idnumber"      => $data_object->ticket_meta["idnumber"],
-                                        //      "auth"          => "oauth2",
+                                        array(	"id" 	        => $moodle_id,          // extracted from Moodle using username
+                                                "idnumber"      => $moodle_idnumber,    // can change
+                                        //      "auth"          => "oauth2",            // no change
                                                 "firstname"     => self::get_ticket_value_given_cf_name( $ticket, "student-first-name" ),
                                                 "lastname"      => self::get_ticket_value_given_cf_name( $ticket, "student-last-name" ),
-                                        //      "email"         => $moodle_email,
+                                        //      "email"         => $moodle_email,       // no change
                                                 "middlename"    => self::get_ticket_value_given_cf_name( $ticket, "student-middle-name" ),
-                                        //      "institution"   => $data_object->ticket_meta["institution"],
-                                        //      "department"    => $data_object->ticket_meta["department"],
+                                                "institution"   => self::get_ticket_value_given_cf_name( $ticket, "institution"),
+                                                "department"    => $moodle_department,
                                                 "phone1"        => self::get_ticket_value_given_cf_name( $ticket, "emergency-contact-number" ),
                                                 "phone2"        => self::get_ticket_value_given_cf_name( $ticket, "emergency-alternate-contact" ),
                                                 "address"       => self::get_ticket_value_given_cf_name( $ticket, "residential-address" ),
-                                         //     "maildisplay"   => 0,
-                                         //     "createpassword"=> 0,
+                                         //     "maildisplay"   => 0,                   // no change
+                                         //     "createpassword"=> 0,                   // no change
                                                 "city"          => self::get_ticket_value_given_cf_name( $ticket, "city" ),
 
-                                                "customfields" 	=> array(
-                                                                            
-                                                                            array(	"type"	=>	"bloodgroup",
-                                                                                    "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "blood-group" ),
-                                                                                ),
-                                                                            array(	"type"	=>	"motheremail",
-                                                                                    "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "mothers-email" ),
-                                                                                ),
-                                                                            array(	"type"	=>	"fatheremail",
-                                                                                    "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "fathers-email" ),
-                                                                                ),
-                                                                            array(	"type"	=>	"motherfirstname",
-                                                                                    "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "mothers-first-name" ),
-                                                                                ),
-                                                                            array(	"type"	=>	"motherlastname",
-                                                                                    "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "mothers-last-name" ),
-                                                                                ),
-                                                                            array(	"type"	=>	"fatherfirstname",
-                                                                                    "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "fathers-first-name" ),
-                                                                                ),
-                                                                            array(	"type"	=>	"fatherlastname",
-                                                                                    "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "fathers-last-name" ),
-                                                                                ),
-                                                                            array(	"type"	=>	"mothermobile",
-                                                                                    "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "mothers-contact-number" ),
-                                                                                ),
-                                                                            array(	"type"	=>	"fathermobile",
-                                                                                    "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "fathers-contact-number" ), 
-                                                                                ),
-                                                                            array(	"type"	=>	"allergiesillnesses",
-                                                                                    "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "allergies-illnesses" ),
-                                                                                ),
-                                                                            array(	"type"	=>	"birthplace",
-                                                                                    "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "birthplace" ), 
-                                                                                ),
-                                                                            array(	"type"	=>	"nationality",
-                                                                                    "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "nationality" ),
-                                                                                ),
-                                                                            array(	"type"	=>	"languages",
-                                                                                    "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "languages-spoken" ),
-                                                                                ),
-                                                                            array(	"type"	=>	"dob",
-                                                                                    "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "date-of-birth" ),
-                                                                                ),
-                                                                            array(	"type"	=>	"pin",
-                                                                                    "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "pin-code" ),
-                                                                                ),           
+                                                "customfields" 	=> array(                                                                            
+                                                                        array(	"type"	=>	"bloodgroup",
+                                                                                "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "blood-group" ),
+                                                                            ),
+                                                                        array(	"type"	=>	"motheremail",
+                                                                                "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "mothers-email" ),
+                                                                            ),
+                                                                        array(	"type"	=>	"fatheremail",
+                                                                                "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "fathers-email" ),
+                                                                            ),
+                                                                        array(	"type"	=>	"motherfirstname",
+                                                                                "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "mothers-first-name" ),
+                                                                            ),
+                                                                        array(	"type"	=>	"motherlastname",
+                                                                                "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "mothers-last-name" ),
+                                                                            ),
+                                                                        array(	"type"	=>	"fatherfirstname",
+                                                                                "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "fathers-first-name" ),
+                                                                            ),
+                                                                        array(	"type"	=>	"fatherlastname",
+                                                                                "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "fathers-last-name" ),
+                                                                            ),
+                                                                        array(	"type"	=>	"mothermobile",
+                                                                                "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "mothers-contact-number" ),
+                                                                            ),
+                                                                        array(	"type"	=>	"fathermobile",
+                                                                                "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "fathers-contact-number" ), 
+                                                                            ),
+                                                                        array(	"type"	=>	"allergiesillnesses",
+                                                                                "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "allergies-illnesses" ),
+                                                                            ),
+                                                                        array(	"type"	=>	"birthplace",
+                                                                                "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "birthplace" ), 
+                                                                            ),
+                                                                        array(	"type"	=>	"nationality",
+                                                                                "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "nationality" ),
+                                                                            ),
+                                                                        array(	"type"	=>	"languages",
+                                                                                "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "languages-spoken" ),
+                                                                            ),
+                                                                        array(	"type"	=>	"dob",
+                                                                                "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "date-of-birth" ),
+                                                                            ),
+                                                                        array(	"type"	=>	"pin",
+                                                                                "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "pin-code" ),
+                                                                            ),           
                                                                         )
                                             )
                                     )
@@ -1816,10 +1935,18 @@ class headstart_admission
 
         if ($ret["exception"])
         {
+            // There was a problem with the user update
+            self::$verbose ? error_log(print_r($ret, true)) : false;
+
+            // change the ticket status to error
+            self::change_status_error_creating_sritoni_account( $ticket->id, 'There was a problem with the SriToni user update' );
+        }
+        else
+        {
+            // Update went well but we are printing the result anyway. TODO: Remove the print message later on
             self::$verbose ? error_log(print_r($ret, true)) : false;
         }
-        self::$verbose ? error_log(print_r($ret, true)) : false;
-
+            
         return $ret;
     }
 
@@ -1827,10 +1954,11 @@ class headstart_admission
      *  VISUALLY CHECKED for SC 3.0 compatibility
      * 
      *  @param object:$ticket
+     *  @param array:$cohort_ret is the array returned after adding the member to the cohort from SriToni server
      *  You must have the data pbject ready before coming here
      *  The user could be a new user or a continuing user
      */
-    private static function add_user_to_cohort( $ticket )
+    private static function add_user_to_cohort( object $ticket ) : ? array
     {   // adds user to cohort based on settings cohortid array indexed by ticket category
 
         // read in the Moodle API config array
@@ -1867,7 +1995,7 @@ class headstart_admission
         $category_name = $category_object->name;
 
         // get the cohortid for this ticket based on category-cohortid mapping from settings
-        $cohortidnumber = self::$category_cohortid_arr[$$category_name];
+        $cohortidnumber = self::$category_cohortid_arr[$category_name];
 
         // prepare the Moodle Rest API object
         $MoodleRest = new MoodleRest();
@@ -1887,6 +2015,7 @@ class headstart_admission
                             );  
 
         $cohort_ret = $MoodleRest->request('core_cohort_add_cohort_members', $parameters, MoodleRest::METHOD_GET);
+
         error_log(print_r($cohort_ret, true));
 
         return $cohort_ret;
@@ -1931,10 +2060,11 @@ class headstart_admission
     {
         // this is for rendering the API test onto the sritoni_tools page
         ?>
-            <h1> Input appropriate ID (moodle/customer/Ticket/Order) and Click on desired button to test</h1>
+            <h1> Input appropriate ID (moodle/customer/Ticket/Order) and or username and Click on desired button to test</h1>
             <form action="" method="post" id="mytoolsform">
                 <input type="text"   id ="id" name="id"/>
-                <input type="submit" name="button" 	value="test_sritoni_connection"/>
+                <input type="text"   id ="username" name="username"/>
+                <input type="submit" name="button" 	value="get_sritoni_user_using_username"/>
                 <input type="submit" name="button" 	value="test_cashfree_connection"/>
                 <input type="submit" name="button" 	value="test_woocommerce_customer"/>
                 <input type="submit" name="button" 	value="test_custom_code"/>
@@ -1954,11 +2084,12 @@ class headstart_admission
         <?php
 
         $id = sanitize_text_field( $_POST['id'] );
-        
+        $username = sanitize_text_field( $_POST['username'] );
+
         switch ($_POST['button'])
         {
-            case 'test_sritoni_connection':
-                $this->test_sritoni_connection($id);
+            case 'get_sritoni_user_using_username':
+                $this->test_sritoni_connection($username);
             break;
 
             case 'test_cashfree_connection':
@@ -2308,7 +2439,7 @@ class headstart_admission
 
     }
 
-    public function test_sritoni_connection($moodle_id)
+    public function test_sritoni_connection( string $moodle_username )
     {
         $this->get_config();
         // read in the Moodle API config array
@@ -2470,7 +2601,7 @@ class headstart_admission
     /**
      *  VISUALLY CHECKED for SC 3.0 compatibility
      */
-    private static function change_status_error_creating_sritoni_account( $ticket_id,  $error_message )
+    private static function change_status_error_creating_sritoni_account( int $ticket_id,  string $error_message ):void
     {
         $new_status_name = "Error Creating SriToni Account";
 

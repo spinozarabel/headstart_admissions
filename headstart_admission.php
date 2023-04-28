@@ -49,6 +49,7 @@ if ( ! class_exists( 'MA_HSA_headstart_admission' ) ) :
 			self::define( 'MA_HSA_PLUGIN_URL',       plugin_dir_url( __FILE__ ) );
 			self::define( 'MA_HSA_PLUGIN_BASENAME',  plugin_basename( __FILE__ ) );
 			self::define( 'MA_HSA_VERSION',          self::$version );
+			self::define( 'MA_HSA_PLUGIN_NAME',      'headstart_admission' );
 		}
 
     /**
