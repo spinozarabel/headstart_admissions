@@ -80,10 +80,7 @@ class headstart_admission
 
     public static function init()
     {
-        if ( defined( 'MA_HSA_PLUGIN_NAME' ) ) {
-            // define plugin name using constant defined in main plugin file
-            self::$plugin_name = MA_HSA_PLUGIN_NAME;    // defined in plugin construct function as 'headstart_admission'
-        }
+        self::$plugin_name = 'headstart_admission';
 
         // load admin actions only if admin
 		if ( is_admin() ) 
@@ -282,7 +279,7 @@ class headstart_admission
      */
     public static  function get_config()
     {
-      $config = include( __DIR__."/" . self::$plugin_name . "_config.php");
+      $config = include( __DIR__."/" . self::$plugin_name . "_" . "config.php" );
 
       self::$config = $config;
     }

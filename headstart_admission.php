@@ -30,7 +30,7 @@ if ( ! class_exists( 'MA_HSA_headstart_admission' ) ) :
 
       
 
-			self::define_constants();
+			// self::define_constants();
 
 			// add_action( 'init', array( __CLASS__, 'load_textdomain' ), 1 );
 
