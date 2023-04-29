@@ -3,7 +3,7 @@
 *Plugin Name: Head Start Admission by SriToni Learning Services
 *Plugin URI:
 *Description: Head Start Admissions Plugin - Takes care of Registration, forms, SriToni account, Admission payment
-*Version: 2023020300
+*Version: 2023042900
 *Author: Madhu Avasarala
 *Author URI: http://sritoni.org
 *Text Domain: MA_HSA_headstart_admission
