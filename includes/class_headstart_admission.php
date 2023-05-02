@@ -75,6 +75,9 @@ class headstart_admission
 	 */
 	public function __construct()
     {
+        // set the logging
+        self::$verbose = true;
+        
         self::init();
 	}
 
@@ -93,9 +96,6 @@ class headstart_admission
 
         // read the config file and build the secrets array
         self::get_config();
-
-        // set the logging
-        self::$verbose = true;
 
         // read the fee and description pairs from settings and form an associative array
         self::admission_settings();
