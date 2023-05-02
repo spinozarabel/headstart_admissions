@@ -526,7 +526,7 @@ class headstart_admission
         // get the current logged in user from support candy
         $current_user = WPSC_Current_User::$current_user;
 
-        // get customer's registered email
+        // get customer's mail
         $registered_email   = $current_user->user_email;
 
         // Initialize the new ticket values array needed for a new ticket creation
@@ -625,7 +625,7 @@ class headstart_admission
 
 
                 // map the ticket field 'headstart-email' to Ninja forms 'primary-email' field
-                // This maybe blank except for the case where it is an internal admission form submission
+                // Only if it contains headstart domain. If not leave it undefined
                 case ($cf->name == 'headstart-email'):
 
                     // look for the mapping slug in the ninja forms field's admin label
@@ -633,7 +633,19 @@ class headstart_admission
 
                     if ($key !== false)
                     {
-                        $data[$cf->slug]= $value_array_ninjaforms[$key];
+                        // get the value of the primary email from the application.
+                        $primary_email_ninja_form = $value_array_ninjaforms[$key];
+
+                        // Check if mail contains headstart domain
+                        if ( stripos( $primary_email_ninja_form, '@headstart.edu.in') !== false )
+                        {
+                            // the given email DOES contain  the headstart domain, so we can capture it
+                            $data[$cf->slug]= $value_array_ninjaforms[$key];
+                        }
+                        else
+                        {
+                            self::$verbose ? error_log( "primary email in application form does NOT contain @headstart.edu.in" ) : false;
+                        }
                     }
                     else
                     {
@@ -769,6 +781,9 @@ class headstart_admission
 
         endforeach;             // finish looping through the ticket fields for mapping Ninja form data to ticket
 
+        // set the cf field 'customer' of the ticket to the customer id as required
+        $data['customer'] = $current_user->id;
+
         $student_full_name = $student_first_name . ' ' . $student_middle_name . ' ' . $student_last_name;
 
         // Seperate the 'description' custom field from $data as required by Support Candy
@@ -780,6 +795,11 @@ class headstart_admission
         unset( $data['description_attachments'] );
 
         $data['last_reply_on'] = ( new DateTime() )->format( 'Y-m-d H:i:s' );
+
+        $data['source']     = 'MA_HSA_plugin';
+	    $data['ip_address'] = WPSC_DF_IP_Address::get_current_user_ip();
+	    $data['browser']    = WPSC_DF_Browser::get_user_browser();
+	    $data['os']         = WPSC_DF_OS::get_user_platform();
 
         // we have all the necessary ticket fields filled from the Ninja forms, now we can create a new ticket
         $ticket = WPSC_Ticket::insert( $data );
@@ -2099,7 +2119,7 @@ class headstart_admission
             break;
 
             case 'test_cashfree_connection':
-                $this->test_cashfree_connection($id);
+                // $this->test_cashfree_connection($id);
             break;
 
             case 'test_woocommerce_customer':
@@ -2123,7 +2143,7 @@ class headstart_admission
             break;
 
             case 'test_get_data_object_from_ticket':
-                $this->test_get_data_object_from_ticket($id);
+                // $this->test_get_data_object_from_ticket($id);
             break;
 
             case 'test_custom_code':
