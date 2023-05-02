@@ -290,9 +290,9 @@ class headstart_admission
      * Define all of the admin facing hooks and filters required for this plugin
      * @return null
      */
-    private static function define_admin_hooks()
+    private  function define_admin_hooks()
     {   // create a sub menu called Admissions in the Users menu
-        add_action( 'admin_menu', array( __CLASS__, 'add_my_menu' ) );
+        add_action( 'admin_menu', array(__CLASS__, 'add_my_menu' ) );
     }
 
     /**
@@ -2021,7 +2021,7 @@ class headstart_admission
     /**
      *  VISUALLY CHECKED for SC 3.0 compatibility
      */
-    public function add_my_menu()
+    public static function add_my_menu()
     {
         add_submenu_page(
             'users.php',	                    // string $parent_slug
@@ -2029,7 +2029,7 @@ class headstart_admission
             'Admissions',                       // string $menu_title
             'manage_options',                   // string $capability
             'admissions',                       // string $menu_slug
-            [$this, 'render_admissions_page'] );// callable $function = ''
+            [__CLASS__, 'render_admissions_page'] );// callable $function = ''
 
         // add submenu page for testing various application API needed for SriToni operation
         add_submenu_page(
@@ -2038,7 +2038,7 @@ class headstart_admission
             'SriToni Tools',	                 // menu title
             'manage_options',	                 // capability
             'sritoni-tools',	                 // menu slug
-            [$this, 'sritoni_tools_render']);    // callback
+            [__CLASS__, 'sritoni_tools_render']);    // callback
     }
 
     /**
