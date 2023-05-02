@@ -75,14 +75,14 @@ class headstart_admission
 	 */
 	public function __construct()
     {
-        // set the logging
-        self::$verbose = true;
-        
         self::init();
 	}
 
     public static function init()
     {
+        // set the logging
+        self::$verbose = true;
+        
         self::$plugin_name = MA_HSA_PLUGIN_NAME;
 
         // load admin actions only if admin
