@@ -31,7 +31,7 @@
 }
 
 //setup for the WooCommerce REST API
-require MA_HSA_ABSPATH . '/vendor/autoload.php';
+require MA_HSA_ABSPATH . 'vendor/autoload.php';
 
 use Automattic\WooCommerce\Client;
 use Automattic\WooCommerce\HttpClient\HttpClientException;
@@ -279,7 +279,7 @@ class headstart_admission
      */
     public static  function get_config()
     {
-      $config = include( __DIR__."/" . self::$plugin_name . "_" . "config.php" );
+      $config = include( MA_HSA_ABSPATH  . MA_HSA_PLUGIN_NAME . "_" . "config.php" );
 
       self::$config = $config;
     }
@@ -290,7 +290,7 @@ class headstart_admission
      * Define all of the admin facing hooks and filters required for this plugin
      * @return null
      */
-    private  function define_admin_hooks()
+    private  static function define_admin_hooks()
     {   // create a sub menu called Admissions in the Users menu
         add_action( 'admin_menu', array(__CLASS__, 'add_my_menu' ) );
     }
