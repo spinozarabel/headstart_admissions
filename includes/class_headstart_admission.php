@@ -2168,7 +2168,7 @@ class headstart_admission
         print_r($ticket);
         echo  '</pre>';
 
-        $status_id = $ticket->status;
+        $status_id = $ticket->status->id;
 
         $status_object = new WPSC_Status( $status_id );
 
