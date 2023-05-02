@@ -80,7 +80,7 @@ class headstart_admission
 
     public static function init()
     {
-        self::$plugin_name = 'headstart_admission';
+        self::$plugin_name = MA_HSA_PLUGIN_NAME;
 
         // load admin actions only if admin
 		if ( is_admin() ) 

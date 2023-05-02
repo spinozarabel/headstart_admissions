@@ -41,16 +41,16 @@ if ( ! class_exists( 'MA_HSA_headstart_admission' ) ) :
 		 * Defines global constants that can be availabel anywhere in WordPress
 		 * MAHSA stands for Madhu Avasarala and HSA for Head Start Admissions
 		 * @return void
+		 *
 		 */
 		public static function define_constants() {
 
-			/* self::define( 'MA_HSA_PLUGIN_FILE',      __FILE__ );
+			self::define( 'MA_HSA_PLUGIN_FILE',      __FILE__ );
 			self::define( 'MA_HSA_ABSPATH',          dirname( __FILE__ ) . '/' );
 			self::define( 'MA_HSA_PLUGIN_URL',       plugin_dir_url( __FILE__ ) );
 			self::define( 'MA_HSA_PLUGIN_BASENAME',  plugin_basename( __FILE__ ) );
 			self::define( 'MA_HSA_VERSION',          self::$version );
 			self::define( 'MA_HSA_PLUGIN_NAME',      'headstart_admission' );
-			*/
 		}
 
     /**
@@ -61,11 +61,25 @@ if ( ! class_exists( 'MA_HSA_headstart_admission' ) ) :
 		private static function load_files() {
 
       		// Load common classes that are in the includes subdirectory
-			foreach ( glob( WPSC_ABSPATH . 'includes/*.php' ) as $filename ) {
+			foreach ( glob( MA_HSA_ABSPATH . 'includes/*.php' ) as $filename ) {
 
 				include_once $filename;
 			}
     	}
+
+		/**
+		 * Define constants
+		 *
+		 * @param string $name - name of global constant.
+		 * @param string $value - value of constant.
+		 * @return void
+		 */
+		private static function define( $name, $value ) {
+
+			if ( ! defined( $name ) ) {
+				define( $name, $value );
+			}
+		}
   }
 endif;
 
