@@ -2160,7 +2160,7 @@ class headstart_admission
     /**
      * 
      */
-    public static function test_get_ticket_data($id)
+    public static function test_get_ticket_data($ticket_id)
     {
         $ticket = new WPSC_Ticket( $ticket_id );
 
