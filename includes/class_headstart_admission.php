@@ -101,7 +101,7 @@ class headstart_admission
         self::admission_settings();
 
         // Index ths status name vs slug and id vs name arrays
-        self::index_status_array();
+        // self::index_status_array();
     }
 
     /**
