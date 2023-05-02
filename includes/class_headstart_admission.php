@@ -2082,7 +2082,7 @@ class headstart_admission
     /**
      *  VISUALLY CHECKED for SC 3.0 compatibility
      */
-    public function sritoni_tools_render()
+    public static function sritoni_tools_render()
     {
         // this is for rendering the API test onto the sritoni_tools page
         ?>
@@ -2115,7 +2115,7 @@ class headstart_admission
         switch ($_POST['button'])
         {
             case 'get_sritoni_user_using_username':
-                $this->test_sritoni_connection($username);
+                self::test_sritoni_connection($username);
             break;
 
             case 'test_cashfree_connection':
@@ -2123,23 +2123,23 @@ class headstart_admission
             break;
 
             case 'test_woocommerce_customer':
-                $this->test_woocommerce_customer($id);
+                self::test_woocommerce_customer($id);
             break;
 
             case 'test_get_ticket_data':
-                $this->test_get_ticket_data($id);
+                self::test_get_ticket_data($id);
             break;
 
             case 'test_get_wc_order':
-                $this->get_wc_order($id);
+                self::get_wc_order($id);
             break;
 
             case 'trigger_payment_order_for_error_tickets':
-                $this->trigger_payment_order_for_error_tickets();
+                self::trigger_payment_order_for_error_tickets();
             break;
 
             case 'trigger_sritoni_account_creation_for_error_tickets':
-                $this->trigger_sritoni_account_creation_for_error_tickets();
+                self::trigger_sritoni_account_creation_for_error_tickets();
             break;
 
             case 'test_get_data_object_from_ticket':
@@ -2147,7 +2147,7 @@ class headstart_admission
             break;
 
             case 'test_custom_code':
-                $this->test_custom_code($id);
+                self::test_custom_code($id);
             break;
 
             default:
@@ -2160,7 +2160,7 @@ class headstart_admission
     /**
      * 
      */
-    public function test_get_ticket_data($id)
+    public static function test_get_ticket_data($id)
     {
         $ticket = new WPSC_Ticket( $ticket_id );
 
@@ -2403,8 +2403,9 @@ class headstart_admission
 
 
 
-    public function test_custom_code($ticket_id)
+    public static function test_custom_code($ticket_id)
     {
+        /*
         global $wpscfunction;
 
         echo "<h1>" . "List of ALL Ticket custom fields" . "</h1>";
@@ -2474,6 +2475,7 @@ class headstart_admission
             echo nl2br("Ticket id: " . $ticket->id . " \n");
         endforeach;
         */
+        /*
         // get the the  ticket history of a given ticket
         $threads = $this->get_ticket_threads($ticket_id);
 
@@ -2495,7 +2497,7 @@ class headstart_admission
         }
         echo "<pre>" . "UTR of ticket ID: " . $ticket_id . " is:" . $utr. "</pre>";
         echo "<pre>" . print_r($threads, true) ."</pre>";
-
+        */
     }
 
     public function test_sritoni_connection( string $moodle_username )
