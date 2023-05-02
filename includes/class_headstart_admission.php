@@ -281,6 +281,15 @@ class headstart_admission
     {
       $config = include( MA_HSA_ABSPATH  . MA_HSA_PLUGIN_NAME . "_" . "config.php" );
 
+      if ($config)
+      {
+        self::$verbose ? error_log("Plugin Config file successfully loaded") : false;
+      }
+      else
+      {
+        self::$verbose ? error_log("Could NOT load Plugin Config File correctley, check...") : false;
+      }
+
       self::$config = $config;
     }
 
