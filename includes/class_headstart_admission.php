@@ -31,7 +31,7 @@
 }
 
 //setup for the WooCommerce REST API
-require __DIR__ . '/vendor/autoload.php';
+require MA_HSA_ABSPATH . '/vendor/autoload.php';
 
 use Automattic\WooCommerce\Client;
 use Automattic\WooCommerce\HttpClient\HttpClientException;
