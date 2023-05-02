@@ -2160,6 +2160,39 @@ class headstart_admission
     /**
      * 
      */
+    public function test_get_ticket_data($id)
+    {
+        $ticket = new WPSC_Ticket( $ticket_id );
+
+        echo '<pre>';
+        print_r($ticket);
+        echo  '</pre>';
+
+        $status_id = $ticket->status;
+
+        $status_object = new WPSC_Status( $status_id );
+
+        echo '<pre>';
+        print( "The status object of above ticket is displayed below using its ID obtained from ticket details" );
+        print_r($status_object);
+        echo  '</pre>';
+
+        $category_id = $ticket->category;
+
+        $category_object = new WPSC_Category( $category_id );
+
+        echo '<pre>';
+        print( "The Category object of above ticket is displayed below using its ID obtained from ticket details" );
+        print_r($category_object);
+        echo  '</pre>';
+    }
+
+
+
+
+    /**
+     * 
+     */
     public function action_on_reply_submission( array $args, int $thread_id ): void
     {
         $reply_text = $args['reply_body'];
