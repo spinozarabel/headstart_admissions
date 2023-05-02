@@ -2177,7 +2177,7 @@ class headstart_admission
         print_r($status_object);
         echo  '</pre>';
 
-        $category_id = $ticket->category;
+        $category_id = $ticket->category->id;
 
         $category_object = new WPSC_Category( $category_id );
 
