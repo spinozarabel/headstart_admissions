@@ -815,6 +815,10 @@ class headstart_admission
 	    $data['browser']    = WPSC_DF_Browser::get_user_browser();
 	    $data['os']         = WPSC_DF_OS::get_user_platform();
 
+        // Assign an agent based on category or whichever algorithm that we may choose later on
+        $data['assigned_agent'] = 2;    // permamantly assigned too Simran
+        $data['user_type'] = 'registered';
+
         // we have all the necessary ticket fields filled from the Ninja forms, now we can create a new ticket
         $ticket = WPSC_Ticket::insert( $data );
 
