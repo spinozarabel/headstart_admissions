@@ -628,14 +628,12 @@ class headstart_admission
                 case ($cf->name == 'customer_email'):
 
                     // look for the mapping slug in the ninja forms field's admin label
-                    $key = array_search('primary-email', $admin_label_array_ninjaforms);
+                    // $key = array_search('primary-email', $admin_label_array_ninjaforms);
 
                     // capture this into a local variable for later use to extract customer information
-                    $customer_registered_email = $value_array_ninjaforms[$key];
+                    // $customer_registered_email = $value_array_ninjaforms[$key];
 
-                    $data[$cf->slug] = $customer_registered_email;
-
-                    
+                    $data[$cf->slug] = $customer->email;
 
                 break;
 
@@ -796,8 +794,6 @@ class headstart_admission
             endswitch;          // end switching throgh the ticket fields looking for a match
 
         endforeach;             // finish looping through the ticket fields for mapping Ninja form data to ticket
-
-        $customer = WPSC_Customer::get_by_email( $customer_registered_email );
 
         // set the cf field 'customer' of the ticket to the customer id as required
         $data['customer'] = $customer->id;
