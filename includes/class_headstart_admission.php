@@ -801,7 +801,7 @@ class headstart_admission
         $student_full_name = $student_first_name . ' ' . $student_middle_name . ' ' . $student_last_name;
 
         // Seperate the 'description' custom field from $data as required by Support Candy
-        $description = "Application for Admission of " . $student_full_name . 'to ' . $category_name;
+        $description = "Application for Admission of " . $student_full_name . 'to: ' . $category_name;
         unset( $data['description'] );
 
         // Seperate description attachments from $data.
