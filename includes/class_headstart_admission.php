@@ -810,6 +810,11 @@ class headstart_admission
 
             return null;
         }
+        else 
+        {
+            self::$verbose ? error_log('A new SC ticket created from Ninja form for Customer ID:' . $current_user->ID . 
+                                                                                ' and Ticket ID:' . $ticket->id): false;
+        }
 
         // if we get here it means that the new ticket was successfully created. Lets add the thread and finish
         $ticket->last_reply_by = $ticket->customer->id;
