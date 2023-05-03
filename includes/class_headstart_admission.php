@@ -541,6 +541,14 @@ class headstart_admission
         // extract the corresponding value array. They both will share the same  numerical index.
         $value_array_ninjaforms       = array_column(array_column($fields_ninjaforms, 'settings'), 'value');
 
+        // Get the logged in user's ID
+        $current_user = wp_get_current_user();
+
+        // Check to see if already a customer in Support Candy table
+        $customer = WPSC_Customer::get_by_email( $current_user->user_email  );
+
+        
+
         // Loop through all the custom fields of the ticket
         foreach ( WPSC_Custom_Field::$custom_fields as $cf ):
 
@@ -2421,6 +2429,20 @@ class headstart_admission
     public static function test_custom_code($ticket_id)
     {
         // TEst out our custom code here. Input is just an integer from the form inpot
+        // Get the logged in user's ID
+        $current_user = wp_get_current_user();
+
+        // Check to see if already a customer in Support Candy table
+        $customer = WPSC_Customer::get_by_email( $current_user->user_email  );
+
+        echo "<pre>" . print_r($customer, true) ."</pre>";
+
+        if ( ! $customer )
+        {
+            echo "<pre>" . print( 'This customer does not exist in the customer table of Support Candy') ."</pre>";
+        }
+
+
     }
 
     public function test_sritoni_connection( string $moodle_username )
