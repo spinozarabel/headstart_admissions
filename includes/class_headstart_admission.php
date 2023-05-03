@@ -524,10 +524,10 @@ class headstart_admission
         // $form_data['fields']['id'][''value']
 
         // get the current logged in user
-        $current_user = wp_get_current_user();
+        // $current_user = wp_get_current_user();
 
         // get customer's mail
-        $registered_email   = $current_user->user_email;
+        // $registered_email   = $current_user->user_email;
 
         // Initialize the new ticket values array needed for a new ticket creation
         $data = [];
@@ -619,7 +619,15 @@ class headstart_admission
                 // But we are keeing the feature for legacy and continuity
                 case ($cf->name == 'customer_email'):
 
-                    $data[$cf->slug]= $registered_email;    // slug is something like cust_dd
+                    // look for the mapping slug in the ninja forms field's admin label
+                    $key = array_search('primary-email', $admin_label_array_ninjaforms);
+
+                    // capture this into a local variable for later use to extract customer information
+                    $customer_registered_email = $value_array_ninjaforms[$key];
+
+                    $data[$cf->slug] = $customer_registered_email;
+
+                    
 
                 break;
 
@@ -781,8 +789,10 @@ class headstart_admission
 
         endforeach;             // finish looping through the ticket fields for mapping Ninja form data to ticket
 
+        $customer = WPSC_Customer::get_by_email( $customer_registered_email );
+
         // set the cf field 'customer' of the ticket to the customer id as required
-        $data['customer'] = $current_user->ID;
+        $data['customer'] = $customer->id;
 
         $student_full_name = $student_first_name . ' ' . $student_middle_name . ' ' . $student_last_name;
 
@@ -812,7 +822,7 @@ class headstart_admission
         }
         else 
         {
-            self::$verbose ? error_log('A new SC ticket created from Ninja form for Customer ID:' . $current_user->ID . 
+            self::$verbose ? error_log('A new SC ticket created from Ninja form for Customer ID:' . $customer->id . 
                                                                                 ' and Ticket ID:' . $ticket->id): false;
         }
 
