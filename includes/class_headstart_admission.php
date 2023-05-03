@@ -2432,8 +2432,10 @@ class headstart_admission
         // Get the logged in user's ID
         $current_user = wp_get_current_user();
 
+        $email = 'cutelabmallika@gmail.com';
+
         // Check to see if already a customer in Support Candy table
-        $customer = WPSC_Customer::get_by_email( $current_user->user_email  );
+        $customer = WPSC_Customer::get_by_email( $email  );
 
         echo "<pre>" . print_r($customer, true) ."</pre>";
 
