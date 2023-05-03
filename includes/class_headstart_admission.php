@@ -523,8 +523,8 @@ class headstart_admission
         // $form_data['fields']['id']['seetings']['admin_label']
         // $form_data['fields']['id'][''value']
 
-        // get the current logged in user from support candy
-        $current_user = WPSC_Current_User::$current_user;
+        // get the current logged in user
+        $current_user = wp_get_current_user();
 
         // get customer's mail
         $registered_email   = $current_user->user_email;
@@ -782,7 +782,7 @@ class headstart_admission
         endforeach;             // finish looping through the ticket fields for mapping Ninja form data to ticket
 
         // set the cf field 'customer' of the ticket to the customer id as required
-        $data['customer'] = $current_user->id;
+        $data['customer'] = $current_user->ID;
 
         $student_full_name = $student_first_name . ' ' . $student_middle_name . ' ' . $student_last_name;
 
