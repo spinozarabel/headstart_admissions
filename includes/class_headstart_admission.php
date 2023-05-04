@@ -1878,8 +1878,8 @@ class headstart_admission
      *  @param object:$ticket
      *  @return array:$ret returned array from Moodle update user API call
      *  1. Extracts the username from the headstart email field in ticket
-     *  2. If the username is empty returns with an error and changes the ticket status
-     *  3. An API call is made to the SriToni server to get the user account array based on username
+     *  2. If the email is empty returns with an error and changes the ticket status
+     *  3. An API call is made to the hset-payment server to get the user account array based on email and WC API
      *  4. If the call is successful default data for idnumber, department, etc., is extracted
      *  5. Ticket data is used to update the user account. For some fields if ticket data is empty, defaults from above are used
      *  6. The updated user array is returned
@@ -1923,16 +1923,29 @@ class headstart_admission
             return null;
         }
 
-        // extract needed default data from the object
-        $idnumber_wc_user = 
+        $wc_user_meta_keys_array    = array_column($wc_user_hset_payments->meta_data, 'key');
+        $wc_user_meta_values_array  = array_column($wc_user_hset_payments->meta_data, 'value');
 
+        // extract needed default data from the object
+        $sritoni_idnumber_wc            = $wc_user_meta_values_array[array_search('sritoni_idnumber',           $wc_user_meta_keys_array )];
+        $grade_or_class_wc              = $wc_user_meta_values_array[array_search('grade_or_class',             $wc_user_meta_keys_array )];
+        $sritoni_student_category_wc    = $wc_user_meta_values_array[array_search('sritoni_student_category',   $wc_user_meta_keys_array )];
+        $ou_wc                          = $wc_user_meta_values_array[array_search('ou',                         $wc_user_meta_keys_array )];
+
+        // We can extract the department from the ou field above. It will contain StudentActive for a student
+        if ( stripos( $ou_wc, 'Student' ) !== false )
+        {
+            // 'Student' is contained in the ou extracted field
+            $department_wc_extracted = 'Student';
+        }
         // before coming here, check that ticket fields such as idnumber, department, etc., are not empty
         // if ticket values are not set, the user's previous values are reused in the update for these fields
-        $moodle_idnumber    = self::get_ticket_value_given_cf_name( $ticket, "idnumber") ?? $moodle_user_array['idnumber'];
+        $moodle_idnumber    = self::get_ticket_value_given_cf_name( $ticket, "idnumber") ?? $sritoni_idnumber_wc;
 
-        $moodle_department  = self::get_ticket_value_given_cf_name( $ticket, 'department' ) ?? $moodle_user_array['department'];
+        $moodle_department  = self::get_ticket_value_given_cf_name( $ticket, 'department' ) ?? 'Student';
 
-        $moodle_id = $moodle_user_array['id'];
+        // Remember that the Wordpress username is the Moodle user id as created originally
+        $moodle_id = $wc_user_hset_payments->username;
 
         // read in the Moodle API config array
         $config			= self::$config;
@@ -1948,7 +1961,7 @@ class headstart_admission
         
         // We have a valid Moodle user id, form the array to updatethis user. The ticket custom field name must be exactly as shown.
         $users = array("users" => array(
-                                        array(	"id" 	        => $moodle_id,          // extracted from Moodle using username
+                                        array(	"id" 	        => $moodle_id,          // extracted from WCuser as username
                                                 "idnumber"      => $moodle_idnumber,    // can change
                                         //      "auth"          => "oauth2",            // no change
                                                 "firstname"     => self::get_ticket_value_given_cf_name( $ticket, "student-first-name" ),
