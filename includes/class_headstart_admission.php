@@ -2155,7 +2155,7 @@ class headstart_admission
             break;
 
             case 'test_woocommerce_customer':
-                self::test_woocommerce_customer($id);
+                self::test_woocommerce_customer($username);
             break;
 
             case 'test_get_ticket_data':
@@ -2426,7 +2426,7 @@ class headstart_admission
      * 
      */
 
-    public function test_woocommerce_customer( string $email) 
+    public static function test_woocommerce_customer( string $email ) 
     {
         $wpuserobj = self::get_wp_user_hset_payments( $email );
 
