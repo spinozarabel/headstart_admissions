@@ -1035,7 +1035,7 @@ class headstart_admission
      *  VISUALLY CHECKED for SC 3.0 compatibility
      * 
      *  @param string:$email
-     *  @return object:$customers[0]
+     *  @return object:$customers[0] which is a WP user object. 
      * Pre-requisites: None
      * 1. Get wpuser object from site hset-payments with given email using Woocommerce API
      * 2. If site is unreacheable change status of ticket to error
@@ -1630,15 +1630,18 @@ class headstart_admission
         // username is to be set by agent for the agentonly field. This is a new user so required to be set correctly
         $moodle_username    = self::get_ticket_value_given_cf_name( $ticket, 'username' );
 
-        // Check to see if a user with this username already exists. A pre-existing account is an error that is handled here
-        $existing_moodle_user_array = self::get_user_account_from_sritoni( $ticket, $moodle_username,  false);
+        $moodle_email = $moodle_username . '@headstart.edu.in';
 
-        if ( $existing_moodle_user_array )
+        // Check to see if a user with this username already exists. A pre-existing account is an error that is handled here
+        $existing_moodle_user = self::get_user_account_from_sritoni( $ticket, $moodle_email,  false );
+
+        if ( $existing_moodle_user->email ==  $moodle_email )
         {
             // An account with this username already exssts. So set error status so Admin can set a different username and try again
-            $error_message = "This username already exists! Is this an existing user? If not change username and retry";
+            $error_message = "This username already exists with name: " . $existing_moodle_user->first_name . " " .
+                                                                          $existing_moodle_user->last_name;
 
-            self::$verbose ? error_log($error_message) : false;
+            self::$verbose ? error_log( $error_message ) : false;
 
             // change the ticket status to error
             self::change_status_error_creating_sritoni_account( $ticket, $error_message );
@@ -1647,9 +1650,6 @@ class headstart_admission
         }
 
         // if you are here we have a username that does not exist yet so create a new moodle user account with this username
-
-        // moodle email for a new user is username@domain
-        $moodle_email       = $moodle_username . "@headstart.edu.in";   // new account so this is the rule
 
         $moodle_environment = self::get_ticket_value_given_cf_name( $ticket, 'environment' );
         if (empty($moodle_environment)) $moodle_environment = "NA";
@@ -1784,19 +1784,46 @@ class headstart_admission
 
     /**
      * @param object:$ticket is the ticket object passed in
-     * @param string:$moodle_username is the username of the user we are interested in getting from SriToni server
-     * @param array: The user account array object from SriToni indexed by fields such as id, username, etc.
-     * If user account exists, the user account array is returned
+     * @param string:$moodle_email is the email of the user we are interested in getting from SriToni server
+     * @return object:$hset_payments_user: The WooCommerce user object is returned
+     * If user account in hset-payments intranet site exists the user object is returned
+     *  properties are: id, email, username, etc. id  is WP id, username is WP username same as Moodle user id
      * If account does not exist, a null is returned
      * If account exists and flag is true then ticket error status is set that account already exists
      * If account does NOT exist flag is don't care and no ticket status is set
      */
-    private static function get_user_account_from_sritoni( object $ticket = null, string  $email, bool $err_flag = false ) : ? array
+    private static function get_user_account_from_sritoni( object $ticket = null, string  $moodle_email, bool $err_flag = false ) : ? object
     {
         // We need the Moodle id of the user. This is not possible to get directly from the Moodle Server
         // So we will use the email to get the user details from the intranet-hset-payments server
         // once we get the moodle id we can then get the moodle user account from the Moodle Server
-        $hset_payments_site_user = self::get_wp_user_hset_payments( $email );
+        $hset_payments_site_user = self::get_wp_user_hset_payments( $moodle_email );
+
+        // The username will be the moodle table user id
+        $moodle_id = $hset_payments_site_user->username;
+
+        // If not a valid moodle ID then flag an error
+        if (! $moodle_id )
+        {
+            self::$verbose ? error_log("A SriToni account Does NOT exist with email: " . $moodle_email) : false;
+            self::$verbose ? error_log(print_r($hset_payments_site_user, true)) : false;
+
+            return null;
+        }
+        else 
+        {
+            // A valid WP user with desired email exists in the intranet hset-payments site.
+            self::$verbose ? error_log("A SriToni account Does exist with email: " . $moodle_email) : false;
+
+            if ( $err_flag && $ticket ) 
+            {
+                // Account exists and flag is true so set error status for ticket
+                self::change_status_error_creating_sritoni_account( $ticket->id, 'A SriToni account with this username already exists' );
+            }
+            return $hset_payments_site_user;
+        }
+
+        // The code below will never get executed and is legacy code here only for future use if needed
 
         // read in the Moodle API config array
         $config			= self::$config;
@@ -1810,7 +1837,7 @@ class headstart_admission
         $MoodleRest->setReturnFormat(MoodleRest::RETURN_ARRAY); // Array is default. You can use RETURN_JSON or RETURN_XML too.
         // $MoodleRest->setDebug();
         // get moodle user details associated with this completed order from SriToni
-        $parameters   = array( "criteria" => array( array( "key" => "email", "value" => $moodle_username ) ) );
+        $parameters   = array( "criteria" => array( array( "key" => "id", "value" => $moodle_id ) ) );
 
         // get moodle user satisfying above criteria if any
         $moodle_users = $MoodleRest->request('core_user_get_users', $parameters, MoodleRest::METHOD_GET);
@@ -1836,7 +1863,7 @@ class headstart_admission
         else
         {
             // A user Does NOT exist with given username.
-            self::$verbose ? error_log("A SriToni account Does NOT exist with username: " . $moodle_username) : false;  
+            self::$verbose ? error_log("A SriToni account Does NOT exist with email: " . $moodle_email) : false;  
             self::$verbose ? error_log(print_r($moodle_users, true)) : false;
             
             return null;
@@ -1881,19 +1908,14 @@ class headstart_admission
             return null;
         }
 
-        // get the  WP user object from the hset-payments site using woocommerce API. TODO: Delete this if Moodle get user works
-        // $wp_user_hset_payments = self::get_wp_user_hset_payments( $moodle_email, $ticket->id );
-
-        // get the moodle_id which is same as wpuser's login at the hset-payments site TODO: Delete if moodle get user works
-        // $moodle_id = $wp_user_hset_payments->username;
 
         // return user if username matches in extracted record and no exception happened. We will handle errors here
-        $moodle_user_array = self::get_user_account_from_sritoni( $ticket, $moodle_username, false );
+        $wc_user_hset_payments = self::get_user_account_from_sritoni( $ticket, $moodle_email, false );
 
-        if ( ! $moodle_user_array )
+        if ( $wc_user_hset_payments->email !=  $moodle_email )
         {
             // The user account does not exist as expected!!!
-            $error_message = 'Problem extracting SriToni account using username from email - check user supplied headstart email';
+            $error_message = 'Problem extracting SriToni account from email - check user supplied headstart email and if user exists';
 
             // change the ticket status to error
             self::change_status_error_creating_sritoni_account( $ticket->id, $error_message );
@@ -2429,8 +2451,14 @@ class headstart_admission
     public static function test_woocommerce_customer( string $email ) 
     {
         $wpuserobj = self::get_wp_user_hset_payments( $email );
+        $meta_idnumber = $wpuserobj->get_meta('sritoni_idnumber');
+        echo "<pre>" . print_r($meta_idnumber, true) ."</pre>";
+        echo "<pre>" . print('Get meta data value for key sritoni_idnumber') ."</pre>";
+
+        echo "<pre>" . print('Get meta data value for key sritoni_idnumber') ."</pre>";
 
         echo "<pre>" . print_r($wpuserobj, true) ."</pre>";
+
     }
 
 
