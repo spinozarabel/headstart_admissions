@@ -552,7 +552,7 @@ class headstart_admission
         // Loop through all the custom fields of the ticket
         foreach ( WPSC_Custom_Field::$custom_fields as $cf ):
 
-            // If the CF's field property is not ticket or agentonly, skip. TODO: Skip agentonly also????
+            // If the CF's field property is not ticket or agentonly, skip. Skip agentonly also????
             if ( ! in_array( $cf->field, array( 'ticket', 'agentonly' ) )  ) {
                 continue;
             }
@@ -931,7 +931,7 @@ class headstart_admission
                 // if successful in sritoni account creation, change to next status - @TODO
                 if ($moodle_id)
                 {
-                    // TODO:
+                    // 
                 }
             break;
 
@@ -951,7 +951,7 @@ class headstart_admission
                 // Once Admin sets Order as completed, the webhook fires on the payment site and is captured on this site
                 // The captured webhook sets the status as Payment completed
                 // There is no other explicit code to be executed here
-                // TODO:
+                // 
 
              break;
 
@@ -1081,7 +1081,7 @@ class headstart_admission
 
 
     /**
-     * TODO: Obsolete function, delete once flow is finalized
+     * Obsolete function, delete once flow is finalized
      * @param object:$ticket
      * @return void
      * Takes the data object from the ticket using the ticket_id
@@ -1153,7 +1153,7 @@ class headstart_admission
 
 
     /**
-     *    OBSOLETE TODO: Delete this function
+     *    OBSOLETE  Delete this function
      * 1. This function grabs all ticket fields (agent and non-agent) data from a given ticket id
      * 2. It then creates a new data_object that contains all of the ticket data,for ease of access
      * 3. This data_object is also set as a property of $this class
@@ -1222,7 +1222,7 @@ class headstart_admission
 
 
     /**
-     *  TODO: Obsolete, delete when flow is finalized
+     *  Obsolete, delete when flow is finalized
      * 
      *  Gets customer user object from payments site and returns it. No Cashfree account check or creation.
      *
@@ -1282,7 +1282,7 @@ class headstart_admission
 
 
     /**
-     *  TODO: Obsolete, delete once flow is finalized
+     *  : Obsolete, delete once flow is finalized
      *  Creates a new Order on the payments site
      *  Prerequisites:
      *  
@@ -1451,7 +1451,7 @@ class headstart_admission
 
 
     /**
-     *  TODO: Obsolete, delete once flow is finalized
+     *  : Obsolete, delete once flow is finalized
      *  @param int:$order_id
      *  @param array:$order_data
      *  Update the order with the given order data. The order_data has to be constructed as per requirements
@@ -1923,6 +1923,9 @@ class headstart_admission
             return null;
         }
 
+        // extract needed default data from the object
+        $idnumber_wc_user = 
+
         // before coming here, check that ticket fields such as idnumber, department, etc., are not empty
         // if ticket values are not set, the user's previous values are reused in the update for these fields
         $moodle_idnumber    = self::get_ticket_value_given_cf_name( $ticket, "idnumber") ?? $moodle_user_array['idnumber'];
@@ -2023,7 +2026,7 @@ class headstart_admission
         }
         else
         {
-            // Update went well but we are printing the result anyway. TODO: Remove the print message later on
+            // Update went well but we are printing the result anyway. : Remove the print message later on
             self::$verbose ? error_log(print_r($ret, true)) : false;
         }
             
@@ -2452,19 +2455,11 @@ class headstart_admission
     {
         $wpuserobj = self::get_wp_user_hset_payments( $email );
 
-        $array_key = array_column($wpuserobj->meta_data, key);
-        $array_values = array_column($wpuserobj->meta_data, value);
+        $sritoni_idnumber = $array_values[array_search('sritoni_idnumber', array_column($wpuserobj->meta_data, key))];
 
-        $index = array_search('sritoni_idnumber', $array_key);
-        $sritoni_idnumber = $array_values[$index];
+        $grade_or_class = $array_values[array_search('grade_or_class', array_column($wpuserobj->meta_data, key))];
 
-        $index = array_search('grade_or_class', $array_key);
-        $grade_or_class = $array_values[$index];
-
-        $index = array_search('sritoni_student_category', $array_key);
-        $sritoni_student_category = $array_values[$index];
-
-        echo "<pre>" . print_r($array, true) ."</pre>";
+        $sritoni_student_category = $array_values[array_search('sritoni_student_category', array_column($wpuserobj->meta_data, key))];
 
         
         echo "<pre>" . print('Get meta data value for key grade_or_class: ' . $grade_or_class) ."</pre>";
