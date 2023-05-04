@@ -816,7 +816,7 @@ class headstart_admission
 	    $data['os']         = WPSC_DF_OS::get_user_platform();
 
         // Assign an agent based on category or whichever algorithm that we may choose later on
-        $data['assigned_agent'] = 2;    // permamantly assigned too Simran
+        // $data['assigned_agent'] = 2;    // permamantly assigned too Simran
         $data['user_type'] = 'registered';
 
         // we have all the necessary ticket fields filled from the Ninja forms, now we can create a new ticket
@@ -1788,7 +1788,7 @@ class headstart_admission
      * If account exists and flag is true then ticket error status is set that account already exists
      * If account does NOT exist flag is don't care and no ticket status is set
      */
-    private static function get_user_account_from_sritoni( object $ticket, string  $moodle_username, bool $err_flag = false ) : ? array
+    private static function get_user_account_from_sritoni( object $ticket = null, string  $moodle_username, bool $err_flag = false ) : ? array
     {
         // read in the Moodle API config array
         $config			= self::$config;
@@ -1814,13 +1814,13 @@ class headstart_admission
             self::$verbose ? error_log("SriToni user query has existing account with username: " . $moodle_username) : false;
 
             // Now depending on the error flag set the error and change status for ticket
-            if ( $err_flag)
+            if ( $err_flag && $ticket ) 
             {
                 // Account exists and flag is true so set error status for ticket
                 self::change_status_error_creating_sritoni_account( $ticket->id, 'A SriToni account with this username already exists' );
-
-                self::$verbose ? error_log(print_r($moodle_users[0], true)) : false; 
             }
+
+            self::$verbose ? error_log(print_r($moodle_users[0], true)) : false; 
             
             // independent of error flag return auser account array of existing user
             return $moodle_users[0];
@@ -2451,31 +2451,11 @@ class headstart_admission
     {
         $this->get_config();
         // read in the Moodle API config array
-        $config			= $this->config;
-        $moodle_url 	= $config["moodle_url"] . '/webservice/rest/server.php';
-        $moodle_token	= $config["moodle_token"];
-
-        // prepare the Moodle Rest API object
-        $MoodleRest = new MoodleRest();
-        $MoodleRest->setServerAddress($moodle_url);
-        $MoodleRest->setToken( $moodle_token ); // get token from ignore_key file
-        $MoodleRest->setReturnFormat(MoodleRest::RETURN_ARRAY); // Array is default. You can use RETURN_JSON or RETURN_XML too.
-        // $MoodleRest->setDebug();
-        // get moodle user details associated with this completed order from SriToni
-        $parameters   = array("criteria" => array(array("key" => "id", "value" => $moodle_id)));
-
-        // get moodle user satisfying above criteria
-        $moodle_users = $MoodleRest->request('core_user_get_users', $parameters, MoodleRest::METHOD_GET);
-        if ( !( $moodle_users["users"][0] ) )
-        {
-            // failed to communicate effectively to moodle server so exit
-            echo nl2br("couldn't communicate to moodle server. \n");
-            return;
-        }
-        echo "<h3>Connection to moodle server was successfull: Here are the details of Moodle user object for id:" . $moodle_id ."</h3>";
-        $moodle_user   = $moodle_users["users"][0];
-	    echo "<pre>" . print_r($moodle_user, true) ."</pre>";
+        $moodle_user_object = self::get_user_account_from_sritoni( $moodle_username );
+        echo "<pre>" . print_r($moodle_user_object, true) ."</pre>";
     }
+
+    
 
     private function test_cashfree_connection($moodle_id)
     {
