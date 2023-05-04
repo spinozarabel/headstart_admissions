@@ -2455,11 +2455,12 @@ class headstart_admission
     {
         $wpuserobj = self::get_wp_user_hset_payments( $email );
 
-        $sritoni_idnumber = $array_values[array_search('sritoni_idnumber', array_column($wpuserobj->meta_data, key))];
+        $sritoni_idnumber = array_column($wpuserobj->meta_data, 'value')[array_search('sritoni_idnumber', array_column($wpuserobj->meta_data, 'key') )];
 
-        $grade_or_class = $array_values[array_search('grade_or_class', array_column($wpuserobj->meta_data, key))];
+        $grade_or_class = array_column($wpuserobj->meta_data, 'value')[array_search('grade_or_class', array_column($wpuserobj->meta_data, 'key') )];
 
-        $sritoni_student_category = $array_values[array_search('sritoni_student_category', array_column($wpuserobj->meta_data, key))];
+        $sritoni_student_category = array_column($wpuserobj->meta_data, 'value')[array_search('sritoni_student_category', array_column($wpuserobj->meta_data, 'key') )];
+        
 
         
         echo "<pre>" . print('Get meta data value for key grade_or_class: ' . $grade_or_class) ."</pre>";
