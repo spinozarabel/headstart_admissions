@@ -2458,12 +2458,12 @@ class headstart_admission
             {
                 case ($item->key == 'grade_or_class'):
                     $grade_or_class = $item->value;
-                    echo "<pre>" . print('Get meta data value for key grade_or_class: ' . $grade_or_class) ."</pre>";
+                    print('Get meta data value for key grade_or_class: ' . $grade_or_class);
                 break;
 
                 case ($item->key == 'sritoni_student_category'):
                     $sritoni_student_category = $item->value;
-                    echo "<pre>" . print('Get meta data value for key sritoni_student_category: ' . $sritoni_student_category) ."</pre>";
+                    print('Get meta data value for key sritoni_student_category: ' . $sritoni_student_category);
                 break;
 
                 case ($item->key == 'sritoni_idnumber'):
