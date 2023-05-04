@@ -2452,7 +2452,7 @@ class headstart_admission
     {
         $wpuserobj = self::get_wp_user_hset_payments( $email );
 
-        $array = array_column($wpuserobj->meta_data, null);
+        $array = array_column($wpuserobj->meta_data, key);
 
         echo "<pre>" . print_r($array, true) ."</pre>";
 
