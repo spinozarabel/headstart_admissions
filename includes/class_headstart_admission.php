@@ -2452,7 +2452,7 @@ class headstart_admission
     {
         $wpuserobj = self::get_wp_user_hset_payments( $email );
 
-        foreach ($wpuserobj->metadata as $index => $item) 
+        foreach ($wpuserobj->meta_data as $index => $item) 
         {
             switch (true)
             {
