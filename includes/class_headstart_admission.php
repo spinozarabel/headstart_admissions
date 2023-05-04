@@ -2451,8 +2451,10 @@ class headstart_admission
     public static function test_woocommerce_customer( string $email ) 
     {
         $wpuserobj = self::get_wp_user_hset_payments( $email );
-        $meta_idnumber = $wpuserobj->get_meta('sritoni_idnumber');
-        echo "<pre>" . print_r($meta_idnumber, true) ."</pre>";
+
+        // $meta_idnumber = $wpuserobj->get_meta('sritoni_idnumber');
+
+       //  echo "<pre>" . print_r($meta_idnumber, true) ."</pre>";
         echo "<pre>" . print('Get meta data value for key sritoni_idnumber') ."</pre>";
 
         echo "<pre>" . print('Get meta data value for key sritoni_idnumber') ."</pre>";
