@@ -1802,7 +1802,7 @@ class headstart_admission
         $MoodleRest->setReturnFormat(MoodleRest::RETURN_ARRAY); // Array is default. You can use RETURN_JSON or RETURN_XML too.
         // $MoodleRest->setDebug();
         // get moodle user details associated with this completed order from SriToni
-        $parameters   = array("criteria" => array(array("key" => "email", "value" => "sritoni1@headstart.edu.in")));
+        $parameters   = array("criteria" => array(array("key" => "id", "value" => 73)));
 
         // get moodle user satisfying above criteria if any
         $moodle_users = $MoodleRest->request('core_user_get_users', $parameters, MoodleRest::METHOD_GET);
