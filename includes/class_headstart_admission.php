@@ -2452,34 +2452,17 @@ class headstart_admission
     {
         $wpuserobj = self::get_wp_user_hset_payments( $email );
 
-        foreach ($wpuserobj->meta_data as $index => $item) 
-        {
-            switch (true)
-            {
-                case ($item->key == 'grade_or_class'):
-                    $grade_or_class = $item->value;
-                    print('Get meta data value for key grade_or_class: ' . $grade_or_class);
-                break;
+        $array = array_column($wpuserobj->meta_data, null);
 
-                case ($item->key == 'sritoni_student_category'):
-                    $sritoni_student_category = $item->value;
-                    print('Get meta data value for key sritoni_student_category: ' . $sritoni_student_category);
-                break;
+        echo "<pre>" . print_r($array, true) ."</pre>";
 
-                case ($item->key == 'sritoni_idnumber'):
-                    $sritoni_idnumber = $item->value;
-                    echo "<pre>" . print('Get meta data value for key sritoni_idnumber: ' . $sritoni_idnumber) ."</pre>";
-                break;
-            }
+        
+        echo "<pre>" . print('Get meta data value for key grade_or_class: ' . $grade_or_class) ."</pre>";
+               
+        echo "<pre>" . print('Get meta data value for key sritoni_student_category: ' . $sritoni_student_category) ."</pre>";
 
-        }
+        echo "<pre>" . print('Get meta data value for key sritoni_idnumber: ' . $sritoni_idnumber) ."</pre>";
 
-        // $meta_idnumber = $wpuserobj->get_meta('sritoni_idnumber');
-
-       //  echo "<pre>" . print_r($meta_idnumber, true) ."</pre>";
-        echo "<pre>" . print('Get meta data value for key sritoni_idnumber') ."</pre>";
-
-        echo "<pre>" . print('Get meta data value for key sritoni_idnumber') ."</pre>";
 
         echo "<pre>" . print_r($wpuserobj, true) ."</pre>";
 
