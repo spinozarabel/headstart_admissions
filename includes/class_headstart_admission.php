@@ -2452,7 +2452,17 @@ class headstart_admission
     {
         $wpuserobj = self::get_wp_user_hset_payments( $email );
 
-        $array = array_column($wpuserobj->meta_data, key);
+        $array_key = array_column($wpuserobj->meta_data, key);
+        $array_values = array_column($wpuserobj->meta_data, value);
+
+        $index = array_search('sritoni_idnumber', $array_key);
+        $sritoni_idnumber = $array_values[$index];
+
+        $index = array_search('grade_or_class', $array_key);
+        $grade_or_class = $array_values[$index];
+
+        $index = array_search('sritoni_student_category', $array_key);
+        $sritoni_student_category = $array_values[$index];
 
         echo "<pre>" . print_r($array, true) ."</pre>";
 
