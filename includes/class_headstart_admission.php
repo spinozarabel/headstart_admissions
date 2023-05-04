@@ -1040,7 +1040,7 @@ class headstart_admission
      * 1. Get wpuser object from site hset-payments with given email using Woocommerce API
      * 2. If site is unreacheable change status of ticket to error
      */
-    public static function get_wp_user_hset_payments($email, $ticket_id)
+    public static function get_wp_user_hset_payments(string $email, int $ticket_id = 0 )
     {   // Get wpuser object from site hset-payments with given email using Woocommerce API
 
         // instantiate woocommerce API class
@@ -1067,9 +1067,12 @@ class headstart_admission
         catch (HttpClientException $e)
         {   // if cannot access hset-payments server error message and return 1
             $error_message = "Intranet Site: hset-payments not reacheable: " . $e->getMessage();
-            self::change_status_error_creating_payment_shop_order($ticket_id, $error_message);
-
+            if ( ! empty( $ticket_id ) )
+            {
+                self::change_status_error_creating_payment_shop_order( $ticket_id, $error_message );
+            }
             return null;
+            
         }
             
          // if you get here then you got something back from hset-payments site
@@ -1788,8 +1791,13 @@ class headstart_admission
      * If account exists and flag is true then ticket error status is set that account already exists
      * If account does NOT exist flag is don't care and no ticket status is set
      */
-    private static function get_user_account_from_sritoni( object $ticket = null, string  $moodle_username, bool $err_flag = false ) : ? array
+    private static function get_user_account_from_sritoni( object $ticket = null, string  $email, bool $err_flag = false ) : ? array
     {
+        // We need the Moodle id of the user. This is not possible to get directly from the Moodle Server
+        // So we will use the email to get the user details from the intranet-hset-payments server
+        // once we get the moodle id we can then get the moodle user account from the Moodle Server
+        $hset_payments_site_user = self::get_wp_user_hset_payments( $email );
+
         // read in the Moodle API config array
         $config			= self::$config;
         $moodle_url 	= $config["moodle_url"] . '/webservice/rest/server.php';
@@ -2418,9 +2426,9 @@ class headstart_admission
      * 
      */
 
-    public function test_woocommerce_customer($customer_id)
+    public function test_woocommerce_customer( string $email) 
     {
-        $wpuserobj = $this->get_wp_user_hset_payments("sritoni2@headstart.edu.in", $customer_id);
+        $wpuserobj = self::get_wp_user_hset_payments( $email );
 
         echo "<pre>" . print_r($wpuserobj, true) ."</pre>";
     }
