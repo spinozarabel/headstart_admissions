@@ -2450,7 +2450,7 @@ class headstart_admission
     public static function test_sritoni_connection( string $moodle_username )
     {
         // read in the Moodle API config array
-        $moodle_user_object = self::get_user_account_from_sritoni( $moodle_username );
+        $moodle_user_object = self::get_user_account_from_sritoni(null, $moodle_username, false );
         echo "<pre>" . print_r($moodle_user_object, true) ."</pre>";
     }
 
