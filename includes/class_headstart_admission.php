@@ -1829,6 +1829,7 @@ class headstart_admission
         {
             // A user Does NOT exist with given username.
             self::$verbose ? error_log("A SriToni account Does NOT exist with username: " . $moodle_username) : false;  
+            self::$verbose ? error_log(print_r($moodle_users, true)) : false;
             
             return null;
         }
