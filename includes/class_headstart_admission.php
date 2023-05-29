@@ -1486,7 +1486,11 @@ class headstart_admission
      */
     public static function get_ticket_value_given_cf_name( object $ticket, string $cf_name )
     {
-        $cf_slug = self::get_cf_slug_by_cf_name( $cf_name );
+        // get the CF object using the CF name passed in
+        $cf = self::get_cf_object_by_cf_name( $cf_name );
+
+        // extract the slug from the ststus object
+        $cf_slug = $cf->slug;
 
         $cf_value = $ticket->$cf_slug ?? null;
 
@@ -1501,7 +1505,7 @@ class headstart_admission
      *  @param string:$cf_name is the name of the ticket custom field that is not of the default pre-defined type
      *  This is to be used for custom ticket fields that end up having slug like cust_45 where 45 is the cf id.
      */
-    public static function get_cf_slug_by_cf_name( string $cf_name ) : string
+    public static function get_cf_slug_by_cf_name( string $cf_name ) : ? string
     {
         // get the object using the name
         $cf = self::get_cf_object_by_cf_name( $cf_name );
