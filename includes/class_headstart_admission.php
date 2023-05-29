@@ -1501,7 +1501,7 @@ class headstart_admission
 
         if ( is_object($cf_value))
         {
-            return $cf_value->name;
+            return $cf_value;
         }
 
         
