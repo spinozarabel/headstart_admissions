@@ -2536,10 +2536,12 @@ class headstart_admission
         // form the ticket object using passed id
         $ticket = new WPSC_Ticket( $ticket_id );
 
-        $value = self::get_ticket_value_given_cf_name( $ticket, $field_name );
+        $cf = self::get_cf_object_by_cf_name( $field_name );
+
+        // $value = self::get_ticket_value_given_cf_name( $ticket, $field_name );
 
         echo "<pre>" . "value in given ticket id for field" . $field_name  . " </pre>";
-        echo "<pre>" . print_r($value, true) ."</pre>";
+        echo "<pre>" . print_r($cf, true) ."</pre>";
 
         
 
