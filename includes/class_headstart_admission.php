@@ -1760,6 +1760,11 @@ class headstart_admission
                                         )
         );
 
+        // print out users array for debugging if verbose flag is set
+        self::$verbose ? error_log(print_r($users, true)) : false;
+        
+        error_log(print_r($users, true));
+
         // now to uuser  with form and agent fields
         $ret = $MoodleRest->request('core_user_create_users', $users, MoodleRest::METHOD_POST);
 
