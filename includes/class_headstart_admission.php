@@ -1627,6 +1627,12 @@ class headstart_admission
         $moodle_url 	= $config["moodle_url"] . '/webservice/rest/server.php';
         $moodle_token	= $config["moodle_token"];
 
+        // prepare the Moodle Rest API object
+        $MoodleRest = new MoodleRest();
+        $MoodleRest->setServerAddress($moodle_url);
+        $MoodleRest->setToken( $moodle_token ); // get token from ignore_key file
+        $MoodleRest->setReturnFormat(MoodleRest::RETURN_ARRAY); // Array is default. You can use RETURN_JSON or RETURN_XML too.
+
         // username is to be set by agent for the agentonly field. This is a new user so required to be set correctly
         $moodle_username    = self::get_ticket_value_given_cf_name( $ticket, 'username' );
 
