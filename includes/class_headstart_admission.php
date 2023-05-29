@@ -1762,7 +1762,7 @@ class headstart_admission
 
         // print out users array for debugging if verbose flag is set
         self::$verbose ? error_log(print_r($users, true)) : false;
-        
+
         error_log(print_r($users, true));
 
         // now to uuser  with form and agent fields
@@ -2531,21 +2531,17 @@ class headstart_admission
 
     public static function test_custom_code($ticket_id)
     {
-        // TEst out our custom code here. Input is just an integer from the form inpot
-        // Get the logged in user's ID
-        $current_user = wp_get_current_user();
+        // lets check to see if get_ticket_value_from_cf_name function is working properly
 
-        $email = 'cutelabmallika@gmail.com';
+        // form the ticket object using passed id
+        $ticket = new WPSC_Ticket( $ticket_id );
 
-        // Check to see if already a customer in Support Candy table
-        $customer = WPSC_Customer::get_by_email( $email  );
+        $institution = self::get_ticket_value_given_cf_name( $ticket, "institution");
 
-        echo "<pre>" . print_r($customer, true) ."</pre>";
+        echo "<pre>" . "Institution value in given ticket id" ."</pre>";
+        echo "<pre>" . print_r($institution, true) ."</pre>";
 
-        if ( ! $customer )
-        {
-            echo "<pre>" . print( 'This customer does not exist in the customer table of Support Candy') ."</pre>";
-        }
+        
 
 
     }
