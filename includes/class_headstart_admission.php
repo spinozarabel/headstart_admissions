@@ -2540,9 +2540,13 @@ class headstart_admission
 
         // $value = self::get_ticket_value_given_cf_name( $ticket, $field_name );
 
-        echo "<pre>" . "value in given ticket id for field" . $field_name  . " </pre>";
+        echo "<pre>" . "CF object: " . $field_name  . " </pre>";
         echo "<pre>" . print_r($cf, true) ."</pre>";
 
+        $value = self::get_ticket_value_given_cf_name( $ticket, $field_name );
+
+        echo "<pre>" . "value in given ticket id for field" . $field_name  . " </pre>";
+        echo "<pre>" . print_r($value, true) ."</pre>";
         
 
 
