@@ -81,7 +81,7 @@ class headstart_admission
     public static function init()
     {
         // set the logging
-        self::$verbose = true;
+        self::$verbose = false;
         
         self::$plugin_name = MA_HSA_PLUGIN_NAME;
 
@@ -327,9 +327,9 @@ class headstart_admission
      *  VISUALLY CHECKED for SC 3.0 compatibility
      *  @param int:$ticket_id
      *  @param string:$cf_name
-     *  @param mixed:$value is the value to be assigned to the field whose name is passed in for the given ticket id.
+     *  @param $value is the value to be assigned to the field whose name is passed in for the given ticket id.
      */
-    public static function change_ticket_field( int $ticket_id, string $cf_name, mixed $value): void
+    public static function change_ticket_field( int $ticket_id, string $cf_name, $value): void
     {
         // build the ticket  using pased id parameter
         $ticket = new WPSC_Ticket( $ticket_id );
