@@ -1776,8 +1776,8 @@ class headstart_admission
         }
         else
         {
-            self::$verbose ? error_log("Create new user did NOT return expected username: " . $moodle_username) : false;
-            self::$verbose ? error_log(print_r($ret, true)) : false;
+            error_log("Create new user did NOT return expected username: " . $moodle_username);
+            error_log(print_r($ret, true));
 
             // change the ticket status to error
             self::change_status_error_creating_sritoni_account( $ticket->id, $ret["message"] );
