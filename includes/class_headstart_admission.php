@@ -2257,7 +2257,7 @@ class headstart_admission
             break;
 
             case 'test_custom_code':
-                self::test_custom_code($id);
+                self::test_custom_code($id, $username);
             break;
 
             default:
@@ -2529,17 +2529,17 @@ class headstart_admission
 
 
 
-    public static function test_custom_code($ticket_id)
+    public static function test_custom_code($ticket_id, $field_name)
     {
         // lets check to see if get_ticket_value_from_cf_name function is working properly
 
         // form the ticket object using passed id
         $ticket = new WPSC_Ticket( $ticket_id );
 
-        $institution = self::get_ticket_value_given_cf_name( $ticket, "institution");
+        $value = self::get_ticket_value_given_cf_name( $ticket, $field_name );
 
-        echo "<pre>" . "Institution value in given ticket id" ."</pre>";
-        echo "<pre>" . print_r($institution, true) ."</pre>";
+        echo "<pre>" . "value in given ticket id for field" . $field_name  . " </pre>";
+        echo "<pre>" . print_r($value, true) ."</pre>";
 
         
 
