@@ -1494,17 +1494,22 @@ class headstart_admission
 
         $cf_value = $ticket->$cf_slug ?? null;
 
-        if ( is_string($cf_value))
+        switch (true)
         {
-            return $cf_value;
-        }
+            // if ticket custom field type is a selction then this is an object and pick the name property to return
+            case ($cf->type == 'cf_single_select'):
+                return  $cf_value->name;
+            break;
 
-        if ( is_object($cf_value))
-        {
-            return $cf_value;
-        }
+            // if ticket custom field type is a date then object is datetime and pick date property to return
+            case ($cf->type == 'cf_date'):
+                return  $cf_value->date;
+            break;
 
-        
+            // for all other types return the normal string
+            default:
+                return $cf_value;
+        }   
     }
 
 
@@ -1725,7 +1730,7 @@ class headstart_admission
                                                                                 "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "studentcat"),
                                                                             ),
                                                                         array(	"type"	=>	"bloodgroup",
-                                                                                "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "blood-group"),
+                                                                                "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "blood-group") ?? 'Z',
                                                                             ),
                                                                         array(	"type"	=>	"motheremail",
                                                                                 "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "mothers-email"),
@@ -1752,16 +1757,16 @@ class headstart_admission
                                                                                 "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "fathers-contact-number"),
                                                                             ),
                                                                         array(	"type"	=>	"allergiesillnesses",
-                                                                                "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "allergies-illnesses"),
+                                                                                "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "allergies-illnesses") ?? '',
                                                                             ),
                                                                         array(	"type"	=>	"birthplace",
-                                                                                "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "birthplace"),
+                                                                                "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "birthplace") ?? '',
                                                                             ),
                                                                         array(	"type"	=>	"nationality",
-                                                                                "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "nationality"),
+                                                                                "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "nationality") ?? '',
                                                                             ),
                                                                         array(	"type"	=>	"languages",
-                                                                                "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "languages-spoken"),
+                                                                                "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "languages-spoken") ?? '',
                                                                             ),
                                                                         array(	"type"	=>	"dob",
                                                                                 "value"	=>	self::get_ticket_value_given_cf_name( $ticket, "date-of-birth"),
