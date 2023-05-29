@@ -1494,7 +1494,17 @@ class headstart_admission
 
         $cf_value = $ticket->$cf_slug ?? null;
 
-        return $cf_value;
+        if ( is_string($cf_value))
+        {
+            return $cf_value;
+        }
+
+        if ( is_object($cf_value))
+        {
+            return $cf_value->name;
+        }
+
+        
     }
 
 
