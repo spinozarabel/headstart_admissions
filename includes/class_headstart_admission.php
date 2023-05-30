@@ -1668,7 +1668,7 @@ class headstart_admission
             $error_message = "This username already exists with name: " . $existing_moodle_user->first_name . " " .
                                                                           $existing_moodle_user->last_name;
 
-            self::$verbose ? error_log( $error_message ) : false;
+            error_log( $error_message );
 
             // change the ticket status to error
             self::change_status_error_creating_sritoni_account( $ticket, $error_message );
@@ -1784,21 +1784,20 @@ class headstart_admission
         // print out users array for debugging if verbose flag is set
         self::$verbose ? error_log(print_r($users, true)) : false;
 
-        error_log(print_r($users, true));
-
         // now to uuser  with form and agent fields
         $ret = $MoodleRest->request('core_user_create_users', $users, MoodleRest::METHOD_POST);
 
         // let us check to make sure that the user is created
         if ($ret[0]['username'] == $moodle_username && empty($ret["exception"]))
         {
-            // Blank any pre-existing error message since we are successful
-            if ( ! empty( self::get_ticket_value_given_cf_name( $ticket, "error" )) )
-            {
-                $msg = "SriToni id: " . $ret[0]['id'];
-                self::change_ticket_field( $ticket->id, 'error', $msg );
-            }
             // the returned user has same name as one given to create new user so new user creation was successful
+            $ticket_error_msg = self::get_ticket_value_given_cf_name( $ticket, "error" );
+
+            $msg = "SriToni id: " . $ret[0]['id'];
+
+            // update error message of ticket with successful account creation moodle id
+            self::change_ticket_field( $ticket->id, 'error', $msg );
+
             return $ret[0]['id'];
         }
         else
@@ -2180,6 +2179,24 @@ class headstart_admission
 
         error_log("The return array from attempt to add username: " . $moodle_username . " to Cohort idnumber: " . $cohortidnumber );
         error_log(print_r($cohort_ret, true));
+
+        if ( empty($ret["exception"]) )
+        {
+            // there were no exceptions so cohort addition was successful
+            // get existing ticket error msg
+            $ticket_error_msg = self::get_ticket_value_given_cf_name( $ticket, 'error' );
+
+            $ticket_error_msg .= " Added to Cohort-" . $cohortidnumber;
+
+            self::change_ticket_field( $ticket->id, 'error', $ticket_error_msg );
+        }
+        else
+        {
+            // there was an exception
+            $ticket_error_msg .= " " . $ret["debuginfo"];
+
+            self::change_ticket_field( $ticket->id, 'error', $ticket_error_msg );
+        }
 
         return $cohort_ret;
     }
