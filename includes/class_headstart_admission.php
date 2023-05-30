@@ -1497,12 +1497,12 @@ class headstart_admission
         switch (true)
         {
             // if ticket custom field type is a selction then this is an object and pick the name property to return
-            case ( is_object($cf_value) && $cf_value->type == 'cf_single_select' ):
+            case ( is_object( $cf->type ) && $cf->type == 'cf_single_select' ):
                 return  $cf_value->name;
             break;
 
             // if ticket custom field type is a date then object is datetime and pick date property to return
-            case ( is_object($cf_value) && $cf_value->type == 'cf_date' ):
+            case ( is_object( $cf->type ) && $cf->type == 'cf_date' ):
                 return  $cf_value->date;
             break;
 
@@ -2566,8 +2566,8 @@ class headstart_admission
 
         echo "<pre>" . "value in given ticket id for field" . $field_name  . " </pre>";
         echo "<pre>" . print_r($value, true) ."</pre>";
-        
 
+        echo "<pre>" . "CF type: " . $cf->type  . " </pre>";
 
     }
 
