@@ -1497,12 +1497,12 @@ class headstart_admission
         switch (true)
         {
             // if ticket custom field type is a selction then this is an object and pick the name property to return
-            case ( is_object( $cf->type ) && $cf->type == 'cf_single_select' ):
+            case ( stripos( $cf->type,  'cf_single_select' ) !== false):
                 return  $cf_value->name;
             break;
 
             // if ticket custom field type is a date then object is datetime and pick date property to return
-            case ( is_object( $cf->type ) && $cf->type == 'cf_date' ):
+            case ( stripos( $cf->type,  'cf_date' ) !== false):
                 return  $cf_value->date;
             break;
 
