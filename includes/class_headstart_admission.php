@@ -1489,10 +1489,12 @@ class headstart_admission
         // get the CF object using the CF name passed in
         $cf = self::get_cf_object_by_cf_name( $cf_name );
 
-        // extract the slug from the ststus object
+        // extract the slug from the ststus object. This is the property to use in ticket object to extract field value
         $cf_slug = $cf->slug;
 
         $cf_value = $ticket->$cf_slug ?? null;
+
+        // The ticket field value depends on the cf type. o we examine the cf->type to see how to handle the value
 
         switch (true)
         {
@@ -1506,7 +1508,7 @@ class headstart_admission
                 return  $cf_value->format('Y-m-d');
             break;
 
-            // for all other types return the normal string
+            // for all other types return the normal string since this is not an object but just a variable
             default:
                 return $cf_value;
         }   
