@@ -1503,7 +1503,7 @@ class headstart_admission
 
             // if ticket custom field type is a date then object is datetime and pick date property to return
             case ( stripos( $cf->type,  'cf_date' ) !== false):
-                return  $cf_value;
+                return  $cf_value->format('Y-m-d');
             break;
 
             // for all other types return the normal string
