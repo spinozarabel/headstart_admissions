@@ -1795,7 +1795,8 @@ class headstart_admission
             // Blank any pre-existing error message since we are successful
             if ( ! empty( self::get_ticket_value_given_cf_name( $ticket, "error" )) )
             {
-                self::change_ticket_field( $ticket->id, 'error', "");
+                $msg = "SriToni id: " . $ret[0]['id'];
+                self::change_ticket_field( $ticket->id, 'error', $msg );
             }
             // the returned user has same name as one given to create new user so new user creation was successful
             return $ret[0]['id'];
@@ -2144,7 +2145,7 @@ class headstart_admission
         }
         
 
-        $category_id = $ticket->category;   // since this is a default ticket field the slug is pre-defined
+        $category_id = $ticket->category->id;   // since this is a default ticket field the slug is pre-defined
 
         // from category ID get the category name
         $category_object = new WPSC_Category( $category_id );
@@ -2153,6 +2154,10 @@ class headstart_admission
 
         // get the cohortid for this ticket based on category-cohortid mapping from settings
         $cohortidnumber = self::$category_cohortid_arr[$category_name];
+
+        // for debugging purposes log the cohortname and id number
+        error_log("Cohort Name identified for new user per ticket category: " . $category_name);
+        error_log("Cohort idnumber identified for new user per ticket category: " . $cohortidnumber);
 
         // prepare the Moodle Rest API object
         $MoodleRest = new MoodleRest();
@@ -2173,6 +2178,7 @@ class headstart_admission
 
         $cohort_ret = $MoodleRest->request('core_cohort_add_cohort_members', $parameters, MoodleRest::METHOD_GET);
 
+        error_log("The return array from attempt to add username: " . $moodle_username . " to Cohort idnumber: " . $cohortidnumber );
         error_log(print_r($cohort_ret, true));
 
         return $cohort_ret;
