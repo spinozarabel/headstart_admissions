@@ -928,18 +928,14 @@ class headstart_admission
                 // Create a new user account in SriToni remotely using Moodle API. If existing user, update the profile information
                 $moodle_id = self::prepare_and_create_or_update_moodle_account( $ticket );
 
-                // if successful in sritoni account creation, change to next status - @TODO
-                if ($moodle_id)
-                {
-                    // 
-                }
+                // the above function will change the status automatically to success or fail
             break;
 
 
             // This assumes that we have a valid sritoni account, and a valid hset-payment intranet account after ldap-sync
             case ( $new_status_name === 'Admission Payment Order Being Created' ):
                 
-                self::create_payment_shop_order( $ticket );
+                // self::create_payment_shop_order( $ticket );
 
             break;
 
@@ -1585,7 +1581,7 @@ class headstart_admission
             {
                 // there was an exception. The error flag already must be displaying the debuginfo with status change
                 // so exit
-                return false;
+                return 'exception updating user';
             }
             
             // if we get here it means user update was successful
@@ -1594,11 +1590,18 @@ class headstart_admission
 
             if ( $successful )
             {
-                return true;
-            }
+                // success with both user update and cohort addition schange ticket status
+                $new_status_name = "User Accounts Created";
 
-            // if unssuccessful, error and status change will have already occured
-            return false;
+                self::change_ticket_status( $ticket->id, $new_status_name );
+
+                return 'no exceptions';
+            }
+            else
+            {
+                // if unssuccessful, error and status change will have already occured
+                return 'exception adding user to cohort after successful sritoni update';
+            }
         }
 
         // if you are here you don't have an existing Head Start email. So Create a new SriToni account using username
@@ -1631,17 +1634,29 @@ class headstart_admission
             if ($moodle_id)
             {
                 // IF new user account is valid, add the user to appropriate cohort for easy management later on
-                self::add_user_to_cohort( $ticket );
+                $successful = self::add_user_to_cohort( $ticket );
+
+                if ( $successful )
+                {
+                    // success with both user update and cohort addition schange ticket status
+                    $new_status_name = "User Accounts Created";
+
+                    self::change_ticket_status( $ticket->id, $new_status_name );
+                }
+
+                return $moodle_id;
             }
-            
-            return $moodle_id;
+            else
+            {
+                return 'exception creating a new sritoni user account';
+            }  
         }
         else
         {
             $error_message = "Error in user creation! Ensure username, idnumber, studentcat, department, institution, class, phone1, 2 are Set";
             self::change_status_error_creating_sritoni_account( $ticket->id, $error_message);
 
-            return null;
+            return $error_message;
         }
     }
 
@@ -1802,10 +1817,10 @@ class headstart_admission
         $ret = $MoodleRest->request('core_user_create_users', $users, MoodleRest::METHOD_POST);
 
         // let us check to make sure that the user is created
-        if ($ret[0]['username'] == $moodle_username && empty($ret["exception"]))
+        if ( empty($ret["exception"]) && $ret[0]['username'] == $moodle_username )
         {
             // the returned user has same name as one given to create new user so new user creation was successful
-            $ticket_error_msg = self::get_ticket_value_given_cf_name( $ticket, "error" );
+            // $ticket_error_msg = self::get_ticket_value_given_cf_name( $ticket, "error" );
 
             $msg = "SriToni id: " . $ret[0]['id'];
 
@@ -1820,7 +1835,7 @@ class headstart_admission
             error_log(print_r($ret, true));
 
             // change the ticket status to error
-            self::change_status_error_creating_sritoni_account( $ticket->id, $ret["message"] );
+            self::change_status_error_creating_sritoni_account( $ticket->id, $ret["debuginfo"] );
 
             return null;
         }
