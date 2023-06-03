@@ -1579,11 +1579,25 @@ class headstart_admission
         if (stripos( $headstart_email, 'headstart.edu.in') !== false)
         {   // User already has an exising SriToni email ID and Head Start Account, just update with form info
 
-            self::update_sritoni_account( $ticket );
-            
-            // add user to relevant incoming cohort for easy cohort management
-            self::add_user_to_cohort( $ticket );
+            $successful = self::update_sritoni_account( $ticket );
 
+            if ( !  $successful )
+            {
+                // there was an exception. The error flag already must be displaying the debuginfo with status change
+                // so exit
+                return false;
+            }
+            
+            // if we get here it means user update was successful
+            // add user to relevant incoming cohort for easy cohort management
+            $successful = self::add_user_to_cohort( $ticket );
+
+            if ( $successful )
+            {
+                return true;
+            }
+
+            // if unssuccessful, error and status change will have already occured
             return false;
         }
 
@@ -1855,7 +1869,7 @@ class headstart_admission
             return $hset_payments_site_user;
         }
 
-        // The code below will never get executed and is legacy code here only for future use if needed
+        /* The code below will never get executed and is legacy code here only for future use if needed
 
         // read in the Moodle API config array
         $config			= self::$config;
@@ -1900,6 +1914,7 @@ class headstart_admission
             
             return null;
         }
+        */
     }
 
 
@@ -1917,7 +1932,7 @@ class headstart_admission
      *  6. The updated user array returned from Moodle server is returned on successful update
      *  The calling routine should check for $ret['exception'] to verify is call was OK or not
      */
-    private static function update_sritoni_account( object $ticket ) : ? array
+    private static function update_sritoni_account( object $ticket ) : bool
     {
         // Check the emial propriety
         // Presume Existing user, so the username needs to be extracted from the headstart-email ticket field
@@ -1932,44 +1947,49 @@ class headstart_admission
         else
         {
             // Something wrong with extraction of email from user supplied headstart email
-            self::$verbose ? error_log("Headstart email given is not proper: " . $moodle_email) : false;
+            error_log("Headstart email given is not proper: " . $moodle_email);
 
             $error_message = 'Check user supplied headstart email - could not validate email';
 
             // change the ticket status to error
             self::change_status_error_creating_sritoni_account( $ticket->id, $error_message );
 
-            return null;
+            return false;
         }
 
         // If we are here, the email is validated to be proper. Chekck that exyracted username exists
         if ( empty( $moodle_username ) )
         {
             // Something wrong with extraction of email from user supplied headstart email
-            self::$verbose ? error_log("Something wrong with extraction of username from email: " . $moodle_email) : false;
+            error_log("Something wrong with extraction of username from email: " . $moodle_email);
 
             $error_message = 'Problem extracting username from email - check user supplied headstart email';
 
             // change the ticket status to error
             self::change_status_error_creating_sritoni_account( $ticket->id, $error_message );
 
-            return null;
+            return false;
         }
 
-        // If we got this , a valid email and username were extracted successfully
+        // If we got here , a valid email and username were extracted successfully
         // Get the user' WC customer object from sritoni.org/hset-payments site using the above email
         $wc_user_hset_payments = self::get_user_account_from_sritoni( $ticket, $moodle_email, false );
 
         if ( $wc_user_hset_payments->email !=  $moodle_email )
         {
             // The user account does not exist as expected!!!
-            $error_message = 'Problem extracting SriToni account using email - check user supplied headstart email and if user exists';
+            $error_message = "check for existing user failed -  WCuser from intranet- extracted mail not matching: "
+            . $moodle_email . "-->" . $wc_user_hset_payments->email;
+
+            error_log("check for existing user failed -  WCuser from intranet- extracted mail not matching: "
+            . $moodle_email . "-->" . $wc_user_hset_payments->email);
 
             // change the ticket status to error
             self::change_status_error_creating_sritoni_account( $ticket->id, $error_message );
 
-            return null;
+            return false;
         }
+        // we have an existing user confirmed
         // extract the keys and values array from metadata to get secondary user information
         $wc_user_meta_keys_array    = array_column($wc_user_hset_payments->meta_data, 'key');
         $wc_user_meta_values_array  = array_column($wc_user_hset_payments->meta_data, 'value');
@@ -1989,17 +2009,17 @@ class headstart_admission
 
         // before coming here, check that ticket fields such as idnumber, department, etc., are not empty
         // if ticket values are not set, the user's previous values are reused in the update for these fields
-        $moodle_idnumber    = self::get_ticket_value_given_cf_name( $ticket, "idnumber") ?? $sritoni_idnumber_wc;
+        $moodle_idnumber    = self::get_ticket_value_given_cf_name( $ticket, "idnumber"); // ?? $sritoni_idnumber_wc
 
         if ( empty( $moodle_idnumber ) )
         {
             //  sritoni idnumber is empty
-            $error_message = 'SriToni IDNUMBER is invalid or empty';
+            $error_message = 'SriToni IDNUMBER is empty';
 
             // change the ticket status to error
             self::change_status_error_creating_sritoni_account( $ticket->id, $error_message );
 
-            return null;
+            return false;
         }
 
         $moodle_department  = self::get_ticket_value_given_cf_name( $ticket, 'department' ) ?? 'Student';
@@ -2007,17 +2027,18 @@ class headstart_admission
         // Remember that the Wordpress username is the Moodle user id as created originally
         $moodle_id = $wc_user_hset_payments->username;
 
-        // read in the Moodle API config array
-        $config			= self::$config;
-        $moodle_url 	= $config["moodle_url"] . '/webservice/rest/server.php';
-        $moodle_token	= $config["moodle_token"];
+        // read in the Moodle API config array and setup the API object
+        {
+            $config			= self::$config;
+            $moodle_url 	= $config["moodle_url"] . '/webservice/rest/server.php';
+            $moodle_token	= $config["moodle_token"];
 
-        // prepare the Moodle Rest API object
-        $MoodleRest = new MoodleRest();
-        $MoodleRest->setServerAddress($moodle_url);
-        $MoodleRest->setToken( $moodle_token ); // get token from ignore_key file
-        $MoodleRest->setReturnFormat(MoodleRest::RETURN_ARRAY); // Array is default. You can use RETURN_JSON or RETURN_XML too.
-
+            // prepare the Moodle Rest API object
+            $MoodleRest = new MoodleRest();
+            $MoodleRest->setServerAddress($moodle_url);
+            $MoodleRest->setToken( $moodle_token ); // get token from ignore_key file
+            $MoodleRest->setReturnFormat(MoodleRest::RETURN_ARRAY); // Array is default. You can use RETURN_JSON or RETURN_XML too.
+        }
         
         // We have a valid Moodle user id, form the array to updatethis user. The ticket custom field name must be exactly as shown.
         $users = array("users" => array(
@@ -2087,24 +2108,33 @@ class headstart_admission
                                             )
                                     )
                             );
+        
+        // Make the API call  to SriToni server to update users
         $ret = $MoodleRest->request('core_user_update_users', $users, MoodleRest::METHOD_POST);
 
         if ($ret["exception"])
         {
-            // There was a problem with the user update
-            self::$verbose ? error_log("SriToni User Update returned variable dump") : false;
-            self::$verbose ? error_log(print_r($ret, true)) : false;
+            // There was a problem with the user update, log the details
+            error_log("SriToni User Update returned variable dump");
+            error_log(print_r($ret, true));
+
+            $msg = "Problem with  SriToni user update - debuginfo - " . $ret["debuginfo"];
 
             // change the ticket status to error
-            self::change_status_error_creating_sritoni_account( $ticket->id, 'There was a problem with the SriToni user update' );
+            self::change_status_error_creating_sritoni_account( $ticket->id, $msg );
+
+            return false;
         }
         else
         {
-            // Update went well but we are printing the result anyway. : Remove the print message later on
-            // self::$verbose ? error_log(print_r($ret, true)) : false;
+            // Update went well we can change the status of the ticket below if we wish
+            error_log("SriToni existing user Update successful for user: " . $moodle_email);
+
+            // update agent field error message with the passed in error message
+            self::change_ticket_field( $ticket->id, 'error', 'User SriToni Account updated successfully' );
+
+            return true;
         }
-            
-        return $ret;
     }
 
     /**
@@ -2115,7 +2145,7 @@ class headstart_admission
      *  You must have the data pbject ready before coming here
      *  The user could be a new user or a continuing user
      */
-    private static function add_user_to_cohort( object $ticket ) : ? array
+    private static function add_user_to_cohort( object $ticket ) : bool
     {   // adds user to cohort based on settings cohortid array indexed by ticket category
 
         // read in the Moodle API config array
@@ -2180,25 +2210,27 @@ class headstart_admission
         error_log("The return array from attempt to add username: " . $moodle_username . " to Cohort idnumber: " . $cohortidnumber );
         error_log(print_r($cohort_ret, true));
 
-        if ( empty($ret["exception"]) )
+        if ( empty($cohort_ret["exception"]) )
         {
             // there were no exceptions so cohort addition was successful
             // get existing ticket error msg
-            $ticket_error_msg = self::get_ticket_value_given_cf_name( $ticket, 'error' );
+            // $ticket_error_msg = self::get_ticket_value_given_cf_name( $ticket, 'error' );
 
-            $ticket_error_msg .= " Added to Cohort-" . $cohortidnumber;
+            $ticket_error_msg = " Added to Cohort--" . $cohortidnumber;
 
             self::change_ticket_field( $ticket->id, 'error', $ticket_error_msg );
+
+            return true;
         }
         else
         {
             // there was an exception
-            $ticket_error_msg .= " " . $ret["debuginfo"];
+            $ticket_error_msg = 'Error in adding to cohort-' . $cohort_ret["debuginfo"];
 
             self::change_ticket_field( $ticket->id, 'error', $ticket_error_msg );
-        }
 
-        return $cohort_ret;
+            return false;
+        }
     }
 
     /**
