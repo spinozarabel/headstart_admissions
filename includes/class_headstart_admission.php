@@ -2651,11 +2651,21 @@ class headstart_admission
             $en->template     = $et;
             $en->template_key = $key;
 
-            // check whether conditions matches (if any).
-            if ( ! $en->is_valid() ) {
-                echo "<pre>" . print('key of invalid EMail template: ' . $key) ."</pre>";
-                continue;
-            }
+            // check if is_enable.
+			if ( ! $et['is_enable'] ) {
+                echo "<pre>" . print('Template is NOT Enabled : ' . $et['is_enable']) ."</pre>";
+			}
+
+            // from name & email.
+			$en_general = get_option( 'wpsc-en-general' );
+			if ( ! $en_general['from-name'] || ! $en_general['from-email'] ) {
+				echo "<pre>" . print('from-name OR from-email is not set') ."</pre>";
+			}
+
+            // check for conditions.
+			if ( ! WPSC_Ticket_Conditions::is_valid_conditions( $en->ticket, $en->template['conditions'], $en->template['relation'] ) ) {
+				echo "<pre>" . print('Conditions check failed') ."</pre>";
+			}
 
         }
 
