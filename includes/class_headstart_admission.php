@@ -2629,26 +2629,35 @@ class headstart_admission
         // form the ticket object using passed id
         $ticket = new WPSC_Ticket( $ticket_id );
 
-        // from name & email.
-		$en_general = get_option( 'wpsc-en-general' );
-
         $gs              = get_option( 'wpsc-en-general' );
-			$email_templates = get_option( 'wpsc-email-templates', array() );
+		$email_templates = get_option( 'wpsc-email-templates', array() );
 
-            $from_conditions = $en_general['from-name'] && $en_general['from-email'];
+        foreach ( $email_templates as $key => $et ) {
 
-            echo "<pre>" . print('From name and email set?: ' .  $from_conditions ) ."</pre>";
+            if ( $et['event'] != 'create-ticket' ) {
+                continue;
+            }
 
-			foreach ( $email_templates as $key => $et ) {
+            echo "<pre>" . print('key of EMail template: ' . $key) ."</pre>";
+            echo "<pre>" . print('Event of EMail template: ' . $et['event']) ."</pre>";
 
-                echo "<pre>" . print('email template event slug: ' . $et['event']) ."</pre>";
+            // email notification object.
+            $en = new WPSC_Email_Notifications();
 
-				echo "<pre>" . print( 'email template enabled?: ' . $et['is_enable'] ) ."</pre>";
-				}
+            // set properties.
+            $en->ticket = $ticket;
 
-        // setup mail event. We should see this in the table in the database after this.
-        // $WPSC_EN_Create_Ticket_inst = new WPSC_EN_Create_Ticket();
-        // WPSC_EN_Create_Ticket::process_event( $ticket );
+            // set template.
+            $en->template     = $et;
+            $en->template_key = $key;
+
+            // check whether conditions matches (if any).
+            if ( ! $en->is_valid() ) {
+                echo "<pre>" . print('key of invalid EMail template: ' . $key) ."</pre>";
+                continue;
+            }
+
+        }
 
         
 
