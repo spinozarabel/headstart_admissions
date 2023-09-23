@@ -2629,7 +2629,8 @@ class headstart_admission
         // form the ticket object using passed id
         $ticket = new WPSC_Ticket( $ticket_id );
 
-        WPSC_EN_Create_Ticket::process_event($ticket);
+        WPSC_EN_Change_Ticket_Status::process_event($ticket);
+
 
     }
 
