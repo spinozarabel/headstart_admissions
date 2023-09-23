@@ -2636,10 +2636,11 @@ class headstart_admission
 
                 echo "<pre>" . print('email template event slug: ' . $et['event']) ."</pre>";
 
-				
+				echo "<pre>" . print( 'email template enabled?: ' . $et['is_enable'] ) ."</pre>";
 				}
 
         // setup mail event. We should see this in the table in the database after this.
+        // $WPSC_EN_Create_Ticket_inst = new WPSC_EN_Create_Ticket();
         // WPSC_EN_Create_Ticket::process_event( $ticket );
 
         
