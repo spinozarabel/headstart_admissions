@@ -2635,7 +2635,7 @@ class headstart_admission
         $gs              = get_option( 'wpsc-en-general' );
 			$email_templates = get_option( 'wpsc-email-templates', array() );
 
-            echo "<pre>" . print('From name and email set?: ' . ! $en_general['from-name'] && $en_general['from-email'] ) ."</pre>";
+            echo "<pre>" . print('From name and email set?: ' .  $en_general['from-name'] && $en_general['from-email'] ) ."</pre>";
 
 			foreach ( $email_templates as $key => $et ) {
 
