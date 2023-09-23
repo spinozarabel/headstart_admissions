@@ -2662,11 +2662,6 @@ class headstart_admission
 				echo "<pre>" . print('from-name OR from-email is not set') ."</pre>";
 			}
 
-            // check for conditions.
-			if ( ! WPSC_Ticket_Conditions::is_valid_conditions( $en->ticket, $en->template['conditions'], $en->template['relation'] ) ) {
-				echo "<pre>" . print('Conditions check failed') ."</pre>";
-			}
-
         }
 
         
