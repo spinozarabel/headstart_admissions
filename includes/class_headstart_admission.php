@@ -21,7 +21,7 @@
  *                  
  * Also maintains the unique identifier of this plugin as well as the current
  * version of the plugin.
- *
+ * sc_v3p1
  * @since      1.0.0
  * @author     Madhu Avasarala
  */
@@ -852,6 +852,8 @@ class headstart_admission
 
         // Create an action hook for just after creation of a new ticket  in case the SC plugin needs to do something here
         do_action( 'wpsc_create_new_ticket', $ticket );
+
+        // WPSC_EN_Create_Ticket::process_event( $ticket );
 
         return $ticket->id;
     }
@@ -2620,26 +2622,17 @@ class headstart_admission
 
 
 
-    public static function test_custom_code($ticket_id, $field_name)
+    public static function test_custom_code($ticket_id)
     {
-        // lets check to see if get_ticket_value_from_cf_name function is working properly
+        // lets check to see if we can simulate sending mail on ticket creation
 
         // form the ticket object using passed id
         $ticket = new WPSC_Ticket( $ticket_id );
 
-        $cf = self::get_cf_object_by_cf_name( $field_name );
+        // setup mail event. We should see this in the table in the database after this.
+        WPSC_EN_Create_Ticket::process_event( $ticket );
 
-        // $value = self::get_ticket_value_given_cf_name( $ticket, $field_name );
-
-        echo "<pre>" . "CF object: " . $field_name  . " </pre>";
-        echo "<pre>" . print_r($cf, true) ."</pre>";
-
-        $value = self::get_ticket_value_given_cf_name( $ticket, $field_name );
-
-        echo "<pre>" . "value in given ticket id for field" . $field_name  . " </pre>";
-        echo "<pre>" . print_r($value, true) ."</pre>";
-
-        echo "<pre>" . "CF type: " . $cf->type  . " </pre>";
+        
 
     }
 
