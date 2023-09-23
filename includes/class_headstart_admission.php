@@ -2631,11 +2631,9 @@ class headstart_admission
 
         WPSC_EN_Create_Ticket::process_event($ticket);
 
-        }
+    }
 
         
-
-    }
 
     public static function test_sritoni_connection( string $moodle_username )
     {
