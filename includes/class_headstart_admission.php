@@ -2629,8 +2629,18 @@ class headstart_admission
         // form the ticket object using passed id
         $ticket = new WPSC_Ticket( $ticket_id );
 
+        $gs              = get_option( 'wpsc-en-general' );
+			$email_templates = get_option( 'wpsc-email-templates', array() );
+
+			foreach ( $email_templates as $key => $et ) {
+
+                echo "<pre>" . print('email template event slug: ' . $et['event']) ."</pre>";
+
+				
+				}
+
         // setup mail event. We should see this in the table in the database after this.
-        WPSC_EN_Create_Ticket::process_event( $ticket );
+        // WPSC_EN_Create_Ticket::process_event( $ticket );
 
         
 
