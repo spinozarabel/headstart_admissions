@@ -2629,38 +2629,7 @@ class headstart_admission
         // form the ticket object using passed id
         $ticket = new WPSC_Ticket( $ticket_id );
 
-        $gs              = get_option( 'wpsc-en-general' );
-		$email_templates = get_option( 'wpsc-email-templates', array() );
-
-        foreach ( $email_templates as $key => $et ) {
-
-            if ( $et['event'] != 'create-ticket' ) {
-                continue;
-            }
-
-            echo "<pre>" . print('key of EMail template: ' . $key) ."</pre>";
-            echo "<pre>" . print('Event of EMail template: ' . $et['event']) ."</pre>";
-
-            // email notification object.
-            $en = new WPSC_Email_Notifications();
-
-            // set properties.
-            $en->ticket = $ticket;
-
-            // set template.
-            $en->template     = $et;
-            $en->template_key = $key;
-
-            // check if is_enable.
-			if ( ! $et['is_enable'] ) {
-                echo "<pre>" . print('Template is NOT Enabled : ' . $et['is_enable']) ."</pre>";
-			}
-
-            // from name & email.
-			$en_general = get_option( 'wpsc-en-general' );
-			if ( ! $en_general['from-name'] || ! $en_general['from-email'] ) {
-				echo "<pre>" . print('from-name OR from-email is not set') ."</pre>";
-			}
+        WPSC_EN_Create_Ticket::process_event($ticket);
 
         }
 
