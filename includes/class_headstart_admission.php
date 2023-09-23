@@ -2629,8 +2629,13 @@ class headstart_admission
         // form the ticket object using passed id
         $ticket = new WPSC_Ticket( $ticket_id );
 
+        // from name & email.
+		$en_general = get_option( 'wpsc-en-general' );
+
         $gs              = get_option( 'wpsc-en-general' );
 			$email_templates = get_option( 'wpsc-email-templates', array() );
+
+            echo "<pre>" . print('From name and email set?: ' . ! $en_general['from-name'] && $en_general['from-email'] ) ."</pre>";
 
 			foreach ( $email_templates as $key => $et ) {
 
