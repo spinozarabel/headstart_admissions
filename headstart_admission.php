@@ -90,6 +90,7 @@ endif;
 
 // Initialize the complete plugin environment and classes
 MA_HSA_headstart_admission::init();
+$admission_settings = new class_headstart_admission_settings();
 
 use Automattic\WooCommerce\Client;
 use Automattic\WooCommerce\HttpClient\HttpClientException;
