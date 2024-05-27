@@ -63,7 +63,6 @@ if ( ! class_exists( 'MA_HSA_headstart_admission' ) ) :
       		// Load common classes that are in the includes subdirectory
 			foreach ( glob( MA_HSA_ABSPATH . 'includes/*.php' ) as $filename ) {
 
-				error_log("Filename that was included: $filename");
 				include_once $filename;
 			}
     	}
