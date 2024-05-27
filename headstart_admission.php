@@ -88,12 +88,9 @@ if ( is_admin() )
 			{
 				// This is to be done only once!!!!
 				include_once  dirname( __FILE__ ) . '/class_headstart_admission_settings.php';
+				$admission_settings = new class_headstart_admission_settings();
 			}
 MA_HSA_headstart_admission::init();
-
-$admission_settings = new class_headstart_admission_settings();
-
-
 
 use Automattic\WooCommerce\Client;
 use Automattic\WooCommerce\HttpClient\HttpClientException;
