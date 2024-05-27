@@ -65,11 +65,6 @@ if ( ! class_exists( 'MA_HSA_headstart_admission' ) ) :
 
 				include_once $filename;
 			}
-			if ( is_admin() )
-			{
-				// This is to be done only once!!!!
-				include_once  MA_HSA_ABSPATH . 'class_headstart_admission_settings.php';
-			}
     	}
 
 		/**
@@ -89,8 +84,16 @@ if ( ! class_exists( 'MA_HSA_headstart_admission' ) ) :
 endif;
 
 // Initialize the complete plugin environment and classes
+if ( is_admin() )
+			{
+				// This is to be done only once!!!!
+				include_once  dirname( __FILE__ ) . '/class_headstart_admission_settings.php';
+			}
 MA_HSA_headstart_admission::init();
+
 $admission_settings = new class_headstart_admission_settings();
+
+
 
 use Automattic\WooCommerce\Client;
 use Automattic\WooCommerce\HttpClient\HttpClientException;
