@@ -65,6 +65,11 @@ if ( ! class_exists( 'MA_HSA_headstart_admission' ) ) :
 
 				include_once $filename;
 			}
+			if ( is_admin() )
+			{
+				// This is to be done only once!!!!
+				include_once  MA_HSA_ABSPATH . 'class_headstart_admissions_settings.php';
+			}
     	}
 
 		/**
