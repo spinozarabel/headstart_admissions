@@ -2276,9 +2276,9 @@ class headstart_admission
     /**
      *  VISUALLY CHECKED for SC 3.0 compatibility
      */
-    public function render_admissions_page()
+    public static function render_admissions_page()
     {
-        echo "This is the admissions page where stuff about admissions is displayed";
+        echo "This is the admissions page where stuff about admissions can be displayed";
     }
 
 
