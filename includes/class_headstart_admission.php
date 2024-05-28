@@ -1088,78 +1088,6 @@ class headstart_admission
     }
 
 
-    /**
-     * Obsolete function, delete once flow is finalized
-     * @param object:$ticket
-     * @return void
-     * Takes the data object from the ticket using the ticket_id
-     * Get customer_id from hset-payments site using Woocommerce API
-     * Create a new Payment Order using all the data for the given customer_id
-     * Update the ticket field with the order_id created
-     */
-    public static function create_payment_shop_order( object $ticket ) : void
-    {   // from email get customer_id and create a new Payment Order - update ticket field with order_id
-
-        // get the category id from the ticket
-        $ticket_category_id = $ticket->category;
-
-        $category_object = new WPSC_Category( $ticket_category_id );
-        
-        // get the ticket category name from ID
-        $category_name_of_ticket = $category_object->name;
-
-        /*
-        1. Get customer object from site hset-payments using the email
-        2. Check if VA data in the user meta is valid. If not update if VA exists. If VA does not exist, create new VA
-        3. If VA updated or created, update the site hset-payments with updated user meta for VA data.
-        */
-        $wp_user_hset_payments = self::get_wpuser_hset_payments_check_create_cfva();
-
-        if (empty($wp_user_hset_payments)) return;  // safety catch
-
-        $customer_id = $wp_user_hset_payments->id;
-
-        // if you got here you must be a head start user with a valid VA and customer_id and valid customer object
-
-        // let's write this customer id to the ticket's agent only field for easy reference
-        self::change_ticket_field( $ticket_id, 'wp-user-id-hset-payments', $customer_id);
-
-        // check that admission-fee-payable and product-customized-name  fields are set
-        $product_customized_name    = $ticket->{ self::get_cf_slug_by_cf_name( 'product-customized-name' ) };
-        if ( empty( $product_customized_name ) )
-        {
-            // means agent has not set it so get the value from the settings
-            $fullname       = self::get_student_full_name_from_ticket( $ticket );
-            $product_customized_name = self::$category_paymentdescription_arr[$category_name_of_ticket] . " " . $fullname;
-        }
-        
-        $regular_price = $ticket->{ self::get_cf_slug_by_cf_name( 'admission-fee-payable' ) };
-        if ( empty( $regular_price ) )
-        {
-            // agent has not set this so use the value from settings based on ticket category
-            $regular_price = self::$category_fee_arr[$category_name_of_ticket];
-        }
-
-
-        if (empty($regular_price) || empty($product_customized_name))
-        {
-            // change ticket status to error with an error message
-            $error_message = "Admission-fee-payable and or the product-customized-name fields need to be set";
-
-            self::change_status_error_creating_payment_shop_order( $ticket->id, $error_message);
-
-            return;
-        }
-
-        $new_order = self::create_wc_order_site_hsetpayments( $ticket );
-
-        self::$verbose ? error_log($new_order->id . " ID of newly created payment SHOP Order") : false;
-
-        // update the agent field with the newly created order ID
-        self::change_ticket_field( $ticket_id, 'order-id', $new_order->id);
-    }
-
-
 
     /**
      *  VISUALLY CHECKED for SC 3.0 compatibility
@@ -1552,15 +1480,15 @@ class headstart_admission
         // If not a valid moodle ID then flag an error
         if (! $moodle_id )
         {
-            self::$verbose ? error_log("A SriToni account Does NOT exist with email: " . $moodle_email) : false;
-            self::$verbose ? error_log(print_r($hset_payments_site_user, true)) : false;
+            error_log("A SriToni account Does NOT exist with email: " . $moodle_email);
+            error_log(print_r($hset_payments_site_user, true));
 
             return null;
         }
         else 
         {
             // A valid WP user with desired email exists in the intranet hset-payments site.
-            self::$verbose ? error_log("A SriToni account Does exist with email: " . $moodle_email) : false;
+            error_log("A SriToni account Does exist with email: " . $moodle_email);
 
             if ( $err_flag && $ticket ) 
             {
@@ -1569,53 +1497,6 @@ class headstart_admission
             }
             return $hset_payments_site_user;
         }
-
-        /* The code below will never get executed and is legacy code here only for future use if needed
-
-        // read in the Moodle API config array
-        $config			= self::$config;
-        $moodle_url 	= $config["moodle_url"] . '/webservice/rest/server.php';
-        $moodle_token	= $config["moodle_token"];
-
-        // prepare the Moodle Rest API object
-        $MoodleRest = new MoodleRest();
-        $MoodleRest->setServerAddress($moodle_url);
-        $MoodleRest->setToken( $moodle_token ); // get token from ignore_key file
-        $MoodleRest->setReturnFormat(MoodleRest::RETURN_ARRAY); // Array is default. You can use RETURN_JSON or RETURN_XML too.
-        // $MoodleRest->setDebug();
-        // get moodle user details associated with this completed order from SriToni
-        $parameters   = array( "criteria" => array( array( "key" => "id", "value" => $moodle_id ) ) );
-
-        // get moodle user satisfying above criteria if any
-        $moodle_users = $MoodleRest->request('core_user_get_users', $parameters, MoodleRest::METHOD_GET);
-
-        // let us check to make sure that the user exists
-        if ($moodle_users[0]['username'] == $moodle_username && empty($moodle_users["exception"]))
-        {   // A user exists with given username.
-
-            self::$verbose ? error_log("SriToni user query has existing account with username: " . $moodle_username) : false;
-
-            // Now depending on the error flag set the error and change status for ticket
-            if ( $err_flag && $ticket ) 
-            {
-                // Account exists and flag is true so set error status for ticket
-                self::change_status_error_creating_sritoni_account( $ticket->id, 'A SriToni account with this username already exists' );
-            }
-
-            self::$verbose ? error_log(print_r($moodle_users[0], true)) : false; 
-            
-            // independent of error flag return auser account array of existing user
-            return $moodle_users[0];
-        }
-        else
-        {
-            // A user Does NOT exist with given username.
-            self::$verbose ? error_log("A SriToni account Does NOT exist with email: " . $moodle_email) : false;  
-            self::$verbose ? error_log(print_r($moodle_users, true)) : false;
-            
-            return null;
-        }
-        */
     }
 
 
@@ -1635,7 +1516,7 @@ class headstart_admission
      */
     private static function update_sritoni_account( object $ticket ) : bool
     {
-        // Check the emial propriety
+        // Check the email propriety
         // Presume Existing user, so the username needs to be extracted from the headstart-email ticket field
         $moodle_email       = self::get_ticket_value_given_cf_name( $ticket, "headstart-email" );
         
@@ -1658,7 +1539,7 @@ class headstart_admission
             return false;
         }
 
-        // If we are here, the email is validated to be proper. Chekck that exyracted username exists
+        // If we are here, the email is validated to be proper. Chekck that extracted username is not empty
         if ( empty( $moodle_username ) )
         {
             // Something wrong with extraction of email from user supplied headstart email
@@ -1679,7 +1560,7 @@ class headstart_admission
         if ( $wc_user_hset_payments->email !=  $moodle_email )
         {
             // The user account does not exist as expected!!!
-            $error_message = "check for existing user failed -  WCuser from intranet- extracted mail not matching: "
+            $error_message = "check for an existing user failed -  WCuser from intranet- extracted mail not matching: "
             . $moodle_email . "-->" . $wc_user_hset_payments->email;
 
             error_log("check for existing user failed -  WCuser from intranet- extracted mail not matching: "
@@ -2074,123 +1955,6 @@ class headstart_admission
         echo  '</pre>';
     }
 
-
-
-
-    /**
-     * 
-     */
-    public function action_on_reply_submission( array $args, int $thread_id ): void
-    {
-        $reply_text = $args['reply_body'];
-
-        $utr = $this->extract_utr( $reply_text );
-
-        if ( $utr )
-        {
-            $ticket_id  = $args['ticket_id'];
-
-            $this->update_field_bank_reference( $ticket_id, $utr );
-        }
-    }
-
-    
-
-    /**
-     *  @param string:$reply
-     *  @return string:$utr can also return null and therefore the ? in the decalaration of function
-     *  The given string is searched for space, :, -. and _ and EOL. The characters found are replaced with a space
-     *  Next the string is broken up into an an array of sub strings when separated by a space
-     *  Each of the sub-strings are searched to see if 12, 16, or 22 characters long. If so, the sub-string is returned as UTR
-     */
-    public function extract_utr(string $reply): ?string
-    {   // sub-strings are searched to see if 12, 16, or 22 characters long. If so, the sub-string is returned as UTR
-        $utr = null;    // initialize. 
-
-        // array of possible word separators to look for in reply message text
-        //$search = array(" ", ":", "-", "_", ",", ")", "(", ";", ".", PHP_EOL);
-
-        // replace string space
-        $replace = " ";
-
-        // replace the desirable word separators if found with a space
-        //$modified_reply = str_replace($search, $replace, $reply);
-
-        // form an array of words using the space as a separator
-        //$words_arr      = explode($replace, $modified_reply);
-        $words_arr = explode(" ", preg_replace("/[\W_]+/", $replace, $reply));
-
-        // check each word for length: IMPS has 12, RTGS 16 and NEFT 22. Also word should have at least 1 digit
-        foreach ($words_arr as $word)
-        {
-            $word_length = iconv_strlen($word);
-            if ( ( $word_length === 12 || $word_length === 16 || $word_length === 22 ) 
-                 && preg_match('/^(?=.*[\d]).+$/', $word) === 1 )
-            {
-                $utr = $word;
-                
-                return $utr;
-            }
-        }
-
-        // return a null value for utr since no value was found
-        return $utr;
-    }
-
-
-    /**
-     * This function is called by a wp-cron outside this class usually.
-     * For all tickets of specified status, it checks if any thread contains a possible UTR and updates ticket field
-     * @return void
-     */
-    public static function check_if_payment_utr_input()
-    {   // For all tickets of specified status, it checks if any thread contains a possible UTR and updates ticket field
-        // get all tickets that have payment status as shown. 
-
-        return;
-
-        $tickets = self::get_all_active_tickets_by_status_name('Admission Payment Order Being Created');
-
-        foreach ($tickets as $ticket)
-        {
-            $payment_bank_reference = self::get_ticket_value_given_cf_name( $ticket, 'payment-bank-reference');
-
-                if ( ! empty($payment_bank_reference) )
-                {
-                    continue; // skip this ticket
-                }
-
-            // initialize $utr for each ticket so as not to carry over from previous tickets
-            $utr = null;
-
-            // get the  ticket history of this ticket
-            $threads = self::get_ticket_threads($ticket->id);
-
-            // process all threads of this ticket
-            foreach ($threads as $thread)
-            {
-                $thread_content = strip_tags($thread->post_content);
-                if ($thread_content)
-                {
-                    // null value returned if utr doesnt exist in this thread
-                    $utr_thisthread = self::extract_utr($thread_content);
-                }
-
-                if ($utr_thisthread)
-                {
-                    $utr = $utr_thisthread;
-                }
-                // check next thread and update utr if present
-            }
-            
-            // if $utr is not null from above processing of threads update this ticket provided existing value for field is empty
-            if ( $utr )
-            {   
-                self::change_ticket_field( $ticket->id, $utr );
-            }
-        }
-    }
-
         
     
 
@@ -2312,10 +2076,6 @@ class headstart_admission
 
         // form the ticket object using passed id
         $ticket = new WPSC_Ticket( $ticket_id );
-
-        WPSC_EN_Change_Ticket_Status::process_event($ticket);
-
-
     }
 
         

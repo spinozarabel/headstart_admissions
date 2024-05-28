@@ -7,3 +7,6 @@ pods.export
 *config.php*
 junk.php
 junk.*
+# ignore all vendor stuff
+vendor
+composer*
