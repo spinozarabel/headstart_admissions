@@ -1461,7 +1461,7 @@ class headstart_admission
      *  If the account exists then the LDAP user account is returned as an object
      *  If account does not exist, a null is returned
      */
-    private static function get_user_account_from_ldap( string $email ): ? object
+    private static function get_user_account_from_ldap( string $email )
     {
         // update the configuration in case changes have been made
         $config			= self::$config;
@@ -1521,7 +1521,7 @@ class headstart_admission
         {
             echo "LDAP bind failed...";
         }
-        
+
         return null;
     }
 
