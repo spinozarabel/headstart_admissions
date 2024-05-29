@@ -1314,7 +1314,7 @@ class headstart_admission
             error_log( $error_message );
 
             // change the ticket status to error
-            self::change_status_error_creating_sritoni_account( $ticket, $error_message );
+            self::change_status_error_creating_sritoni_account( $ticket->id, $error_message );
 
             return null; 
         }
@@ -1454,6 +1454,17 @@ class headstart_admission
             return null;
         }
 
+    }
+
+    /**
+     *  Given an email ID as a string, the method attempts to get the associated LDAP user account if it exists.
+     *  If the account exists then the LDAP user account is returned as an object
+     *  If account does not exist, a null is returned
+     */
+    private static function get_user_account_from_ldap( string $email ): ? object
+    {
+
+        return null;
     }
 
 
