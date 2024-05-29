@@ -1463,6 +1463,46 @@ class headstart_admission
      */
     private static function get_user_account_from_ldap( string $email ): ? object
     {
+        // update the configuration in case changes have been made
+        $config			= self::$config;
+
+        $ldapserver = $config['ldaps_server'];
+        $ldapuser   = $config['ldap_admin'];
+        $ldappass   = $config['ldap_password'];
+        $ldaptree   = $config['ldap_tree'];
+
+        $ldapfilter = '(&(objectClass=inetOrgPerson)(mail=' . $email . '))';
+
+         // connect to LDAP server
+        $ldapconn = ldap_connect($ldapserver) or die("Could not connect to LDAP server.");
+
+        // if we are here then we did not die so we must have connected to LDAP server
+        // but first set protocol version
+            ldap_set_option($ldapconn, LDAP_OPT_PROTOCOL_VERSION, 3);
+
+            // bind using admin account
+        $ldapbind = ldap_bind($ldapconn, $ldapuser, $ldappass) or die ("Error trying to bind: " . ldap_error($ldapconn));
+
+        // verify binding and if good search and download entries based on filter set below
+        if ($ldapbind)
+        {
+            echo nl2br("LDAP Connection and Authenticated bind successful...\n");
+
+            $result = ldap_search($ldapconn, $ldaptree, $ldapfilter) or die ("Error in search query: " . ldap_error($ldapconn));
+
+            $data   = ldap_get_entries($ldapconn, $result);
+
+            // print number of entries found
+            $ldapcount = ldap_count_entries($ldapconn, $result);
+
+            echo nl2br("Number of entries found in LDAP directory: " . $ldapcount . "\n");
+            print_r($data);
+        }
+            else
+        {
+            echo "LDAP bind failed...";
+        }
+
 
         return null;
     }
@@ -1926,7 +1966,8 @@ class headstart_admission
             break;
 
             case 'test_custom_code':
-                self::test_custom_code($id, $username);
+                $email = $username . '@headstart.edu.in';
+                $data = self::get_user_account_from_ldap($email);
             break;
 
             default:
