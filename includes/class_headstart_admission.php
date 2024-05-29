@@ -1499,14 +1499,29 @@ class headstart_admission
 
             // convert entries to associative type using cleanup function as given on php manual
     	    $ldap_user_accounts = self::cleanUpEntry($data);
-            print_r($ldap_user_accounts);
+            
+            if ( $ldapcount == 0 )
+            {
+                error_log("Could not get any LDAP user accounts with given email: $email");
+                return null;
+            }
+
+            foreach ($ldap_user_accounts as $key => $ldap_user_account) {
+                // we know there should be at least one entry, the most probable correct entry
+                
+                if ( $ldap_user_account['mail'] == $email )
+                {
+                    // our desired user LDAP user account
+                    return $ldap_user_account;
+                }
+
+            }
         }
             else
         {
             echo "LDAP bind failed...";
         }
-
-
+        
         return null;
     }
 
