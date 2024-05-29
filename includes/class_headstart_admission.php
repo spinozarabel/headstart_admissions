@@ -1496,6 +1496,9 @@ class headstart_admission
             $ldapcount = ldap_count_entries($ldapconn, $result);
 
             echo nl2br("Number of entries found in LDAP directory: " . $ldapcount . "\n");
+
+            // convert entries to associative type using cleanup function as given on php manual
+    	    $ldapentries = self::cleanUpEntry($data);
             print_r($data);
         }
             else
@@ -1505,6 +1508,36 @@ class headstart_admission
 
 
         return null;
+    }
+
+
+    private static function cleanUpEntry($entry)
+    {
+      $retEntry = array();
+      for ( $i = 0; $i < $entry['count']; $i++ ) {
+        if (is_array($entry[$i])) {
+          $subtree = $entry[$i];
+          //This condition should be superfluous so just take the recursive call
+          //adapted to your situation in order to increase perf.
+          if ( ! empty($subtree['dn']) and ! isset($retEntry[$subtree['dn']])) {
+            $retEntry[$subtree['dn']] = self::cleanUpEntry($subtree);
+          }
+          else {
+            $retEntry[] = self::cleanUpEntry($subtree);
+          }
+        }
+        else {
+          $attribute = $entry[$i];
+          if ( $entry[$attribute]['count'] == 1 ) {
+            $retEntry[$attribute] = $entry[$attribute][0];
+          } else {
+            for ( $j = 0; $j < $entry[$attribute]['count']; $j++ ) {
+              $retEntry[$attribute][] = $entry[$attribute][$j];
+            }
+          }
+        }
+      }
+      return $retEntry;
     }
 
 
