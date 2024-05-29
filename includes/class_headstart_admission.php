@@ -1498,8 +1498,8 @@ class headstart_admission
             echo nl2br("Number of entries found in LDAP directory: " . $ldapcount . "\n");
 
             // convert entries to associative type using cleanup function as given on php manual
-    	    $ldapentries = self::cleanUpEntry($data);
-            print_r($data);
+    	    $ldap_user_accounts = self::cleanUpEntry($data);
+            print_r($ldap_user_accounts);
         }
             else
         {
