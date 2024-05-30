@@ -1463,14 +1463,14 @@ class headstart_admission
     private static function get_user_account_from_ldap( string $email ): ? array
     {
         /*
-        Array ( [uid] => sritoni5 
-                [cn] => sritoni5 moodle5 
-                [displayname] => sritoni5 moodle5 
-                [givenname] => sritoni5 
-                [sn] => moodle5 
+        Array ( [uid] => moodle username is used as uid 
+                [cn] => firstname lastname 
+                [displayname] => first middle last
+                [givenname] =>  firstname
+                [sn] => lastname 
                 [mail] => email ID on domain name
                 [userpassword] => LDAP password 
-                [o] => HSEA 
+                [o] => organization 
                 [employeenumber] => SriToni IDNUMBER
                 [ou] => StudentActive 
                 [telephonenumber] => 123456789 
@@ -1479,10 +1479,10 @@ class headstart_admission
                 [homepostaladdress] => 
                 [objectclass] => inetOrgPerson 
                 [telexnumber] => moodle user id (integer)
-                [businesscategory] => RTE 
+                [businesscategory] => student category such as General 
                 [audio] => [] 
                 [carlicense] => [] 
-                [description] => {} 
+                [description] => {} payment details json
             )
         */
         // update the configuration in case changes have been made
@@ -2392,6 +2392,9 @@ class headstart_admission
         }
     }
 
+
+
+
     /**
      *  VISUALLY CHECKED for SC 3.0 compatibility
      */
@@ -2473,156 +2476,6 @@ class headstart_admission
 
         return $tickets;
     }
-    
-    
-    
-    
-    /**
-     *  NOT USED (For old version of Support Candy pre 3.0)
-     */
-    private function get_ticket_meta_key_by_slug($slug)
-    {
-        $fields = get_terms([
-            'taxonomy'   => 'wpsc_ticket_custom_fields',
-            'hide_empty' => false,
-            'orderby'    => 'meta_value_num',
-            'meta_key'	 => 'wpsc_tf_load_order',
-            'order'    	 => 'ASC',
-
-            'meta_query' => array(
-                                    array(
-                                        'key'       => 'agentonly',
-                                        'value'     => [0, 1],  // get all ticket meta fields
-                                        'compare'   => 'IN',
-                                        ),
-                                ),
-
-        ]);
-        foreach ($fields as $field)
-        {
-            if ($field->slug == $slug)
-            {
-                return $field->term_id;
-            }
-        }
-    }
-
-
-    /**
-     *  NOT USED
-     *  The AJAX in the form was not working correctly, so abandoned
-     *  @param array:$form_data is the form data Ninja forms
-     *  1. if category contains internal then the email must contain headstart.edu.in, otherwise form should be corrected
-     */
-    public function action_validate_ninja_form_data( $form_data )
-    {
-        // extract the fields array from the form data
-        $fields_ninjaforms = $form_data['fields'];
-
-        // extract a single column from all fields containing the admin_label key
-        $key_array         = array_column($fields_ninjaforms, 'key');
-
-        // extract the corresponding value array. They both will share the same  numerical index.
-        $value_array       = array_column($fields_ninjaforms, 'value');
-
-        $field_id_array    = array_column($fields_ninjaforms, 'id');
-
-        // Check if form category contains internal or not. The category is a hidden field
-        // look for the mapping slug in the ninja forms field's admin label
-        $index_ticket_category  = $this->array_search_partial( $key_array, 'ticket_category' );
-        $category_name          = $value_array[$index_ticket_category];
-
-        $index_address  = $this->array_search_partial( $key_array, 'residential_address' );
-        $address        = $value_array[$index_address];
-
-        $index_email    = $this->array_search_partial( $key_array, 'primary_email' );
-        $email          = $value_array[$index_email];
-
-
-        if ( stripos($category_name, "internal") !== false )
-        {
-            // the forms's hidden field for category does contain substring internal so we need to check  for headstart domain
-            // look for the mapping slug in the ninja forms field's admin label for email field
-
-            // check if the email contains headstart.edu.in
-            if ( stripos( $email, "headstart.edu.in") === false)
-            {
-                $this->verbose ? error_log("validating email - Internal user, expecting @headstart.edu.in, didnt find it"): false;
-                // our form's category is internal but does not contain desired domain so flag an error in form
-
-                //
-                $form_data['errors']['fields'][$field_id_array[$index_email]] = 'Email must be of Head Start domain, because continuing student';
-            }
-
-        }
-        if ( stripos($address, "/") !== false )
-        {
-            $this->verbose ? error_log("validating address - does contain forbidden character '/'."): false;
-
-            $errors = [
-                'fields' => [
-                $field_id_array[$index_address]   => 'Addtress must not contain "/" please correct'
-                ],
-              ];
-
-            $response = [
-            'errors' => $errors,
-            ];
-            
-            wp_send_json( $response );
-            wp_die(); // this is required to terminate immediately and return a proper response
-        }
-        
-        return $form_data;
-    }
-
-
-    /**
-     *  NOT USED
-     * 
-     *  Was meant to be used when a given ticket field was updated and some action needed to be taken on that
-     */
-    public function action_on_ticket_field_changed($ticket_id, $field_slug, $field_val, $prev_field_val)
-    {
-        // we are only interested if the field that changed is non-empty payment-bank-reference. For all others return
-        if ($field_slug !== "payment-bank-reference" || empty($field_val)) return;
-
-        // if you get here this field is payment-bank-reference ad the value is non-empty
-        // so we can go ahead and change the associated order's meta value to this new number
-        // get the order-id for this ticket. If it doesn't exist then return
-        $this->get_data_object_from_ticket($ticket_id);
-
-        $order_id = $this->data_object->ticket_meta['order-id'];
-
-        if (empty($order_id)) return;
-
-        // check status of order to make sure it is still ON-HOLD
-        $order = $this->get_wc_order($order_id);
-
-        if (empty($order)) return;
-
-        if ($order->status == "completed"  || $order->status == "processing")
-        {
-            return;
-        }
-        else
-        {
-            // lets now prepare the data for the new order to be created
-            $order_data = [
-                            'meta_data' => [
-                                                [
-                                                    'key' => 'bank_reference',
-                                                    'value' => $field_val
-                                                ]
-                                            ]
-                        ];
-            $order_updated = $this->update_wc_order_site_hsetpayments($order_id, $order_data);
-
-            $this->verbose ? error_log("Read back bank reference from Updated Order ID:" . $order_id . " is: " . $order_updated->bank_reference): false;
-        }
-    }
-
-
 
 }   // end of class bracket
 
