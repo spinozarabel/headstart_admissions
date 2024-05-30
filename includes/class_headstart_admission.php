@@ -2017,7 +2017,7 @@ class headstart_admission
         switch ($_POST['button'])
         {
             case 'get_sritoni_user_using_username':
-                self::test_sritoni_connection($username);
+                self::test_ldap_and_moodle_connection($username);
             break;
 
             case 'test_cashfree_connection':
@@ -2216,11 +2216,42 @@ class headstart_admission
 
         
 
-    public static function test_sritoni_connection( string $moodle_username )
+    public static function test_ldap_and_moodle_connection( string $moodle_username )
     {
+        $email = $moodle_username . '@headstart.edu.in';
+
+        $ldap_user = self::get_user_account_from_ldap($email);
+
+        // extract moodle user id from LDAP user array retrieved
+        $ldap_user_moodle_id = $ldap_user['telexnumber'];
+
+        // use the moodle user ID to retrieve Moodle user object
         // read in the Moodle API config array
-        $moodle_user_object = self::get_user_account_from_sritoni(null, $moodle_username, false );
-        echo "<pre>" . print_r($moodle_user_object, true) ."</pre>";
+        $config			= self::$config;
+
+        $moodle_url 	= $config["moodle_url"] . '/webservice/rest/server.php';
+        $moodle_token	= $config["moodle_token"];
+
+        // prepare the Moodle Rest API object
+        $MoodleRest = new MoodleRest();
+        $MoodleRest->setServerAddress($moodle_url);
+        $MoodleRest->setToken( $moodle_token ); // get token from ignore_key file
+        $MoodleRest->setReturnFormat(MoodleRest::RETURN_ARRAY); // Array is default. You can use RETURN_JSON or RETURN_XML too.
+        // $MoodleRest->setDebug();
+        // get moodle user details associated with this completed order from SriToni
+        $parameters   = array("criteria" => array(array("key" => "id", "value" => $ldap_user_moodle_id) ) );
+
+        // get moodle user satisfying above criteria
+        $moodle_users = $MoodleRest->request('core_user_get_users', $parameters, MoodleRest::METHOD_GET);
+        if ( !( $moodle_users["users"][0] ) )
+        {
+            // failed to communicate effectively to moodle server so exit
+            echo nl2br("couldn't communicate to moodle server. \n");
+            return;
+        }
+        echo "<h3>Connection to moodle server was successfull: Here are the details of Moodle user object for id:73</h3>";
+        $moodle_user   = $moodle_users["users"][0];
+        echo "<pre>" . print_r($moodle_user, true) ."</pre>";
     }
 
 
