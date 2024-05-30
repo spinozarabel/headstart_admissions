@@ -1481,26 +1481,31 @@ class headstart_admission
             ldap_set_option($ldapconn, LDAP_OPT_PROTOCOL_VERSION, 3);
 
             // bind using admin account
-        $ldapbind = ldap_bind($ldapconn, $ldapuser, $ldappass) or die ("Error trying to bind: " . ldap_error($ldapconn));
+        $ldapbind = ldap_bind($ldapconn, $ldapuser, $ldappass);
 
         // verify binding and if good search and download entries based on filter set below
         if ($ldapbind)
         {
-            echo nl2br("LDAP Connection and Authenticated bind successful...\n");
+            // echo nl2br("LDAP Connection and Authenticated bind successful...\n");
 
-            $result = ldap_search($ldapconn, $ldaptree, $ldapfilter) or die ("Error in search query: " . ldap_error($ldapconn));
+            $result = ldap_search($ldapconn, $ldaptree, $ldapfilter); // or 
+            if ( $result === false) 
+            { 
+                error_log("Error in search query: " . ldap_error($ldapconn) );
+                return null;
+            }
 
             $data   = ldap_get_entries($ldapconn, $result);
 
             // print number of entries found
             $ldapcount = ldap_count_entries($ldapconn, $result);
 
-            echo nl2br("Number of entries found in LDAP directory: " . $ldapcount . "\n");
+            // echo nl2br("Number of entries found in LDAP directory: " . $ldapcount . "\n");
 
             // convert entries to associative type using cleanup function as given on php manual
     	    $ldap_user_accounts = self::cleanUpEntry($data);
             
-            if ( $ldapcount == 0 )
+            if ( $ldapcount === 0 )
             {
                 error_log("Could not get any LDAP user accounts with given email: $email");
                 return null;
@@ -1514,12 +1519,16 @@ class headstart_admission
                     // our desired user LDAP user account
                     return $ldap_user_account;
                 }
-
+                else
+                {
+                    error_log("Could not get any LDAP user accounts with given email: $email");
+                    return null;
+                }
             }
         }
-            else
+        else
         {
-            echo "LDAP bind failed...";
+            error_log ( "LDAP bind failed " . ldap_error($ldapconn) );
         }
 
         return null;
@@ -2015,7 +2024,8 @@ class headstart_admission
 
             case 'test_custom_code':
                 $email = $username . '@headstart.edu.in';
-                $data = self::get_user_account_from_ldap($email);
+                $ldap_user = self::get_user_account_from_ldap($email);
+                print_r($ldap_user);
             break;
 
             default:
