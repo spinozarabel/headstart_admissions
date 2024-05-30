@@ -2243,15 +2243,22 @@ class headstart_admission
 
         // get moodle user satisfying above criteria
         $moodle_users = $MoodleRest->request('core_user_get_users', $parameters, MoodleRest::METHOD_GET);
-        if ( !( $moodle_users["users"][0] ) )
+
+        if ($moodle_users["exception"])
         {
-            // failed to communicate effectively to moodle server so exit
-            echo nl2br("couldn't communicate to moodle server. \n");
-            return;
+            // There was a problem with the user update, log the details
+            error_log("SriToni User Update returned variable dump");
+            error_log(print_r($moodle_users, true));
+
         }
-        echo "<h3>Connection to moodle server was successfull: Here are the details of Moodle user object for id:73</h3>";
-        $moodle_user   = $moodle_users["users"][0];
-        echo "<pre>" . print_r($moodle_user, true) ."</pre>";
+        else
+        {
+            echo "<h3>Connection to moodle server was successfull: Here are the details of Moodle user object for id:73</h3>";
+            $moodle_user   = $moodle_users["users"][0];
+            echo "<pre>" . print_r($moodle_user, true) ."</pre>";
+        }
+        
+        
     }
 
 
