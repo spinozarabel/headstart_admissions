@@ -1303,13 +1303,12 @@ class headstart_admission
         $moodle_email = $moodle_username . '@headstart.edu.in';
 
         // Check to see if a user with this username already exists. A pre-existing account is an error that is handled here
-        $existing_moodle_user = self::get_user_account_from_sritoni( $ticket, $moodle_email,  false );
+        $existing_ldap_user = self::get_user_account_from_sritoni( $ticket, $moodle_email,  false );
 
-        if ( $existing_moodle_user->email ==  $moodle_email )
+        if ( ! empty($existing_ldap_user) && $existing_ldap_user['mail'] ==  $moodle_email )
         {
             // An account with this username already exssts. So set error status so Admin can set a different username and try again
-            $error_message = "This username already exists with name: " . $existing_moodle_user->first_name . " " .
-                                                                          $existing_moodle_user->last_name;
+            $error_message = "This username already exists with name:" .  $existing_ldap_user['displayname'] . " and IDNUMBER:" . $existing_ldap_user['employeenumber'];
 
             error_log( $error_message );
 
@@ -1461,8 +1460,31 @@ class headstart_admission
      *  If the account exists then the LDAP user account is returned as an object
      *  If account does not exist, a null is returned
      */
-    private static function get_user_account_from_ldap( string $email )
+    private static function get_user_account_from_ldap( string $email ): ? array
     {
+        /*
+        Array ( [uid] => sritoni5 
+                [cn] => sritoni5 moodle5 
+                [displayname] => sritoni5 moodle5 
+                [givenname] => sritoni5 
+                [sn] => moodle5 
+                [mail] => email ID on domain name
+                [userpassword] => LDAP password 
+                [o] => HSEA 
+                [employeenumber] => SriToni IDNUMBER
+                [ou] => StudentActive 
+                [telephonenumber] => 123456789 
+                [mobile] => 123456789 
+                [departmentnumber] => none 
+                [homepostaladdress] => 
+                [objectclass] => inetOrgPerson 
+                [telexnumber] => moodle user id (integer)
+                [businesscategory] => RTE 
+                [audio] => [] 
+                [carlicense] => [] 
+                [description] => {} 
+            )
+        */
         // update the configuration in case changes have been made
         $config			= self::$config;
 
@@ -1516,7 +1538,7 @@ class headstart_admission
                 
                 if ( $ldap_user_account['mail'] == $email )
                 {
-                    // our desired user LDAP user account
+                    // our desired user LDAP user account. See at top for array contents
                     return $ldap_user_account;
                 }
                 else
@@ -1569,41 +1591,50 @@ class headstart_admission
      * @param object:$ticket is the ticket object passed in
      * @param string:$moodle_email is the email of the user we are interested in getting from SriToni server
      * @return object:$hset_payments_user: The WooCommerce user object is returned
-     * If user account in hset-payments intranet site exists the user object is returned
-     *  properties are: id, email, username, etc. id  is WP id, username is WP username same as Moodle user id
+     * If user account in LDAP server exists then it is retrieved as an array
+     *  
      * If account does not exist, a null is returned
      * If account exists and flag is true then ticket error status is set that account already exists
      * If account does NOT exist flag is don't care and no ticket status is set
      */
-    private static function get_user_account_from_sritoni( object $ticket = null, string  $moodle_email, bool $err_flag = false ) : ? object
+    private static function get_user_account_from_sritoni( object $ticket = null, string  $moodle_email, bool $err_flag = false ) : ? array
     {
         // We need the Moodle id of the user. This is not possible to get directly from the Moodle Server
-        // So we will use the email to get the user details from the intranet-hset-payments server
-        // once we get the moodle id we can then get the moodle user account from the Moodle Server
-        $hset_payments_site_user = self::get_wp_user_hset_payments( $moodle_email );
+        // So we will use the email to get the user details from the LDAP server
+        // once we get the moodle id we can then get the moodle user account from the Moodle Server if we need to
+        $ldap_user_arr = self::get_user_account_from_ldap( $moodle_email );
 
-        // The username will be the moodle table user id
-        $moodle_id = $hset_payments_site_user->username;
-
-        // If not a valid moodle ID then flag an error
-        if (! $moodle_id )
+        // verify that a user account was returned
+        if ( $ldap_user_arr )
         {
-            error_log("A SriToni account Does NOT exist with email: " . $moodle_email);
-            error_log(print_r($hset_payments_site_user, true));
+            // we do have a user account array here
+            $moodle_id = (int) $ldap_user_arr['telexnumber'];
 
-            return null;
-        }
-        else 
-        {
-            // A valid WP user with desired email exists in the intranet hset-payments site.
-            error_log("A SriToni account Does exist with email: " . $moodle_email);
-
-            if ( $err_flag && $ticket ) 
+            // If not a valid moodle ID then flag an error
+            if ( ! is_numeric($moodle_id) )
             {
-                // Account exists and flag is true so set error status for ticket
-                self::change_status_error_creating_sritoni_account( $ticket->id, 'A SriToni account with this username already exists' );
+                error_log("A SriToni moodle ID could npt be found in account with email: " . $moodle_email);
+                error_log(print_r($ldap_user_arr, true));
+
+                return null;
             }
-            return $hset_payments_site_user;
+            else
+            {
+                // A valid LDAP user with desired email exists in the LDAP server
+                error_log("A LDAP user account Does exist with email: " . $moodle_email);
+
+                if ( $err_flag && $ticket ) 
+                {
+                    // Account exists and flag is true so set error status for ticket
+                    self::change_status_error_creating_sritoni_account( $ticket->id, 'A SriToni account with this username already exists' );
+                }
+                return $ldap_user_arr;
+                }
+        }
+        else
+        {
+            // nothing returned from LDAP query. Either couldn't connect or no account with this email exists
+            return null;
         }
     }
 
@@ -1661,18 +1692,17 @@ class headstart_admission
             return false;
         }
 
-        // If we got here , a valid email and username were extracted successfully
-        // Get the user' WC customer object from sritoni.org/hset-payments site using the above email
-        $wc_user_hset_payments = self::get_user_account_from_sritoni( $ticket, $moodle_email, false );
+        // If we got here , a valid email and username were extracted successfully from the ticket fields
+        // Get the user from LDAP server with dsame email as passed parameter
+        $ldap_user = self::get_user_account_from_ldap( $moodle_email );
 
-        if ( $wc_user_hset_payments->email !=  $moodle_email )
+        if ( $ldap_user['mail'] !=  $moodle_email )
         {
-            // The user account does not exist as expected!!!
-            $error_message = "check for an existing user failed -  WCuser from intranet- extracted mail not matching: "
-            . $moodle_email . "-->" . $wc_user_hset_payments->email;
+            // The user account does not exist! but is expected since this is supposed to be an existing user
+            $error_message = "check for an existing user failed -  LDAP user - extracted mail not matching: "
+            . $moodle_email . "-->" . $ldap_user['mail'];
 
-            error_log("check for existing user failed -  WCuser from intranet- extracted mail not matching: "
-            . $moodle_email . "-->" . $wc_user_hset_payments->email);
+            error_log($error_message);
 
             // change the ticket status to error
             self::change_status_error_creating_sritoni_account( $ticket->id, $error_message );
@@ -1680,21 +1710,17 @@ class headstart_admission
             return false;
         }
         // we have an existing user confirmed
-        // extract the keys and values array from metadata to get secondary user information
-        $wc_user_meta_keys_array    = array_column($wc_user_hset_payments->meta_data, 'key');
-        $wc_user_meta_values_array  = array_column($wc_user_hset_payments->meta_data, 'value');
-
         // extract needed user data
-        $sritoni_idnumber_wc            = $wc_user_meta_values_array[array_search('sritoni_idnumber',           $wc_user_meta_keys_array )];
-        $grade_or_class_wc              = $wc_user_meta_values_array[array_search('grade_or_class',             $wc_user_meta_keys_array )];
-        $sritoni_student_category_wc    = $wc_user_meta_values_array[array_search('sritoni_student_category',   $wc_user_meta_keys_array )];
-        $ou_wc                          = $wc_user_meta_values_array[array_search('ou',                         $wc_user_meta_keys_array )];
+        $sritoni_idnumber_from_ldap     = $ldap_user['employeenumber'];
+        $grade_or_class_from_ldap       = $ldap_user['departmentnumber'];             
+        $sritoni_student_category_ldap  = $ldap_user['businesscategory'];
+        $ou_ldap                        = $ldap_user['ou'];
 
         // We can extract the department from the ou field above. It will contain StudentActive for a student
-        if ( stripos( $ou_wc, 'Student' ) !== false )
+        if ( stripos( $ou_ldap, 'Student' ) !== false )
         {
             // 'Student' is contained in the ou extracted field
-            $department_wc_extracted = 'Student';
+            $department_ldap_extracted = 'Student';
         }
 
         // before coming here, check that ticket fields such as idnumber, department, etc., are not empty
@@ -1714,8 +1740,8 @@ class headstart_admission
 
         $moodle_department  = self::get_ticket_value_given_cf_name( $ticket, 'department' ) ?? 'Student';
 
-        // Remember that the Wordpress username is the Moodle user id as created originally
-        $moodle_id = $wc_user_hset_payments->username;
+        // get the Moodle user ID (int) from the LDAP extracted array of user account matching our email
+        $moodle_id = $ldap_user['telexnumber'];
 
         // read in the Moodle API config array and setup the API object
         {
@@ -1732,20 +1758,20 @@ class headstart_admission
         
         // We have a valid Moodle user id, form the array to updatethis user. The ticket custom field name must be exactly as shown.
         $users = array("users" => array(
-                                        array(	"id" 	        => $moodle_id,          // extracted from WCuser as username
-                                                "idnumber"      => $moodle_idnumber,    // can change
-                                        //      "auth"          => "oauth2",            // no change
+                                        array(	"id" 	        => $moodle_id,          // extracted from LDAP retrieved array
+                                                "idnumber"      => $moodle_idnumber,    // got from ticket since this can change in update
+                                        //      "auth"          => "oauth2",            // MUST NOT CHANGE
                                                 "firstname"     => self::get_ticket_value_given_cf_name( $ticket, "student-first-name" ),
                                                 "lastname"      => self::get_ticket_value_given_cf_name( $ticket, "student-last-name" ),
                                         //      "email"         => $moodle_email,       // no change
                                                 "middlename"    => self::get_ticket_value_given_cf_name( $ticket, "student-middle-name" ),
                                                 "institution"   => self::get_ticket_value_given_cf_name( $ticket, "institution"),
-                                        //      "department"    => $moodle_department,
+                                        //      "department"    => $moodle_department,  // Usually no change
                                                 "phone1"        => self::get_ticket_value_given_cf_name( $ticket, "emergency-contact-number" ),
                                                 "phone2"        => self::get_ticket_value_given_cf_name( $ticket, "emergency-alternate-contact" ),
                                                 "address"       => self::get_ticket_value_given_cf_name( $ticket, "residential-address" ),
-                                         //     "maildisplay"   => 0,                   // no change
-                                         //     "createpassword"=> 0,                   // no change
+                                         //     "maildisplay"   => 0,                   // MUST NOT CHANGE
+                                         //     "createpassword"=> 0,                   // MUST NOT CHANGE
                                                 "city"          => self::get_ticket_value_given_cf_name( $ticket, "city" ),
 
                                                 "customfields" 	=> array(                                                                            
